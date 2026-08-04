@@ -1,0 +1,25 @@
+export const queryKeys = {
+  auth: {
+    session: ['auth', 'session'] as const,
+  },
+  patient: {
+    profile: (mode: string) => ['patient', 'profile', mode] as const,
+    dashboard: (mode: string) => ['patient', 'dashboard', mode] as const,
+    appointments: (mode: string) => ['patient', 'appointments', mode] as const,
+    transactions: (mode: string) => ['patient', 'transactions', mode] as const,
+    notifications: (mode: string) => ['patient', 'notifications', mode] as const,
+    invoices: (mode: string) => ['patient', 'invoices', mode] as const,
+    invoice: (id: string) => ['patient', 'invoice', id] as const,
+    invoiceAttachment: (id: string) => ['patient', 'invoice', id, 'attachment'] as const,
+    prescriptionRequests: (mode: string) => ['patient', 'prescription-requests', mode] as const,
+    providers: (country: string) => ['patient', 'providers', country] as const,
+    providersByCategory: (category: string, country: string) => ['patient', 'providers', category, country] as const,
+    provider: (id: string | number) => ['patient', 'provider', id] as const,
+    providerReviews: (id: string | number) => ['patient', 'provider', id, 'reviews'] as const,
+    news: ['patient', 'news'] as const,
+    credit: (mode: string) => ['patient', 'credit', mode] as const,
+    ledgerStatus: ['patient', 'ledger', 'status'] as const,
+    ledger: ['patient', 'ledger'] as const,
+    ledgerAccess: ['patient', 'ledger', 'access'] as const,
+  },
+} as const

@@ -1,0 +1,40 @@
+# ---- dependencies ----
+node_modules/
+
+# ---- local environment / secrets (never commit) ----
+.env
+.env.*.local
+!.env.example
+
+# ---- build / generated ----
+dist/
+web-build/
+build/
+*.tsbuildinfo
+.expo/
+
+# ---- generated native folders (managed by EAS/prebuild) ----
+ios/
+android/
+
+# ---- signing / credentials ----
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# ---- AI tooling ----
+.codex-tmp/
+.codex-tmp */
+.codex-logs/
+.agents/
+.claude/
+
+# ---- editor / OS ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,63 @@
+{
+    "expo":  {
+                 "name":  "GG\u0027APP",
+                 "slug":  "gg-app",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "icon":  "./assets/icon.png",
+                 "userInterfaceStyle":  "light",
+                 "scheme":  "ggapp",
+                 "ios":  {
+                             "supportsTablet":  false,
+                             "bundleIdentifier":  "com.gatewayglobal.ggapp",
+                             "splash":  {
+                                            "image":  "./assets/splash-icon.png",
+                                            "resizeMode":  "contain",
+                                            "backgroundColor":  "#011F4A"
+                                        }
+                         },
+                 "android":  {
+                                 "package":  "com.gatewayglobal.ggapp",
+                                 "adaptiveIcon":  {
+                                                      "backgroundColor":  "#011F4A",
+                                                      "foregroundImage":  "./assets/android-icon-foreground.png",
+                                                      "backgroundImage":  "./assets/android-icon-background.png",
+                                                      "monochromeImage":  "./assets/android-icon-monochrome.png"
+                                                  },
+                                 "splash":  {
+                                                "image":  "./assets/splash-icon.png",
+                                                "resizeMode":  "contain",
+                                                "backgroundColor":  "#011F4A"
+                                            },
+                                 "predictiveBackGestureEnabled":  false
+                             },
+                 "splash":  {
+                                "image":  "./assets/splash-icon.png",
+                                "resizeMode":  "contain",
+                                "backgroundColor":  "#011F4A"
+                            },
+                 "plugins":  [
+                                 "expo-font",
+                                 "expo-secure-store",
+                                 "expo-asset",
+                                 [
+                                     "expo-splash-screen",
+                                     {
+                                         "backgroundColor":  "#011F4A",
+                                         "image":  "./assets/splash-icon.png",
+                                         "imageWidth":  200,
+                                         "resizeMode":  "contain"
+                                     }
+                                 ],
+                                 [
+                                     "expo-location",
+                                     {
+                                         "locationAlwaysAndWhenInUsePermission":  "Allow GG\u0027APP to use your location to show nearby healthcare providers and driving distances.",
+                                         "locationWhenInUsePermission":  "Allow GG\u0027APP to use your location to show nearby healthcare providers and driving distances."
+                                     }
+                                 ],
+                                 "expo-sharing",
+                                 "expo-notifications"
+                             ]
+             }
+}

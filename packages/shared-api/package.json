@@ -1,0 +1,13 @@
+{
+  "name": "@gg/shared-api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@gg/shared-types": "*",
+    "@gg/shared-config": "*",
+    "@gg/shared-stores": "*",
+    "axios": "^1.16.1"
+  }
+}

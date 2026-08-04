@@ -1,0 +1,19 @@
+{
+  "name": "gg-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "web": "npm run dev --workspace=apps/web",
+    "mobile": "npm run start --workspace=apps/mobile",
+    "typecheck": "tsc --noEmit --workspace=packages/*"
+  },
+  "dependencies": {
+    "@expo/log-box": "^56.0.13",
+    "babel-plugin-module-resolver": "^5.0.3",
+    "babel-preset-expo": "^56.0.15",
+    "expo-asset": "^56.0.17"
+  }
+}
