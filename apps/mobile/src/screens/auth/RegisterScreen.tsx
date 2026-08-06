@@ -141,7 +141,8 @@ export function RegisterScreen() {
         useAuthStore.getState().setSession('patient')
         return
       }
-      navigation.navigate('EmailVerify', {})
+      // Local signup requires email verification before the first login.
+      navigation.navigate('EmailVerify', { token: result.verificationToken })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.'
       setError(message)

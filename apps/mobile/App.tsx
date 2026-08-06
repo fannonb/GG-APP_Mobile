@@ -91,6 +91,20 @@ function getMobileApiBaseUrl() {
   const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim()
   const envHost = envBaseUrl ? hostOf(envBaseUrl) : null
 
+  // Release builds have no Metro host to discover: the API target is fixed at
+  // build time by EXPO_PUBLIC_API_BASE_URL. Failing loudly here is deliberate —
+  // a test APK that silently points at localhost/10.0.2.2 is useless and hides
+  // the misconfiguration until runtime.
+  if (!__DEV__) {
+    if (!envBaseUrl || !envHost || isUnroutableHost(envHost)) {
+      throw new Error(
+        '[GG Mobile] Release builds must set EXPO_PUBLIC_API_BASE_URL to the deployed API base URL ' +
+          '(e.g. https://api-production-<service>.up.railway.app/api/v1) at build time.',
+      )
+    }
+    return envBaseUrl
+  }
+
   // A .env pointing at the emulator alias cannot work on a phone. Honouring it
   // guarantees ERR_NETWORK, so ignore it and fall through to the Metro host.
   // This is what makes the app self-healing when .env goes stale.
@@ -257,4 +271,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 })
-

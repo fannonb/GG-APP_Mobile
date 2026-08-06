@@ -6,7 +6,10 @@
                  "orientation":  "portrait",
                  "icon":  "./assets/icon.png",
                  "userInterfaceStyle":  "light",
-                 "scheme":  "ggapp",
+                 "scheme":  [
+                                "ggapp",
+                                "com.googleusercontent.apps.335540055294-raieetpuh61lvu9ar6vm2i49bnfu5kjb"
+                            ],
                  "ios":  {
                              "supportsTablet":  false,
                              "bundleIdentifier":  "com.gatewayglobal.ggapp",
