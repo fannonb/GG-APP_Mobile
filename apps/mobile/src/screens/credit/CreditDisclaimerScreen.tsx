@@ -13,7 +13,7 @@ const DISCLOSURES = [
     emoji: '🏦',
     title: 'Third-Party Finance Partner',
     description:
-      'Your healthcare credit facility is provided by a licensed finance partner (e.g. Moneymart Finance), not by GG\'APP. GG\'APP acts as a facilitator only.',
+      'Your healthcare credit facility is provided by a licensed and accredited finance partner, not by GG\'APP. GG\'APP acts as a facilitator only.',
   },
   {
     emoji: '📋',

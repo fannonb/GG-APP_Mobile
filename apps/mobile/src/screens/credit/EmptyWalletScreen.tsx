@@ -86,7 +86,7 @@ export function EmptyWalletScreen() {
             <Circle cx={8} cy={11.5} r={0.9} fill={colors.blue} />
           </Svg>
           <Text style={s.infoText}>
-            Healthcare credit is provided in partnership with finance accredited and verified finance partners.
+            Healthcare credit is provided in partnership with accredited and verified finance partners.
             Funds can only be used with GG'APP-approved providers through the invoice flow.
           </Text>
         </View>

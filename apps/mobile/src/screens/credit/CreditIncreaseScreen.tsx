@@ -10,11 +10,10 @@ import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
-import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
+import { getCountryByCode } from '@gg/shared-config'
 import type { Patient } from '@gg/shared-types'
 
 const REASON_OPTIONS = [
@@ -81,8 +80,6 @@ export function CreditIncreaseScreen() {
   const creditAvailable = u?.creditAvailable ?? 0
   const inUse = creditLimit - creditAvailable
   const refNum = u?.creditAccountRef ?? 'GGA-847291'
-  const partnerId = u?.financePartnerId ?? 'moneymart'
-  const partner = getFinancePartnerSummary(partnerId)
 
   const pendingReview = u?.creditStatus === 'pending'
   const pendingIncrease =
@@ -167,11 +164,8 @@ export function CreditIncreaseScreen() {
       <ScrollArea gap={14} px={16} py={14}>
         <MCard padding={16}>
           <View style={s.partnerRow}>
-            <View style={s.partnerLogoZone}>
-              <FinancePartnerLogo partnerId={partnerId} height={26} />
-            </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.partnerName}>{partner?.name ?? 'Moneymart Finance'}</Text>
+              <Text style={s.partnerName}>Accredited Finance Partner</Text>
               <Text style={s.partnerDesc}>
                 Limit increases follow the same review process as your original
                 application — your finance partner reassesses and approves the request.
@@ -189,7 +183,7 @@ export function CreditIncreaseScreen() {
               {pendingIncrease ? 'Increase request under review' : 'Credit request under review'}
             </Text>
             <Text style={s.pendingDesc}>
-              You already have a pending request with the {partner?.name ?? 'finance partner'} team.
+              You already have a pending request with the finance partner team.
               You can submit a new increase once a decision is made.
             </Text>
             <MBtn
@@ -235,7 +229,7 @@ export function CreditIncreaseScreen() {
         <MCard padding={18} style={pendingReview ? s.formDisabled : undefined}>
           <Text style={s.cardTitle}>Increase Request Details</Text>
           <Text style={s.cardSubtitle}>
-            Tell {partner?.name ?? 'your finance partner'} how much additional credit you need.
+            Tell your finance partner how much additional credit you need.
             They will reassess based on your current limit and repayment history.
           </Text>
 
@@ -382,8 +376,8 @@ export function CreditIncreaseScreen() {
           >
             <CheckSquare checked={consent} />
             <Text style={s.consentText}>
-              I confirm this increase request is accurate, authorise{' '}
-              {partner?.name ?? 'my finance partner'} to review my account, and acknowledge
+              I confirm this increase request is accurate, authorise my finance
+              partner to review my account, and acknowledge
               the 2.5% GG'APP platform admin fee on any newly approved increase.
             </Text>
           </Pressable>
@@ -392,7 +386,7 @@ export function CreditIncreaseScreen() {
             <View style={s.nextStepsCard}>
               <Text style={s.nextStepsTitle}>What Happens Next</Text>
               {[
-                `Your increase request is sent to the ${partner?.name ?? 'finance partner'} team for review.`,
+                'Your increase request is sent to the finance partner team for review.',
                 'You will receive a notification when a decision is made.',
                 'Once approved, your limit and available balance are updated and ready to use at verified providers.',
               ].map((text, idx) => (
@@ -428,7 +422,7 @@ export function CreditIncreaseScreen() {
             disabled={loading || pendingReview}
             onPress={handleSubmit}
           >
-            {loading ? 'Submitting...' : `Submit to ${partner?.shortName ?? 'Partner'} →`}
+            {loading ? 'Submitting...' : 'Submit Request'}
           </MBtn>
         </View>
 

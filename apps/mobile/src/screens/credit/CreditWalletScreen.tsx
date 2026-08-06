@@ -22,7 +22,6 @@ import {
   MProgress,
 } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import { useCreditStatus, usePatientTransactions } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
@@ -247,14 +246,11 @@ export function CreditWalletScreen() {
         {/* ====== 2. Finance Partner Card ====== */}
         <MCard padding={16}>
           <View style={s.partnerRow}>
-            <View style={s.partnerIcon}>
-              <FinancePartnerLogo partnerId={u?.financePartnerId ?? 'moneymart'} height={30} />
-            </View>
             <View style={{ flex: 1 }}>
               <Text style={s.partnerLabel}>Financing Partner</Text>
-              <Text style={s.partnerName}>Moneymart Finance</Text>
+              <Text style={s.partnerName}>Accredited Finance Partner</Text>
               <Text style={s.partnerDesc}>
-                Account compiled securely in collaboration with Moneymart Finance.
+                Your credit account is compiled securely with accredited and verified finance partners.
               </Text>
             </View>
           </View>
@@ -269,8 +265,8 @@ export function CreditWalletScreen() {
           </Svg>
           <Text style={s.infoText}>
             Funds can only be used with GG'APP-approved providers through the
-            invoice flow. Repayments are handled directly in partnership with{' '}
-            <Text style={{ fontFamily: fontWeights.bold }}>Moneymart Finance</Text>.
+            invoice flow. Repayments are handled directly with your accredited
+            finance partner.
           </Text>
         </View>
 

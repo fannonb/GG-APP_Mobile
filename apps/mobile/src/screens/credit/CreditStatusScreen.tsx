@@ -10,11 +10,10 @@ import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import { useCreditStatus } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
-import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
+import { getCountryByCode } from '@gg/shared-config'
 import type { CreditStatusResponse, Patient } from '@gg/shared-types'
 import type { WalletScreenProps } from '@/navigation/types'
 import { EmptyCreditStatusScreen } from './EmptyCreditStatusScreen'
@@ -110,10 +109,6 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
   const requestedAmount = application?.requestedAmount ?? u?.creditLimit ?? 0
   const approvedAmount =
     application?.approvedAmount ?? (isApproved ? u?.creditLimit : 0) ?? 0
-  const partnerId =
-    application?.financePartnerId ?? creditData?.financePartnerId ?? u?.financePartnerId ?? 'moneymart'
-  const partner = getFinancePartnerSummary(partnerId)
-  const partnerName = partner?.name ?? 'Moneymart Finance'
 
   const timeline = buildTimeline(
     application,
@@ -176,13 +171,9 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
                   ? 'Your limit increase has been approved. Your updated balance is ready to use.'
                   : 'Your application has been approved and your wallet balance is ready to use.'
                 : isIncrease
-                  ? `Your increase request is with the ${partnerName} team for review.`
+                  ? 'Your increase request is with the finance partner team for review.'
                   : 'Your application is being reviewed. You will be notified once a decision is made.'}
             </Text>
-
-            <View style={s.bannerPartnerLogo}>
-              <FinancePartnerLogo partnerId={partnerId} height={22} />
-            </View>
 
             <View style={s.bannerDetails}>
               <View style={s.bannerDetailItem}>
@@ -200,7 +191,7 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
               <View style={s.bannerDetailItem}>
                 <Text style={s.bannerDetailLabel}>Partner</Text>
                 <Text style={s.bannerDetailValue} numberOfLines={1}>
-                  {partnerName}
+                  Accredited finance partner
                 </Text>
               </View>
             </View>

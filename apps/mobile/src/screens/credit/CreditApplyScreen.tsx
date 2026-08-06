@@ -11,11 +11,10 @@ import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
-import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
+import { getCountryByCode } from '@gg/shared-config'
 import type { Patient } from '@gg/shared-types'
 
 /* ------------------------------------------------------------------ */
@@ -90,8 +89,6 @@ export function CreditApplyScreen() {
   const creditAvailable = u?.creditAvailable ?? 0
   const inUse = creditLimit - creditAvailable
   const refNum = (u as any)?.creditAccountRef ?? 'GGA-847291'
-  const partnerId = u?.financePartnerId ?? 'moneymart'
-  const partnerName = getFinancePartnerSummary(partnerId)?.name ?? 'Moneymart Finance'
 
   /* form state */
   const [increaseAmount, setIncreaseAmount] = useState('')
@@ -155,23 +152,15 @@ export function CreditApplyScreen() {
       />
 
       <ScrollArea gap={14} px={16} py={14}>
-        {/* ====== 1. Finance Partner Card ====== */}
+        {/* ====== 1. Finance Partner Note ====== */}
         <MCard padding={16}>
           <View style={s.partnerRow}>
-            <View style={s.partnerLogoZone}>
-              <FinancePartnerLogo partnerId={partnerId} height={26} />
-            </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.partnerName}>{partnerName}</Text>
+              <Text style={s.partnerName}>Financing Partner</Text>
               <Text style={s.partnerDesc}>
                 Limit increases follow the same review process as your original
-                application.
+                application, carried out by your accredited finance partner.
               </Text>
-              <View style={s.linkedBadge}>
-                <Text style={s.linkedBadgeText}>
-                  Linked to your active credit line
-                </Text>
-              </View>
             </View>
           </View>
         </MCard>
@@ -208,7 +197,7 @@ export function CreditApplyScreen() {
         <MCard padding={18}>
           <Text style={s.cardTitle}>Increase Request Details</Text>
           <Text style={s.cardSubtitle}>
-            Tell Moneymart Finance how much additional credit you need. They
+            Tell your finance partner how much additional credit you need. They
             will reassess based on your current limit and repayment history.
           </Text>
 
@@ -317,7 +306,7 @@ export function CreditApplyScreen() {
             <CheckSquare checked={consent} />
             <Text style={s.consentText}>
               I confirm this increase request is accurate and authorise
-              Moneymart Finance to review my account and perform a credit
+              my finance partner to review my account and perform a credit
               reassessment.
             </Text>
           </Pressable>
@@ -351,7 +340,7 @@ export function CreditApplyScreen() {
             disabled={loading}
             onPress={handleSubmit}
           >
-            {loading ? 'Submitting...' : 'Submit to Moneymart →'}
+            {loading ? 'Submitting...' : 'Submit Request'}
           </MBtn>
         </View>
 
