@@ -1,20 +1,19 @@
 import React, { useState } from 'react'
-import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native'
+import { View, Text, Image, Pressable, StyleSheet, Dimensions, ScrollView } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg'
-import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, Field, DateField, MBtn } from '@/components'
+import { colors, fontWeights, radii } from '@/theme'
+import { Screen, Field, DateField, MBtn, PhonePrefixInput } from '@/components'
 import { CheckIcon } from '@/icons'
-import { authService, getGoogleClientId, getIsMockApi } from '@gg/shared-api'
+import { authService, getGoogleClientId } from '@gg/shared-api'
 import { useAuthStore } from '@gg/shared-stores'
+import { getCountryDial } from '@gg/shared-config'
 import { normalizeDobInput } from '@/lib/dates'
-import type { AuthScreenProps } from '@/navigation/types'
-import type { GoogleProfileState } from '@/navigation/types'
+import type { AuthScreenProps, GoogleProfileState } from '@/navigation/types'
 
 const logo = require('../../../assets/gg-logo.png')
-
-const STEP_LABELS = ['Personal Info', 'Identity', 'Security'] as const
+const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 const COUNTRIES = [
   { id: 'KE', name: 'Kenya', code: '+254', flag: '🇰🇪' },
@@ -22,7 +21,7 @@ const COUNTRIES = [
   { id: 'ZM', name: 'Zambia', code: '+260', flag: '🇿🇲' },
 ]
 
-function ChevronDownIcon({ color = colors.textSub }: { color?: string }) {
+function ChevronDownIcon({ color = 'rgba(255,255,255,0.5)' }: { color?: string }) {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
       <Path
@@ -45,6 +44,7 @@ function getPasswordStrength(pw: string): number {
   return score
 }
 
+const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'] as const
 const STRENGTH_COLORS = [colors.error, colors.warning, colors.blue, colors.success]
 const STRENGTH_LABELS = ['Weak', 'Fair', 'Good', 'Strong']
 
@@ -55,18 +55,19 @@ export function RegisterScreen() {
   const googleProfile: GoogleProfileState | undefined = route.params?.googleProfile
   const [step, setStep] = useState(0)
 
-
   // Step 1: Personal Info
   const [firstName, setFirstName] = useState(googleProfile?.firstName ?? '')
   const [lastName, setLastName] = useState(googleProfile?.lastName ?? '')
   const [email, setEmail] = useState(googleProfile?.email ?? '')
   const [selectedCountryIdx, setSelectedCountryIdx] = useState(-1)
   const [showCountryPicker, setShowCountryPicker] = useState(false)
-  const [phone, setPhone] = useState('')
+  const [phoneCountryCode, setPhoneCountryCode] = useState('KE')
+  const [phoneDigits, setPhoneDigits] = useState('')
 
   // Step 2: Identity
   const [dob, setDob] = useState('')
   const [nationalId, setNationalId] = useState('')
+  const [gender, setGender] = useState('')
 
   // Step 3: Security
   const [password, setPassword] = useState('')
@@ -82,13 +83,13 @@ export function RegisterScreen() {
   const handleContinue = () => {
     setError(null)
     if (step === 0) {
-      if (!firstName || !lastName || !email || !selectedCountry || !phone) {
+      if (!firstName || !lastName || !email || !selectedCountry || !phoneDigits) {
         setError('Please fill in all required fields.')
         return
       }
       setStep(1)
     } else if (step === 1) {
-      if (!dob || !nationalId) {
+      if (!dob || !nationalId || !gender) {
         setError('Please fill in all required fields.')
         return
       }
@@ -127,21 +128,20 @@ export function RegisterScreen() {
         firstName,
         lastName,
         email,
-        phone: selectedCountry ? `${selectedCountry.code}${phone}` : phone,
+        phone: `${getCountryDial(phoneCountryCode)} ${phoneDigits}`,
         country: selectedCountry?.id ?? '',
         dob: normalizedDob,
+        gender,
         nationalId,
         password: googleProfile ? undefined : password,
         googleIdToken: googleProfile?.googleIdToken,
         googleClientId: googleProfile ? getGoogleClientId() : undefined,
       })
       if (result.session) {
-        // Google signup activates the account immediately (no email verification).
         useAuthStore.getState().setUserMode('new')
         useAuthStore.getState().setSession('patient')
         return
       }
-      // Local signup requires email verification before the first login.
       navigation.navigate('EmailVerify', { token: result.verificationToken })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.'
@@ -152,423 +152,407 @@ export function RegisterScreen() {
   }
 
   return (
-    <Screen bg={colors.bg}>
-      {/* Navy Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20, paddingBottom: 28 }]}>
-        {/* Decorative circles */}
-        <View style={[styles.decoCircle, styles.decoCircle1]} />
-        <View style={[styles.decoCircle, styles.decoCircle2]} />
+    <Screen bg={colors.navy}>
+      <View style={styles.bgGlow} />
 
-        {/* Logo */}
-        <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
-
-        <Text style={styles.headerTitle}>Create Patient Account</Text>
-        <Text style={styles.headerSub}>
-          Get access to verified healthcare providers near you.
-        </Text>
+      {/* Sleek Minimalist Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <Image source={logo} style={styles.logo} resizeMode="contain" />
+        
+        {/* Minimal Progress Dots */}
+        <View style={styles.progressRow}>
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressDot,
+                i === step && styles.progressDotActive,
+                i < step && styles.progressDotDone,
+              ]}
+            />
+          ))}
+        </View>
       </View>
 
-      {/* Step Indicator */}
-      <View style={styles.stepRow}>
-        {STEP_LABELS.map((label, i) => {
-          const done = i < step
-          const active = i === step
-          return (
-            <React.Fragment key={label}>
-              {i > 0 && (
-                <View
-                  style={[
-                    styles.stepLine,
-                    { backgroundColor: i <= step ? colors.blue : colors.border },
-                  ]}
-                />
-              )}
-              <View style={styles.stepItem}>
-                <View
-                  style={[
-                    styles.stepCircle,
-                    (active || done) && styles.stepCircleActive,
-                  ]}
+      <ScrollView 
+        contentContainerStyle={{ 
+          paddingBottom: insets.top + 60,
+          paddingHorizontal: 32,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Dynamic Titles */}
+        <View style={styles.titleWrap}>
+          {step === 0 && (
+            <>
+              <Text style={styles.stepTitle}>
+                Tell us about{'\n'}
+                <Text style={styles.highlight}>yourself.</Text>
+              </Text>
+              <Text style={styles.stepSub}>Create your GG'APP patient account.</Text>
+            </>
+          )}
+          {step === 1 && (
+            <>
+              <Text style={styles.stepTitle}>
+                Verify your{'\n'}
+                <Text style={styles.highlight}>identity.</Text>
+              </Text>
+              <Text style={styles.stepSub}>We need this to secure your medical records.</Text>
+            </>
+          )}
+          {step === 2 && (
+            <>
+              <Text style={styles.stepTitle}>
+                Secure your{'\n'}
+                <Text style={styles.highlight}>account.</Text>
+              </Text>
+              <Text style={styles.stepSub}>Keep your access safe and private.</Text>
+            </>
+          )}
+        </View>
+
+        {/* Error Banner */}
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {/* Form Container */}
+        <View style={styles.formContainer}>
+          
+          {/* Step 0: Personal Info */}
+          {step === 0 && (
+            <>
+              <View style={styles.nameRow}>
+                <View style={styles.nameField}>
+                  <Field
+                    label="First Name"
+                    placeholder="John"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    required
+                    variant="dark"
+                  />
+                </View>
+                <View style={styles.nameField}>
+                  <Field
+                    label="Last Name"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChangeText={setLastName}
+                    required
+                    variant="dark"
+                  />
+                </View>
+              </View>
+
+              <Field
+                label="Email Address"
+                placeholder="you@example.com"
+                value={email}
+                onChangeText={setEmail}
+                required
+                keyboardType="email-address"
+                autoCapitalize="none"
+                variant="dark"
+              />
+
+              {/* Country selector */}
+              <View style={styles.fieldWrapper}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.labelDark}>Country</Text>
+                </View>
+                <Pressable
+                  style={styles.selectBox}
+                  onPress={() => setShowCountryPicker(!showCountryPicker)}
                 >
-                  {done ? (
-                    <CheckIcon size={14} color="#FFFFFF" />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.stepNum,
-                        (active || done) && styles.stepNumActive,
-                      ]}
-                    >
-                      {i + 1}
-                    </Text>
-                  )}
-                </View>
-                <Text
-                  style={[
-                    styles.stepLabel,
-                    (active || done) && styles.stepLabelActive,
-                  ]}
-                >
-                  {label}
-                </Text>
-              </View>
-            </React.Fragment>
-          )
-        })}
-      </View>
-
-      {/* Form */}
-      <ScrollArea gap={14} py={20} px={20}>
-        {/* Error */}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        {/* Step 1: Personal Info */}
-        {step === 0 && (
-          <>
-            <View style={styles.nameRow}>
-              <View style={styles.nameField}>
-                <Field
-                  label="First Name"
-                  placeholder="John"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  required
-                />
-              </View>
-              <View style={styles.nameField}>
-                <Field
-                  label="Last Name"
-                  placeholder="Doe"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  required
-                />
-              </View>
-            </View>
-
-            <Field
-              label="Email Address"
-              placeholder="you@example.com"
-              value={email}
-              onChangeText={setEmail}
-              required
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            {/* Country selector */}
-            <View style={styles.fieldWrapper}>
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>Country</Text>
-              </View>
-              <Pressable
-                style={styles.selectBox}
-                onPress={() => setShowCountryPicker(!showCountryPicker)}
-              >
-                <Text
-                  style={[
-                    styles.selectText,
-                    !selectedCountry && styles.placeholder,
-                  ]}
-                >
-                  {selectedCountry
-                    ? `${selectedCountry.flag} ${selectedCountry.name}`
-                    : 'Select country'}
-                </Text>
-                <ChevronDownIcon />
-              </Pressable>
-              {showCountryPicker && (
-                <View style={styles.pickerDropdown}>
-                  {COUNTRIES.map((c, idx) => (
-                    <Pressable
-                      key={c.name}
-                      style={[
-                        styles.pickerItem,
-                        idx === selectedCountryIdx && styles.pickerItemActive,
-                      ]}
-                      onPress={() => {
-                        setSelectedCountryIdx(idx)
-                        setShowCountryPicker(false)
-                      }}
-                    >
-                      <Text style={styles.pickerItemText}>
-                        {c.flag} {c.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Phone number */}
-            <View style={styles.fieldWrapper}>
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>Phone Number</Text>
-              </View>
-              <View style={styles.phoneRow}>
-                <View style={styles.phoneCode}>
-                  <Text style={styles.phoneCodeText}>
-                    {selectedCountry ? `${selectedCountry.flag} ${selectedCountry.code}` : '+---'}
-                  </Text>
-                </View>
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="712 345 678"
-                  placeholderTextColor={colors.textLight}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                />
-              </View>
-            </View>
-
-            <MBtn variant="primary" fullWidth onPress={handleContinue}>
-              Continue →
-            </MBtn>
-
-            <Pressable
-              style={styles.linkRow}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.linkHint}>Already have an account? </Text>
-              <Text style={styles.linkAction}>Sign In</Text>
-            </Pressable>
-          </>
-        )}
-
-        {/* Step 2: Identity */}
-        {step === 1 && (
-          <>
-            <DateField
-              label="Date of Birth"
-              value={dob}
-              onChangeText={setDob}
-              required
-            />
-
-            <Field
-              label="National ID"
-              placeholder="e.g. 30127843"
-              value={nationalId}
-              onChangeText={setNationalId}
-              required
-              keyboardType="numeric"
-            />
-
-            <MBtn variant="primary" fullWidth onPress={handleContinue}>
-              Continue →
-            </MBtn>
-
-            <Pressable style={styles.linkRow} onPress={() => setStep(0)}>
-              <Text style={styles.linkAction}>← Back</Text>
-            </Pressable>
-          </>
-        )}
-
-        {/* Step 3: Security */}
-        {step === 2 && (
-          <>
-            {!googleProfile && (
-            <><Field
-              label="Password"
-              placeholder={'••••••••'}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              required
-            />
-
-            <Field
-              label="Confirm Password"
-              placeholder={'••••••••'}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              required
-            />
-
-            {/* Password strength indicator */}
-            {password.length > 0 && (
-              <View style={styles.strengthSection}>
-                <View style={styles.strengthBars}>
-                  {[0, 1, 2, 3].map(i => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.strengthBar,
-                        {
-                          backgroundColor:
-                            i < pwStrength
-                              ? STRENGTH_COLORS[pwStrength - 1]
-                              : colors.border,
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-                {pwStrength > 0 && (
                   <Text
                     style={[
-                      styles.strengthLabel,
-                      { color: STRENGTH_COLORS[pwStrength - 1] },
+                      styles.selectText,
+                      !selectedCountry && styles.placeholder,
                     ]}
                   >
-                    {STRENGTH_LABELS[pwStrength - 1]}
+                    {selectedCountry
+                      ? `${selectedCountry.flag} ${selectedCountry.name}`
+                      : 'Select country'}
                   </Text>
+                  <ChevronDownIcon />
+                </Pressable>
+                {showCountryPicker && (
+                  <View style={styles.pickerDropdown}>
+                    {COUNTRIES.map((c, idx) => (
+                      <Pressable
+                        key={c.name}
+                        style={[
+                          styles.pickerItem,
+                          idx === selectedCountryIdx && styles.pickerItemActive,
+                        ]}
+                        onPress={() => {
+                          setSelectedCountryIdx(idx)
+                          setPhoneCountryCode(c.id)
+                          setShowCountryPicker(false)
+                        }}
+                      >
+                        <Text style={styles.pickerItemText}>
+                          {c.flag} {c.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 )}
               </View>
-            )}
-            </>)}
 
-            {googleProfile && (
-              <View style={styles.googleNotice}>
-                <Text style={styles.googleNoticeText}>
-                  Verified by Google — email is locked in. We've pre-filled your name, feel free to correct it.
-                </Text>
-              </View>
-            )}
+              <PhonePrefixInput
+                label="Phone Number"
+                required
+                variant="dark"
+                countryCode={phoneCountryCode}
+                onCountryChange={setPhoneCountryCode}
+                digits={phoneDigits}
+                onDigitsChange={setPhoneDigits}
+              />
 
-            {/* Terms checkbox */}
-            <Pressable
-              style={styles.checkboxRow}
-              onPress={() => setAgreedTerms(!agreedTerms)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  agreedTerms && styles.checkboxChecked,
-                ]}
+              <Pressable style={styles.primaryBtn} onPress={handleContinue}>
+                <Text style={styles.primaryBtnText}>Continue</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.linkRow}
+                onPress={() => navigation.navigate('Login')}
+                hitSlop={12}
               >
-                {agreedTerms && <CheckIcon size={12} color="#FFFFFF" />}
+                <Text style={styles.linkHint}>Already have an account? </Text>
+                <Text style={styles.linkAction}>Sign In</Text>
+              </Pressable>
+            </>
+          )}
+
+          {/* Step 1: Identity */}
+          {step === 1 && (
+            <>
+              <DateField
+                label="Date of Birth"
+                value={dob}
+                onChangeText={setDob}
+                required
+                variant="dark"
+              />
+
+              <Field
+                label="National ID"
+                placeholder="e.g. 30127843"
+                value={nationalId}
+                onChangeText={setNationalId}
+                required
+                keyboardType="numeric"
+                variant="dark"
+              />
+
+              <View style={styles.fieldWrapper}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.labelDark}>Gender</Text>
+                </View>
+                <View style={styles.genderRow}>
+                  {GENDERS.map(option => {
+                    const active = gender === option
+                    return (
+                      <Pressable
+                        key={option}
+                        style={[styles.genderChip, active && styles.genderChipActive]}
+                        onPress={() => setGender(option)}
+                      >
+                        <Text style={[styles.genderChipText, active && styles.genderChipTextActive]}>
+                          {option}
+                        </Text>
+                      </Pressable>
+                    )
+                  })}
+                </View>
               </View>
-              <Text style={styles.checkboxLabel}>
-                I agree to the{' '}
-                <Text style={styles.linkInline} onPress={() => navigation.navigate('Terms')}>Terms of Service</Text>
-                {' '}and{' '}
-                <Text style={styles.linkInline} onPress={() => navigation.navigate('Privacy')}>Privacy Policy</Text>
-              </Text>
-            </Pressable>
 
-            <MBtn
-              variant="primary"
-              fullWidth
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? 'Creating Account...' : 'Create Account →'}
-            </MBtn>
+              <Pressable style={styles.primaryBtn} onPress={handleContinue}>
+                <Text style={styles.primaryBtnText}>Continue</Text>
+              </Pressable>
 
-            <Pressable style={styles.linkRow} onPress={() => setStep(1)}>
-              <Text style={styles.linkAction}>← Back</Text>
-            </Pressable>
-          </>
-        )}
-      </ScrollArea>
+              <Pressable style={styles.linkRow} onPress={() => setStep(0)} hitSlop={12}>
+                <Text style={styles.linkAction}>← Back</Text>
+              </Pressable>
+            </>
+          )}
+
+          {/* Step 2: Security */}
+          {step === 2 && (
+            <>
+              {!googleProfile && (
+                <>
+                  <Field
+                    label="Password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    required
+                    variant="dark"
+                  />
+
+                  <Field
+                    label="Confirm Password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    required
+                    variant="dark"
+                  />
+
+                  {/* Password strength indicator */}
+                  {password.length > 0 && (
+                    <View style={styles.strengthSection}>
+                      <View style={styles.strengthBars}>
+                        {[0, 1, 2, 3].map(i => (
+                          <View
+                            key={i}
+                            style={[
+                              styles.strengthBar,
+                              {
+                                backgroundColor:
+                                  i < pwStrength
+                                    ? STRENGTH_COLORS[pwStrength - 1]
+                                    : 'rgba(255,255,255,0.1)',
+                              },
+                            ]}
+                          />
+                        ))}
+                      </View>
+                      {pwStrength > 0 && (
+                        <Text
+                          style={[
+                            styles.strengthLabel,
+                            { color: STRENGTH_COLORS[pwStrength - 1] },
+                          ]}
+                        >
+                          {STRENGTH_LABELS[pwStrength - 1]}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </>
+              )}
+
+              {googleProfile && (
+                <View style={styles.googleNotice}>
+                  <Text style={styles.googleNoticeText}>
+                    Verified by Google — email is locked in. We've pre-filled your name, feel free to correct it.
+                  </Text>
+                </View>
+              )}
+
+              {/* Terms checkbox */}
+              <Pressable
+                style={styles.checkboxRow}
+                onPress={() => setAgreedTerms(!agreedTerms)}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    agreedTerms && styles.checkboxChecked,
+                  ]}
+                >
+                  {agreedTerms && <CheckIcon size={12} color={colors.navy} />}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  I agree to the{' '}
+                  <Text style={styles.linkInline} onPress={() => navigation.navigate('Terms')}>Terms of Service</Text>
+                  {' '}and{' '}
+                  <Text style={styles.linkInline} onPress={() => navigation.navigate('Privacy')}>Privacy Policy</Text>
+                </Text>
+              </Pressable>
+
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  pressed && styles.primaryBtnPressed,
+                  loading && styles.primaryBtnDisabled
+                ]}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
+              </Pressable>
+
+              <Pressable style={styles.linkRow} onPress={() => setStep(1)} hitSlop={12}>
+                <Text style={styles.linkAction}>← Back</Text>
+              </Pressable>
+            </>
+          )}
+
+        </View>
+      </ScrollView>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: colors.navy,
-    paddingTop: 20,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  decoCircle: {
+  bgGlow: {
     position: 'absolute',
+    bottom: '-20%',
+    left: '-25%',
+    width: SCREEN_WIDTH * 1.5,
+    height: SCREEN_WIDTH * 1.5,
     borderRadius: 9999,
-    borderWidth: 1,
+    backgroundColor: 'rgba(56, 182, 255, 0.04)',
   },
-  decoCircle1: {
-    width: 200,
-    height: 200,
-    right: -80,
-    top: -80,
-    borderColor: 'rgba(47,155,255,0.08)',
+  header: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  decoCircle2: {
-    width: 320,
-    height: 320,
-    right: -80,
-    top: -80,
-    borderColor: 'rgba(47,155,255,0.06)',
+  logo: {
+    width: 80,
+    height: 80,
+    opacity: 1,
+    marginBottom: 20,
   },
-  headerLogo: {
-    width: 150,
-    height: 85,
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: fontWeights.extraBold,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSub: {
-    fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: 'rgba(255,255,255,0.4)',
-  },
-  stepRow: {
+  progressRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    gap: 8,
   },
-  stepItem: {
-    alignItems: 'center',
+  progressDot: {
+    width: 24,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.card,
-    marginBottom: 4,
-  },
-  stepCircleActive: {
+  progressDotActive: {
     backgroundColor: colors.blue,
-    borderColor: colors.blue,
   },
-  stepNum: {
-    fontFamily: fontWeights.bold,
-    fontSize: 12,
-    color: colors.textLight,
+  progressDotDone: {
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
-  stepNumActive: {
+  titleWrap: {
+    marginBottom: 32,
+  },
+  stepTitle: {
+    fontFamily: fontWeights.extraBold,
+    fontSize: 40,
     color: '#FFFFFF',
+    lineHeight: 48,
+    letterSpacing: -1,
   },
-  stepLabel: {
-    fontFamily: fontWeights.medium,
-    fontSize: 10,
-    color: colors.textLight,
-  },
-  stepLabelActive: {
+  highlight: {
     color: colors.blue,
-    fontFamily: fontWeights.semiBold,
   },
-  stepLine: {
-    height: 2,
-    flex: 1,
-    marginHorizontal: 6,
-    marginBottom: 18,
-    borderRadius: 1,
+  stepSub: {
+    fontFamily: fontWeights.regular,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 12,
   },
-  errorText: {
-    fontSize: 13,
-    fontFamily: fontWeights.medium,
-    color: colors.error,
-    textAlign: 'center',
+  formContainer: {
+    gap: 4,
   },
   nameRow: {
     flexDirection: 'row',
@@ -578,102 +562,140 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldWrapper: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   labelRow: {
     flexDirection: 'row',
     marginBottom: 6,
   },
-  label: {
-    fontFamily: fontWeights.semiBold,
+  labelDark: {
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: fontWeights.medium,
     fontSize: 14,
-    color: colors.navy,
   },
   selectBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 14,
-    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: colors.card,
   },
   selectText: {
     fontFamily: fontWeights.regular,
     fontSize: 15,
-    color: colors.text,
+    color: '#FFFFFF',
   },
   placeholder: {
-    color: colors.textLight,
+    color: 'rgba(255,255,255,0.3)',
   },
   pickerDropdown: {
     marginTop: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(255,255,255,0.15)',
     borderRadius: 12,
-    backgroundColor: colors.card,
+    backgroundColor: '#1A2F5E',
     overflow: 'hidden',
   },
   pickerItem: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   pickerItemActive: {
-    backgroundColor: colors.blue100,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   pickerItemText: {
     fontFamily: fontWeights.medium,
     fontSize: 14,
-    color: colors.text,
+    color: '#FFFFFF',
   },
   phoneRow: {
     flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 14,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
     overflow: 'hidden',
+    alignItems: 'center',
   },
   phoneCode: {
-    backgroundColor: colors.bg,
     paddingHorizontal: 14,
+    paddingVertical: 14,
     justifyContent: 'center',
     borderRightWidth: 1,
-    borderRightColor: colors.border,
+    borderRightColor: 'rgba(255,255,255,0.1)',
   },
   phoneCodeText: {
     fontFamily: fontWeights.medium,
     fontSize: 14,
-    color: colors.navy,
+    color: '#FFFFFF',
   },
   phoneInput: {
     flex: 1,
     fontFamily: fontWeights.regular,
     fontSize: 15,
-    color: colors.text,
+    color: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontFamily: fontWeights.medium,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  primaryBtn: {
+    backgroundColor: colors.blue,
+    paddingVertical: 16,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  primaryBtnPressed: {
+    opacity: 0.8,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.6,
+  },
+  primaryBtnText: {
+    fontFamily: fontWeights.bold,
+    fontSize: 16,
+    color: colors.navy900,
   },
   linkRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 24,
   },
   linkHint: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: fontWeights.regular,
-    color: colors.textSub,
+    color: 'rgba(255,255,255,0.6)',
   },
   linkAction: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: fontWeights.bold,
-    color: colors.blueInk,
+    color: colors.blue,
   },
   strengthSection: {
-    gap: 6,
+    gap: 8,
+    marginBottom: 8,
   },
   strengthBars: {
     flexDirection: 'row',
@@ -685,48 +707,78 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   strengthLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: fontWeights.semiBold,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+    marginTop: 8,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   checkboxChecked: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.blue,
+    borderColor: colors.blue,
   },
   checkboxLabel: {
     flex: 1,
     fontSize: 14,
     fontFamily: fontWeights.regular,
-    color: colors.textSub,
+    color: 'rgba(255,255,255,0.7)',
     lineHeight: 20,
   },
+  genderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  genderChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  genderChipActive: {
+    borderColor: colors.blue,
+    backgroundColor: 'rgba(56,182,255,0.16)',
+  },
+  genderChipText: {
+    fontFamily: fontWeights.medium,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  genderChipTextActive: {
+    color: colors.blue,
+    fontFamily: fontWeights.bold,
+  },
   linkInline: {
-    color: colors.blueInk,
+    color: colors.blue,
     fontFamily: fontWeights.bold,
   },
   googleNotice: {
-    backgroundColor: colors.infoBg,
-    borderRadius: radii.sm,
-    padding: 12,
+    backgroundColor: 'rgba(56, 182, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 182, 255, 0.2)',
+    marginVertical: 8,
   },
   googleNoticeText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: fontWeights.regular,
-    color: colors.info,
-    lineHeight: 19,
+    color: '#FFFFFF',
+    lineHeight: 20,
   },
 })

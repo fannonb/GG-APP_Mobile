@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ledgerService } from '@gg/shared-api'
-import type { SetupLedgerPinPayload } from '@gg/shared-types'
+import type { SetupLedgerPinPayload, ResetLedgerPinPayload } from '@gg/shared-types'
 import { queryKeys } from './query-keys'
 
 export function useLedgerStatus() {
@@ -45,6 +45,14 @@ export function useSetupLedgerPinMutation() {
   const invalidate = useLedgerInvalidate()
   return useMutation({
     mutationFn: (payload: SetupLedgerPinPayload) => ledgerService.setupPin(payload),
+    onSuccess: invalidate,
+  })
+}
+
+export function useResetLedgerPinMutation() {
+  const invalidate = useLedgerInvalidate()
+  return useMutation({
+    mutationFn: (payload: ResetLedgerPinPayload) => ledgerService.resetPin(payload),
     onSuccess: invalidate,
   })
 }

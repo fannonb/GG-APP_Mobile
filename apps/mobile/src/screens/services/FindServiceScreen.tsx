@@ -15,6 +15,7 @@ import GlobeIcon from '@/icons/GlobeIcon'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
 import { useProviders, useDrivingDistances } from '@gg/shared-hooks'
 import { useLocationStore } from '@gg/shared-stores'
+import { getProviderHoursSummary } from '@gg/shared-utils'
 import { SERVICE_CATEGORIES } from '@gg/shared-config'
 import type { Provider } from '@gg/shared-types'
 import type { ServicesScreenProps } from '@/navigation/types'
@@ -72,6 +73,8 @@ function matchesProvider(provider: Provider, query: string): boolean {
 /* ------------------------------------------------------------------ */
 export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindService'>) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [openNowOnly, setOpenNowOnly] = useState(false)
+  const [nearbyExpanded, setNearbyExpanded] = useState(false)
   const { data: providers = [], isLoading } = useProviders()
   const position = useLocationStore(s => s.position)
   const { getKm, getLabel } = useDrivingDistances(position, providers)
@@ -93,14 +96,20 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
 
   /* Nearby providers — sorted by driving distance, first 4 */
   const nearbyProviders = useMemo(() => {
-    return [...providers]
-      .sort((a, b) => {
-        const dA = getKm(a) ?? (parseFloat(a.distance) || 999)
-        const dB = getKm(b) ?? (parseFloat(b.distance) || 999)
-        return dA - dB
-      })
-      .slice(0, 4)
-  }, [providers, getKm])
+    let list = [...providers].sort((a, b) => {
+      const dA = getKm(a) ?? (parseFloat(a.distance) || 999)
+      const dB = getKm(b) ?? (parseFloat(b.distance) || 999)
+      return dA - dB
+    })
+    if (openNowOnly) list = list.filter(provider => provider.status === 'open')
+    return nearbyExpanded ? list : list.slice(0, 3)
+  }, [providers, getKm, openNowOnly, nearbyExpanded])
+
+  const nearbyTotal = useMemo(() => {
+    let list = [...providers]
+    if (openNowOnly) list = list.filter(provider => provider.status === 'open')
+    return list.length
+  }, [providers, openNowOnly])
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim()
@@ -110,7 +119,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
 
   const showSearchResults = searchQuery.trim().length > 0
 
-  /* ----- Loading state ---  /* loading */
+  /* ----- Loading state ----- */
   if (isLoading && providers.length === 0) {
     return (
       <Screen>
@@ -139,7 +148,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
   }
 
   return (
-    <Screen>
+    <Screen headerPattern="dark-curve">
       <AppBar title="Find a Service" subtitle="Search verified healthcare providers & clinics" variant="hero" back={false} />
 
       <ScrollArea gap={16} px={16} py={14}>
@@ -188,7 +197,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                       <View style={styles.providerInfo}>
                         <Text style={styles.providerName}>{provider.name}</Text>
                         <Text style={styles.providerMeta}>
-                          {provider.category} · {getLabel(provider)}
+                          {provider.category} · {getLabel(provider)} · {getProviderHoursSummary(provider)}
                         </Text>
                       </View>
                       <ChevronRightIcon size={16} color={colors.textLight} />
@@ -247,10 +256,22 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
           <View style={styles.sectionHeader}>
             <View style={styles.sectionBar} />
             <Text style={styles.sectionTitle}>Nearby Verified Providers</Text>
+            <Pressable onPress={() => setOpenNowOnly(v => !v)}>
+              <Text style={[styles.openNow, openNowOnly && styles.openNowActive]}>
+                Open now
+              </Text>
+            </Pressable>
           </View>
 
           <MCard padding={0}>
-            {nearbyProviders.map((provider, index) => (
+            {nearbyProviders.length === 0 ? (
+              <View style={styles.centered}>
+                <Text style={styles.emptyDesc}>
+                  {openNowOnly ? 'No providers are open nearby right now.' : 'No nearby providers found.'}
+                </Text>
+              </View>
+            ) : (
+              nearbyProviders.map((provider, index) => (
               <React.Fragment key={provider.id}>
                 <Pressable
                   style={styles.providerRow}
@@ -276,7 +297,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                       {provider.name}
                     </Text>
                     <Text style={styles.providerMeta} numberOfLines={1}>
-                      {provider.category} · {getLabel(provider)}
+                      {provider.category} · {getLabel(provider)} · {getProviderHoursSummary(provider)}
                     </Text>
                   </View>
 
@@ -294,7 +315,13 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                   <View style={styles.divider} />
                 )}
               </React.Fragment>
-            ))}
+            ))
+            )}
+            {nearbyTotal > 3 && (
+              <Pressable style={styles.seeAllBtn} onPress={() => setNearbyExpanded(v => !v)}>
+                <Text style={styles.seeAllText}>{nearbyExpanded ? 'Show less' : 'See all →'}</Text>
+              </Pressable>
+            )}
           </MCard>
         </View>
         </>
@@ -391,6 +418,7 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.bold,
     fontSize: 14,
     color: colors.text,
+    flex: 1,
   },
 
   /* Section 2 — Category grid */
@@ -487,5 +515,24 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginHorizontal: 14,
+  },
+  openNow: {
+    fontFamily: fontWeights.semiBold,
+    fontSize: 12,
+    color: colors.textSub,
+  },
+  openNowActive: {
+    color: colors.blueInk,
+  },
+  seeAllBtn: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  seeAllText: {
+    fontFamily: fontWeights.bold,
+    fontSize: 13,
+    color: colors.blueInk,
   },
 })

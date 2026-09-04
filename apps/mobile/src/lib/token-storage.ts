@@ -31,6 +31,7 @@ export async function loadSessionFromStore(): Promise<StoredSession | null> {
     }
     return cache
   } catch {
+    console.warn('[token-storage] SecureStore read failed; session cleared in memory')
     cache = null
     return null
   }
@@ -43,18 +44,34 @@ export const mobileTokenStorage: ITokenStorage = {
 
   setSession(session: StoredSession): void {
     cache = session
-    SecureStore.setItemAsync(KEYS.ACCESS, session.accessToken).catch(() => {})
-    SecureStore.setItemAsync(KEYS.REFRESH, session.refreshToken).catch(() => {})
-    SecureStore.setItemAsync(KEYS.ROLE, session.role).catch(() => {})
-    SecureStore.setItemAsync(KEYS.EXPIRES, String(session.expiresAt)).catch(() => {})
+    SecureStore.setItemAsync(KEYS.ACCESS, session.accessToken).catch(err =>
+      console.warn('[token-storage] SecureStore write failed (access token)', err),
+    )
+    SecureStore.setItemAsync(KEYS.REFRESH, session.refreshToken).catch(err =>
+      console.warn('[token-storage] SecureStore write failed (refresh token)', err),
+    )
+    SecureStore.setItemAsync(KEYS.ROLE, session.role).catch(err =>
+      console.warn('[token-storage] SecureStore write failed (role)', err),
+    )
+    SecureStore.setItemAsync(KEYS.EXPIRES, String(session.expiresAt)).catch(err =>
+      console.warn('[token-storage] SecureStore write failed (expiry)', err),
+    )
   },
 
   clear(): void {
     cache = null
-    SecureStore.deleteItemAsync(KEYS.ACCESS).catch(() => {})
-    SecureStore.deleteItemAsync(KEYS.REFRESH).catch(() => {})
-    SecureStore.deleteItemAsync(KEYS.ROLE).catch(() => {})
-    SecureStore.deleteItemAsync(KEYS.EXPIRES).catch(() => {})
+    SecureStore.deleteItemAsync(KEYS.ACCESS).catch(err =>
+      console.warn('[token-storage] SecureStore delete failed (access token)', err),
+    )
+    SecureStore.deleteItemAsync(KEYS.REFRESH).catch(err =>
+      console.warn('[token-storage] SecureStore delete failed (refresh token)', err),
+    )
+    SecureStore.deleteItemAsync(KEYS.ROLE).catch(err =>
+      console.warn('[token-storage] SecureStore delete failed (role)', err),
+    )
+    SecureStore.deleteItemAsync(KEYS.EXPIRES).catch(err =>
+      console.warn('[token-storage] SecureStore delete failed (expiry)', err),
+    )
   },
 
   getAccessToken(): string | null {

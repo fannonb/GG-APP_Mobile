@@ -8,6 +8,7 @@ import type {
   LedgerResponse,
   LedgerStatusResponse,
   SetupLedgerPinPayload,
+  ResetLedgerPinPayload,
 } from '@gg/shared-types'
 
 const MOCK_ENTRIES: LedgerEntry[] = [
@@ -70,6 +71,32 @@ export const ledgerService = {
     return data
   },
 
+  async resetPin(payload: ResetLedgerPinPayload): Promise<LedgerPinResult> {
+    if (getIsMockApi()) {
+      await mockDelay(350)
+      if (!payload.password.trim()) {
+        throw new Error('Account password is required')
+      }
+      if (payload.pin !== payload.confirmPin) {
+        throw new Error('PIN confirmation does not match')
+      }
+      if (!/^\d{4,6}$/.test(payload.pin)) {
+        throw new Error('PIN must be 4 to 6 digits')
+      }
+      mockHasPin = true
+      mockPinExpiresAt = payload.expiresInDays
+        ? new Date(Date.now() + payload.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+        : null
+      return {
+        configured: true,
+        message: 'Ledger PIN reset. Existing provider access has been revoked.',
+      }
+    }
+
+    const { data } = await apiClient.post<LedgerPinResult>('/patient/ledger/pin/reset', payload)
+    return data
+  },
+
   async revokePin(): Promise<LedgerPinResult> {
     if (getIsMockApi()) {
       await mockDelay(250)
@@ -90,6 +117,7 @@ export const ledgerService = {
       await mockDelay(200)
       return {
         hasPin: mockHasPin,
+        pinExpired: false,
         pinCreatedAt: mockHasPin ? new Date().toISOString() : null,
         pinExpiresAt: mockPinExpiresAt,
         activeGrants: mockHasPin

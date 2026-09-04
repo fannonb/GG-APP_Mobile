@@ -138,13 +138,21 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    const refreshToken = getTokenStorage().getRefreshToken()
-    getTokenStorage().clear()
+    const storage = getTokenStorage()
+    const accessToken = storage.getAccessToken()
+    const refreshToken = storage.getRefreshToken()
+    storage.clear()
 
-    if (getIsMockApi() || !refreshToken) return
+    if (getIsMockApi() || (!refreshToken && !accessToken)) return
 
     try {
-      await apiClient.post('/auth/logout', { refreshToken })
+      // Logout is guarded server-side and requires a live access token (audit
+      // L8) — send it explicitly since storage was already cleared.
+      await apiClient.post(
+        '/auth/logout',
+        refreshToken ? { refreshToken } : {},
+        accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
+      )
     } catch {
       // Session cleared locally regardless
     }

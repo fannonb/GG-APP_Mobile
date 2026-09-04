@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Pressable, Text, StyleSheet } from 'react-native'
 import { colors, fontWeights } from '@/theme'
+import { hapticSelection } from '@/lib/haptics'
 
 interface TabItem {
   label: string
@@ -14,6 +15,13 @@ interface SegmentedTabsProps {
 }
 
 export default function SegmentedTabs({ tabs, activeIndex, onSelect }: SegmentedTabsProps) {
+  const handleSelect = (index: number) => {
+    if (index !== activeIndex) {
+      hapticSelection()
+    }
+    onSelect(index)
+  }
+
   return (
     <View style={styles.container}>
       {tabs.map((tab, i) => {
@@ -21,8 +29,12 @@ export default function SegmentedTabs({ tabs, activeIndex, onSelect }: Segmented
         return (
           <Pressable
             key={i}
-            onPress={() => onSelect(i)}
-            style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}
+            onPress={() => handleSelect(i)}
+            style={({ pressed }) => [
+              styles.tab,
+              active ? styles.tabActive : styles.tabInactive,
+              pressed && styles.tabPressed,
+            ]}
           >
             <Text style={[styles.tabText, active ? styles.textActive : styles.textInactive]}>
               {tab.label}
@@ -63,6 +75,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     gap: 5,
+  },
+  tabPressed: {
+    transform: [{ scale: 0.96 }],
+    opacity: 0.88,
   },
   tabActive: {
     backgroundColor: colors.navy,

@@ -41,6 +41,11 @@ export interface InvoiceServiceFor {
 export interface PatientInvoice {
   id: string
   providerId?: number
+  isPrescription?: boolean
+  /** Present on prescription invoices: pickup | delivery */
+  fulfillmentMode?: 'pickup' | 'delivery'
+  /** True once the patient has opened/reviewed the pharmacy quote */
+  prescriptionQuoteReviewed?: boolean
   reviewSubmitted?: boolean
   paymentRef?: string
   status: InvoiceStatus

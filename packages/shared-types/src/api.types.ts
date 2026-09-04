@@ -28,6 +28,8 @@ export interface RegisterPatientPayload {
   phone: string
   country: string
   dob: string
+  /** Collected for KYC; optional until the backend persists it. */
+  gender?: string
   nationalId: string
   password?: string
   /** Present when the patient is completing registration after a Google sign-in. */

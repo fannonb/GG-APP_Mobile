@@ -16,8 +16,9 @@ import HospitalIcon from '@/icons/HospitalIcon'
 import ClinicIcon from '@/icons/ClinicIcon'
 import GlobeIcon from '@/icons/GlobeIcon'
 import { useUserStore, useAuthStore, useNotificationsStore, deriveOnboardingStepStatus } from '@gg/shared-stores'
-import { usePatientProfile, useCreditStatus, usePatientNotifications } from '@gg/shared-hooks'
+import { usePatientProfile, useCreditStatus, usePatientNotifications, usePatientAppointments, usePatientInvoices } from '@gg/shared-hooks'
 import { getCountryByCode, SERVICE_CATEGORIES } from '@gg/shared-config'
+import { derivePatientOnboardingCompletedSteps, formatTime12h, getAppointmentDisplayStatus, isActionablePendingInvoice } from '@gg/shared-utils'
 import HealthNewsSection from '@/components/HealthNewsSection'
 
 const appLogo = require('../../../assets/gg-logo.png')
@@ -69,6 +70,8 @@ export function EmptyDashboardScreen() {
   const patientNotifs = useNotificationsStore(s => s.patientNotifs)
   const { data: profileData } = usePatientProfile()
   const { data: creditData } = useCreditStatus()
+  const { data: appointmentsData } = usePatientAppointments()
+  const { data: invoices = [] } = usePatientInvoices()
   const { data: fetchedNotifs } = usePatientNotifications()
   const notifications = fetchedNotifs ?? patientNotifs
   const unreadCount = notifications.filter(n => !n.read).length
@@ -85,12 +88,19 @@ export function EmptyDashboardScreen() {
 
   /* Steps 3 (PIN) and 4 (credit) are derived from backend truth as well as the
      local checklist, so they never revert after an action succeeds. */
+  const appointments = [
+    ...(appointmentsData?.upcoming ?? []),
+    ...(appointmentsData?.past ?? []),
+  ]
+  const appointmentCount = appointments.length
+  const nextApt = (appointmentsData?.upcoming ?? [])[0]
   const effectiveCompletedSteps = useMemo(() => {
-    const merged = new Set(completedSteps)
-    if (hasPaymentPin) merged.add(3)
-    if (creditStatus && creditStatus !== 'not_applied') merged.add(4)
-    return [...merged].sort((a, b) => a - b)
-  }, [completedSteps, hasPaymentPin, creditStatus])
+    const fromAccount = derivePatientOnboardingCompletedSteps(
+      { hasPaymentPin, creditStatus: creditStatus ?? 'not_applied' },
+      appointmentCount,
+    )
+    return [...new Set([...completedSteps, ...fromAccount])].sort((a, b) => a - b)
+  }, [completedSteps, hasPaymentPin, creditStatus, appointmentCount])
 
   const firstName = u?.name?.split(' ')[0] || 'there'
   const flag = FLAG_EMOJI[u?.countryCode ?? 'KE'] ?? ''
@@ -118,12 +128,7 @@ export function EmptyDashboardScreen() {
 
           <Pressable
             style={s.bellWrap}
-            onPress={() =>
-              navigation.navigate('ProfileTab', {
-                screen: 'Profile',
-                params: { openSection: 'notifications' },
-              })
-            }
+            onPress={() => navigation.navigate('Notifications')}
           >
             <BellIcon size={18} color="#FFFFFF" />
             {unreadCount > 0 && (
@@ -162,17 +167,29 @@ export function EmptyDashboardScreen() {
             <Pressable
               style={s.statCard}
               onPress={() =>
-                creditStatus === 'pending'
-                  ? navigation.navigate('WalletTab', { screen: 'CreditStatus' })
+                creditStatus === 'pending' || creditStatus === 'approved'
+                  ? navigation.navigate('WalletTab', { screen: creditStatus === 'pending' ? 'CreditStatus' : 'CreditWallet' })
                   : navigation.navigate('WalletTab', { screen: 'CreditDisclaimer' })
               }
             >
               <Text style={s.statLabel}>AVAILABLE BALANCE</Text>
               <Text style={s.statValueMuted}>
-                {creditStatus === 'pending' ? 'Under Review' : 'Not Applied'}
+                {creditStatus === 'pending'
+                  ? 'Under Review'
+                  : creditStatus === 'rejected'
+                    ? 'Not approved'
+                    : creditStatus === 'approved'
+                      ? 'Active'
+                      : 'Not Applied'}
               </Text>
               <Text style={s.statCta}>
-                {creditStatus === 'pending' ? 'View Status →' : 'Apply for credit →'}
+                {creditStatus === 'pending'
+                  ? 'View Status →'
+                  : creditStatus === 'approved'
+                    ? 'Open wallet →'
+                    : creditStatus === 'rejected'
+                      ? 'Apply again →'
+                      : 'Apply for credit →'}
               </Text>
             </Pressable>
 
@@ -185,14 +202,24 @@ export function EmptyDashboardScreen() {
 
           <Pressable
             style={s.statCardFull}
-            onPress={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
+            onPress={() =>
+              nextApt
+                ? getAppointmentDisplayStatus(nextApt) === 'pending' && (nextApt as any).rescheduledAt
+                  ? navigation.navigate('HomeTab', { screen: 'RescheduleReview', params: { appointmentId: String(nextApt.id) } })
+                  : navigation.navigate('HomeTab', { screen: 'Appointments' })
+                : navigation.navigate('ServicesTab', { screen: 'FindService' })
+            }
           >
             <View style={s.statCardFullInner}>
               <View style={{ flex: 1 }}>
                 <Text style={s.statLabel}>NEXT APPOINTMENT</Text>
-                <Text style={s.statValueMuted}>None booked</Text>
+                <Text style={s.statValueMuted}>
+                  {nextApt
+                    ? `${nextApt.provider} · ${formatTime12h(nextApt.time)}`
+                    : 'None booked'}
+                </Text>
               </View>
-              <Text style={s.statCta}>Find a service →</Text>
+              <Text style={s.statCta}>{nextApt ? 'View →' : 'Find a service →'}</Text>
             </View>
           </Pressable>
         </View>
@@ -220,7 +247,7 @@ export function EmptyDashboardScreen() {
               let ctaTarget: any = null
               if (item.step === 3) { ctaText = 'Set Up PIN →'; ctaTarget = () => navigation.navigate('ProfileTab', { screen: 'Profile', params: { openSection: 'security' } }) }
               if (item.step === 4) { ctaText = 'Apply Now →'; ctaTarget = () => navigation.navigate('WalletTab', { screen: 'CreditDisclaimer' }) }
-              if (item.step === 5) { ctaText = 'Browse Providers →'; ctaTarget = () => { useAuthStore.getState().completeOnboardingStep(5); navigation.navigate('ServicesTab', { screen: 'FindService' }) } }
+              if (item.step === 5) { ctaText = 'Browse Providers →'; ctaTarget = () => navigation.navigate('ServicesTab', { screen: 'FindService' }) }
 
               return (
                 <View key={item.step}>
@@ -329,9 +356,11 @@ export function EmptyDashboardScreen() {
           </Pressable>
         </MCard>
 
-        <HealthNewsSection />
+        {(!hasPaymentPin || invoices.some(isActionablePendingInvoice)) ? null : <HealthNewsSection />}
 
-        <AdBanner countryName={country?.name} />
+        {(!hasPaymentPin || invoices.some(isActionablePendingInvoice)) ? null : (
+          <AdBanner countryName={country?.name} />
+        )}
 
         {/* bottom spacer for tab bar */}
         <View style={{ height: 24 }} />

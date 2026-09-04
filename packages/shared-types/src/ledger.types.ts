@@ -40,6 +40,7 @@ export interface LedgerGrant {
 
 export interface LedgerStatusResponse {
   hasPin: boolean
+  pinExpired?: boolean
   pinCreatedAt: string | null
   pinExpiresAt?: string | null
   activeGrants: LedgerGrant[]
@@ -87,6 +88,13 @@ export interface SetupLedgerPinPayload {
   pin: string
   confirmPin: string
   currentPin?: string
+  expiresInDays?: number
+}
+
+export interface ResetLedgerPinPayload {
+  password: string
+  pin: string
+  confirmPin: string
   expiresInDays?: number
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { openRemoteOrDataAttachment } from '@/lib/open-attachment'
 import {
   useAcceptPrescriptionQuoteMutation,
   useDeclinePrescriptionQuoteMutation,
+  useMarkPrescriptionQuoteReviewedMutation,
   usePatientPrescriptionRequests,
 } from '@gg/shared-hooks'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
@@ -203,6 +204,19 @@ export function PrescriptionDetailScreen({
   const [previewOpen, setPreviewOpen] = useState(false)
   const [attachError, setAttachError] = useState<string | null>(null)
 
+  /* Mark a quoted prescription as reviewed as soon as the patient views it —
+     mirrors the web app so quoteReviewedAt is recorded before accept/decline. */
+  const reviewMutation = useMarkPrescriptionQuoteReviewedMutation()
+  const reviewedIdsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!request || request.status !== 'quoted' || request.quoteReviewedAt) return
+    if (reviewedIdsRef.current.has(request.id)) return
+    reviewedIdsRef.current.add(request.id)
+    reviewMutation.mutate(request.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.id, request?.status, request?.quoteReviewedAt])
+
   if (isLoading && !request) {
     return (
       <Screen>
@@ -378,6 +392,7 @@ export function PrescriptionDetailScreen({
                 navigation.navigate('InvoicesTab', {
                   screen: 'InvoiceReview',
                   params: { invoiceId: request.invoiceId! },
+                  initial: false,
                 } as never)
               }
             >

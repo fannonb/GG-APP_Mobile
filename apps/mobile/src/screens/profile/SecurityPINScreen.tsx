@@ -131,6 +131,18 @@ export function SecurityPINScreen() {
   const handleChangePassword = async () => {
     setPasswordError(null)
     setPasswordSuccess(null)
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('All password fields are required.')
+      return
+    }
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.')
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('New password and confirmation do not match.')
+      return
+    }
     try {
       const result = await changePasswordMutation.mutateAsync(passwordForm)
       setPasswordSuccess(result.message)

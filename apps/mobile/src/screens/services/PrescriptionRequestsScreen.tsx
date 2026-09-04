@@ -192,6 +192,7 @@ export function PrescriptionRequestsScreen({
                         navigation.navigate('InvoicesTab', {
                           screen: 'InvoiceReview',
                           params: { invoiceId: request.invoiceId! },
+                          initial: false,
                         } as never)
                       }
                     >

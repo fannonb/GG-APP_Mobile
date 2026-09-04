@@ -14,10 +14,13 @@ export function openPatientNotification(
   notification: Notification,
 ) {
   const screen = notification.screen?.trim()
-  const normalizedScreen = screen?.toLowerCase()
 
   if (screen) {
-    const rescheduleMatch = screen.match(/^\/app\/appointments\/([^/]+)\/reschedule$/i)
+    // Deep-link routes may carry query strings (e.g. `/app/credit/status?type=increase`).
+    const screenPath = screen.split('?')[0]
+    const normalizedScreen = screenPath.toLowerCase()
+
+    const rescheduleMatch = screenPath.match(/^\/app\/appointments\/([^/]+)\/reschedule$/i)
     if (rescheduleMatch?.[1]) {
       navigation.navigate('HomeTab', {
         screen: 'RescheduleReview',
@@ -26,7 +29,7 @@ export function openPatientNotification(
       return
     }
 
-    const prescriptionMatch = screen.match(/^\/app\/prescriptions\/([^/]+)$/i)
+    const prescriptionMatch = screenPath.match(/^\/app\/prescriptions\/([^/]+)$/i)
     if (prescriptionMatch?.[1] && prescriptionMatch[1].toLowerCase() !== 'confirm') {
       navigation.navigate('ServicesTab', {
         screen: 'PrescriptionDetail',
@@ -35,11 +38,22 @@ export function openPatientNotification(
       return
     }
 
-    const invoiceMatch = screen.match(/^\/app\/invoices\/([^/]+)/i)
+    const invoiceSuccessMatch = screenPath.match(/^\/app\/invoices\/([^/]+)\/success$/i)
+    if (invoiceSuccessMatch?.[1]) {
+      navigation.navigate('InvoicesTab', {
+        screen: 'PaymentSuccess',
+        params: { invoiceId: decodeURIComponent(invoiceSuccessMatch[1]) },
+        initial: false,
+      })
+      return
+    }
+
+    const invoiceMatch = screenPath.match(/^\/app\/invoices\/([^/]+)/i)
     if (invoiceMatch?.[1]) {
       navigation.navigate('InvoicesTab', {
         screen: 'InvoiceReview',
         params: { invoiceId: decodeURIComponent(invoiceMatch[1]) },
+        initial: false,
       })
       return
     }
@@ -59,6 +73,15 @@ export function openPatientNotification(
       case '/app/credit':
         navigation.navigate('WalletTab', { screen: 'CreditWallet' })
         return
+      case '/app/credit/disclaimer':
+        navigation.navigate('WalletTab', { screen: 'CreditDisclaimer' })
+        return
+      case '/app/credit/status':
+        navigation.navigate('WalletTab', { screen: 'CreditStatus' })
+        return
+      case '/app/credit/increase':
+        navigation.navigate('WalletTab', { screen: 'CreditIncrease' })
+        return
       case 'find-service':
       case '/app/services':
         navigation.navigate('ServicesTab', { screen: 'FindService' })
@@ -70,7 +93,7 @@ export function openPatientNotification(
         return
       case 'notifications':
       case '/app/notifications':
-        navigation.navigate('ProfileTab', { screen: 'Notifications' })
+        navigation.navigate('Notifications')
         return
       case 'prescription-requests':
       case '/app/prescriptions':

@@ -9,6 +9,7 @@ interface CategoryCardProps {
   desc: string
   count: number
   isComingSoon?: boolean
+  disabled?: boolean
   onPress?: () => void
 }
 
@@ -18,10 +19,22 @@ export default function CategoryCard({
   desc,
   count,
   isComingSoon,
+  disabled,
   onPress,
 }: CategoryCardProps) {
+  const isEmpty = !isComingSoon && count === 0
+  const inactive = Boolean(isComingSoon || disabled || isEmpty)
+
   return (
-    <Pressable onPress={onPress} style={styles.card}>
+    <Pressable
+      onPress={inactive ? undefined : onPress}
+      disabled={inactive}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && !inactive && styles.cardPressed,
+        inactive && styles.cardDisabled,
+      ]}
+    >
       <View style={styles.iconWrap}>{icon}</View>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.desc} numberOfLines={2}>
@@ -33,8 +46,8 @@ export default function CategoryCard({
             <Text style={styles.comingSoonText}>Coming Soon</Text>
           </View>
         ) : (
-          <Text style={styles.count}>
-            {count} provider{count !== 1 ? 's' : ''}
+          <Text style={[styles.count, isEmpty && styles.countMuted]}>
+            {isEmpty ? 'None nearby' : `${count} provider${count !== 1 ? 's' : ''}`}
           </Text>
         )}
         <ChevronRightIcon size={16} color={colors.textLight} />
@@ -50,6 +63,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  cardPressed: {
+    transform: [{ scale: 0.985 }],
+    backgroundColor: '#F8FAFC',
+    borderColor: colors.blue100,
   },
   iconWrap: {
     width: 44,
@@ -88,6 +106,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 9999,
+  },
+  cardDisabled: {
+    opacity: 0.55,
+  },
+  countMuted: {
+    color: colors.textLight,
   },
   comingSoonText: {
     fontSize: 10,

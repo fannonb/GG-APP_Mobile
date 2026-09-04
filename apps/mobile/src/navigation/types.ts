@@ -100,6 +100,7 @@ export type AppTabsParamList = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>
   App: NavigatorScreenParams<AppTabsParamList>
+  Notifications: undefined
 }
 
 export type AuthScreenProps<T extends keyof AuthStackParamList> =

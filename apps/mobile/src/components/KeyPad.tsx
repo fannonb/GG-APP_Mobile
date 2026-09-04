@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Pressable, Text, StyleSheet } from 'react-native'
 import { colors, fontWeights } from '@/theme'
 import Svg, { Path } from 'react-native-svg'
+import { hapticLight } from '@/lib/haptics'
 
 interface KeyPadProps {
   onKeyPress: (key: string) => void
@@ -51,6 +52,22 @@ function CheckmarkIcon() {
 }
 
 export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps) {
+  const handleDigit = (key: string) => {
+    hapticLight()
+    onKeyPress(key)
+  }
+
+  const handleDelete = () => {
+    hapticLight()
+    onDelete()
+  }
+
+  const handleConfirm = () => {
+    if (!onConfirm) return
+    hapticLight()
+    onConfirm()
+  }
+
   return (
     <View style={styles.container}>
       {ROWS.map((row, ri) => (
@@ -58,7 +75,15 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
           {row.map((key) => {
             if (key === 'backspace') {
               return (
-                <Pressable key={key} onPress={onDelete} style={[styles.key, styles.keySpecial]}>
+                <Pressable
+                  key={key}
+                  onPress={handleDelete}
+                  style={({ pressed }) => [
+                    styles.key,
+                    styles.keySpecial,
+                    pressed && styles.keySpecialPressed,
+                  ]}
+                >
                   <BackspaceIcon />
                 </Pressable>
               )
@@ -67,8 +92,12 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
               return (
                 <Pressable
                   key={key}
-                  onPress={onConfirm}
-                  style={[styles.key, styles.keyConfirm]}
+                  onPress={handleConfirm}
+                  style={({ pressed }) => [
+                    styles.key,
+                    styles.keyConfirm,
+                    pressed && !(!onConfirm) && styles.keyConfirmPressed,
+                  ]}
                   disabled={!onConfirm}
                 >
                   <CheckmarkIcon />
@@ -78,8 +107,12 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
             return (
               <Pressable
                 key={key}
-                onPress={() => onKeyPress(key)}
-                style={[styles.key, styles.keyNumber]}
+                onPress={() => handleDigit(key)}
+                style={({ pressed }) => [
+                  styles.key,
+                  styles.keyNumber,
+                  pressed && styles.keyPressed,
+                ]}
               >
                 <Text style={styles.keyText}>{key}</Text>
               </Pressable>
@@ -111,11 +144,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  keyPressed: {
+    backgroundColor: '#EEF4FB',
+    transform: [{ scale: 0.94 }],
+    borderColor: colors.blue100,
+  },
   keySpecial: {
     backgroundColor: colors.bg,
   },
+  keySpecialPressed: {
+    backgroundColor: '#E2E8F0',
+    transform: [{ scale: 0.94 }],
+  },
   keyConfirm: {
     backgroundColor: colors.success,
+  },
+  keyConfirmPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.94 }],
   },
   keyText: {
     fontSize: 22,

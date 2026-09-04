@@ -42,6 +42,7 @@ export function HealthLedgerScreen() {
 
   const status = statusQuery.data
   const hasPin = status?.hasPin ?? false
+  const pinExpired = status?.pinExpired ?? false
   const activeGrants = status?.activeGrants ?? []
   const beneficiaries = ledgerQuery.data?.patient.beneficiaries ?? []
 
@@ -70,7 +71,15 @@ export function HealthLedgerScreen() {
     <Screen>
       <AppBar
         title="Health Ledger"
-        subtitle="Your complete treatment history across all providers"
+        subtitle={
+          !hasPin
+            ? pinExpired
+              ? 'PIN expired'
+              : 'PIN not set'
+            : activeGrants.length > 0
+              ? `${activeGrants.length} active access`
+              : 'Your treatment history'
+        }
         back
       />
       <ScrollArea gap={16} px={16} py={14}>
@@ -79,7 +88,7 @@ export function HealthLedgerScreen() {
             <View style={styles.pinTitleRow}>
               <Text style={styles.sectionTitle}>Ledger PIN</Text>
               <GGPill type={hasPin ? 'success' : 'warning'}>
-                {hasPin ? 'Active' : 'Not set'}
+                {hasPin ? 'Active' : pinExpired ? 'Expired' : 'Not set'}
               </GGPill>
               {hasPin && status?.pinExpiresAt ? (
                 <GGPill type="info">Expires {formatDate(status.pinExpiresAt)}</GGPill>
@@ -88,7 +97,9 @@ export function HealthLedgerScreen() {
             <Text style={styles.bodyText}>
               {hasPin
                 ? 'Share your PIN with a service provider to give them 24-hour access to your treatment history. Every access is logged and you can revoke it anytime.'
-                : 'Create a PIN to control which service providers can view your treatment and diagnosis history across the platform.'}
+                : pinExpired
+                  ? 'Your ledger PIN has expired. Providers can no longer unlock your treatment history until you create a new PIN.'
+                  : 'Create a PIN to control which service providers can view your treatment and diagnosis history across the platform.'}
             </Text>
           </View>
           <View style={styles.btnRow}>

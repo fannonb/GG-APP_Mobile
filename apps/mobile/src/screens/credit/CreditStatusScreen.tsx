@@ -97,9 +97,9 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
   const application = (creditData as any)?.application ?? null
   const creditRef =
     application?.reference ??
-    (creditData as any)?.creditAccountRef ??
-    (u as any)?.creditAccountRef ??
-    'GGA-847291'
+    creditData?.creditAccountRef ??
+    u?.creditAccountRef ??
+    'Pending'
 
   const isApproved =
     application?.status === 'approved' ||

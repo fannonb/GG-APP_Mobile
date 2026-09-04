@@ -1,177 +1,327 @@
-import React, { useEffect, useRef } from 'react'
-import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Animated,
+  Easing,
+  TouchableOpacity,
+  Dimensions,
+  PanResponder,
+} from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { colors, fontWeights } from '@/theme'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import * as Haptics from 'expo-haptics'
+import { colors, fontWeights, radii } from '@/theme'
 import type { AuthScreenProps } from '@/navigation/types'
 
 const logo = require('../../../assets/gg-logo.png')
+const { width: SCREEN_WIDTH } = Dimensions.get('window')
+
+interface SplashStep {
+  id: string
+  title: string
+  highlight: string
+  subtitle: string
+}
+
+const STEPS: SplashStep[] = [
+  {
+    id: 'access',
+    title: 'Your health,\n',
+    highlight: 'funded today.',
+    subtitle: 'Access quality medical care across Africa without out-of-pocket financial barriers.',
+  },
+  {
+    id: 'healing',
+    title: 'Focus on healing,\n',
+    highlight: 'not the billing.',
+    subtitle: 'Experience stress-free care with instant credit disbursements to verified providers.',
+  },
+]
 
 export function SplashScreen() {
+  const insets = useSafeAreaInsets()
   const navigation = useNavigation<AuthScreenProps<'Splash'>['navigation']>()
-  const fade = useRef(new Animated.Value(0)).current
-  const rise = useRef(new Animated.Value(14)).current
-  const pulse = useRef(new Animated.Value(0.35)).current
+
+  const [activeStep, setActiveStep] = useState(0)
+  const hasNavigated = useRef(false)
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(0)).current
+  const logoScale = useRef(new Animated.Value(0.9)).current
+  const logoOpacity = useRef(new Animated.Value(0)).current
+
+  const current = STEPS[activeStep]
+
+  const triggerHaptic = (style = Haptics.ImpactFeedbackStyle.Light) => {
+    try {
+      void Haptics.impactAsync(style)
+    } catch {
+      // safe fallback
+    }
+  }
+
+  const proceedToLogin = () => {
+    if (hasNavigated.current) return
+    hasNavigated.current = true
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium)
+    navigation.replace('Login')
+  }
+
+  const animateTo = (index: number) => {
+    if (index === activeStep) return
+    triggerHaptic()
+    
+    const dir = index > activeStep ? -1 : 1
+    
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: dir * 20,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setActiveStep(index)
+      
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start()
+    })
+  }
+
+  const handleNext = () => {
+    if (activeStep < STEPS.length - 1) {
+      animateTo(activeStep + 1)
+    } else {
+      proceedToLogin()
+    }
+  }
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, state) => Math.abs(state.dx) > 30,
+      onPanResponderRelease: (_, state) => {
+        if (state.dx < -40 && activeStep < STEPS.length - 1) {
+          animateTo(activeStep + 1)
+        } else if (state.dx > 40 && activeStep > 0) {
+          animateTo(activeStep - 1)
+        }
+      },
+    }),
+  ).current
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
-      Animated.timing(rise, {
-        toValue: 0,
-        duration: 700,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
-    ]).start()
-
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
+    // Initial mount animations
+    Animated.sequence([
+      Animated.delay(100),
+      Animated.parallel([
+        Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 600,
+          duration: 800,
           useNativeDriver: true,
-          easing: Easing.inOut(Easing.quad),
         }),
-        Animated.timing(pulse, {
-          toValue: 0.35,
-          duration: 600,
+        Animated.spring(logoScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
           useNativeDriver: true,
-          easing: Easing.inOut(Easing.quad),
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          delay: 200,
+          useNativeDriver: true,
         }),
       ]),
-    )
-    pulseLoop.start()
-
-    const timer = setTimeout(() => {
-      navigation.replace('Login')
-    }, 2800)
-
-    return () => {
-      clearTimeout(timer)
-      pulseLoop.stop()
-    }
-  }, [fade, navigation, pulse, rise])
+    ]).start()
+  }, [])
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.ring, styles.ring1]} />
-      <View style={[styles.ring, styles.ring2]} />
-      <View style={[styles.ring, styles.ring3]} />
+    <View
+      style={[
+        styles.root,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+      {...panResponder.panHandlers}
+    >
+      {/* Abstract Background Elements (Minimal) */}
+      <View style={styles.bgGlow} />
 
+      {/* Top section: Logo, carefully placed and breathing */}
       <Animated.View
         style={[
-          styles.center,
-          {
-            opacity: fade,
-            transform: [{ translateY: rise }],
-          },
+          styles.logoSection,
+          { opacity: logoOpacity, transform: [{ scale: logoScale }] },
         ]}
       >
         <Image source={logo} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.brand}>Gateway Global Healthcare</Text>
-        <Text style={styles.tagline}>A product of Gateway Global</Text>
-
-        <View style={styles.dotsRow}>
-          {[0, 1, 2].map((i) => (
-            <Animated.View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  opacity: pulse,
-                  transform: [
-                    {
-                      scale: pulse.interpolate({
-                        inputRange: [0.35, 1],
-                        outputRange: [0.85, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-          ))}
-        </View>
       </Animated.View>
 
-      <Text style={styles.copyright}>© Gateway Global (Pvt) Ltd.</Text>
+      {/* Middle section: Typography focused, large, breathing */}
+      <View style={styles.textSection}>
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateX: slideAnim }],
+          }}
+        >
+          <Text style={styles.title}>
+            {current.title}
+            <Text style={styles.highlight}>{current.highlight}</Text>
+          </Text>
+          <Text style={styles.subtitle}>{current.subtitle}</Text>
+        </Animated.View>
+      </View>
+
+      {/* Bottom section: Unified controls */}
+      <View style={styles.controlSection}>
+        {/* Step Indicators */}
+        <View style={styles.indicators}>
+          {STEPS.map((_, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => animateTo(i)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={[styles.dot, i === activeStep && styles.dotActive]} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            onPress={proceedToLogin}
+            style={styles.skipBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleNext}
+            style={styles.nextBtn}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.nextText}>
+              {activeStep === STEPS.length - 1 ? 'Get Started' : 'Next'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: colors.navy,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  ring: {
+  bgGlow: {
     position: 'absolute',
+    bottom: '-20%',
+    right: '-20%',
+    width: SCREEN_WIDTH * 1.5,
+    height: SCREEN_WIDTH * 1.5,
     borderRadius: 9999,
-    borderWidth: 1,
+    backgroundColor: 'rgba(56, 182, 255, 0.04)',
   },
-  ring1: {
-    width: 200,
-    height: 200,
-    borderColor: 'rgba(47,155,255,0.14)',
-  },
-  ring2: {
-    width: 340,
-    height: 340,
-    borderColor: 'rgba(47,155,255,0.09)',
-  },
-  ring3: {
-    width: 480,
-    height: 480,
-    borderColor: 'rgba(47,155,255,0.05)',
-  },
-  center: {
+  logoSection: {
+    flex: 1.2,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
   },
   logo: {
-    width: 160,
-    height: 160,
-    marginBottom: 24,
+    width: 140,
+    height: 140,
+    opacity: 1,
   },
-  brand: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.45)',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    fontFamily: fontWeights.medium,
-    textAlign: 'center',
+  textSection: {
+    flex: 2,
+    paddingHorizontal: 32,
+    justifyContent: 'flex-start',
   },
-  tagline: {
-    marginTop: 8,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
-    letterSpacing: 0.4,
+  title: {
+    fontFamily: fontWeights.extraBold,
+    fontSize: 40,
+    color: '#FFFFFF',
+    lineHeight: 48,
+    letterSpacing: -1,
+    marginBottom: 16,
+  },
+  highlight: {
+    color: colors.blue,
+  },
+  subtitle: {
     fontFamily: fontWeights.regular,
-    textAlign: 'center',
-    marginBottom: 28,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 24,
+    maxWidth: '90%',
   },
-  dotsRow: {
+  controlSection: {
+    paddingHorizontal: 32,
+    paddingBottom: 24,
+  },
+  indicators: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
+    marginBottom: 40,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  dotActive: {
+    width: 24,
     backgroundColor: colors.blue,
   },
-  copyright: {
-    position: 'absolute',
-    bottom: 36,
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.18)',
-    fontFamily: fontWeights.regular,
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  skipBtn: {
+    paddingVertical: 12,
+    paddingRight: 24,
+  },
+  skipText: {
+    fontFamily: fontWeights.medium,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  nextBtn: {
+    backgroundColor: colors.blue,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: radii.full,
+  },
+  nextText: {
+    fontFamily: fontWeights.bold,
+    fontSize: 16,
+    color: colors.navy900,
   },
 })
+
+

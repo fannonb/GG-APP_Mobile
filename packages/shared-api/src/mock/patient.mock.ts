@@ -74,6 +74,30 @@ export const MOCK_INVOICE: PatientInvoice = {
   ],
 }
 
+export const MOCK_RX_INVOICE: PatientInvoice = {
+  id: 'INV-RX-2026-001',
+  providerId: 2,
+  isPrescription: true,
+  fulfillmentMode: 'pickup',
+  prescriptionQuoteReviewed: false,
+  status: 'pending_auth',
+  provider: {
+    name: 'LifeCare Pharmacy',
+    license: 'PMRZ-2020-07432',
+    phone: '+263 4 234 5678',
+    address: '3 Fife Ave, Harare',
+  },
+  date: '2026-05-21',
+  dueDate: '2026-05-28',
+  amount: 86.40,
+  billedTo: { name: 'Sarah Johnson', nationalId: 'KE-30482175-A' },
+  serviceFor: { type: 'self', name: 'Sarah Johnson' },
+  services: [
+    { name: 'Amoxicillin 500mg × 21', amount: 42.00 },
+    { name: 'Paracetamol 500mg × 20', amount: 44.40 },
+  ],
+}
+
 export const MOCK_NEWS: NewsItem[] = [
   {
     id: 1,

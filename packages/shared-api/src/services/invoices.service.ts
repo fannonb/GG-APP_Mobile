@@ -4,7 +4,7 @@ import { mockDelay } from '../mock/delay'
 import type { AuthorizePaymentPayload, AuthorizePaymentResult } from '@gg/shared-types'
 import type { PatientInvoice, PatientInvoiceAttachment, InvoiceStatus } from '@gg/shared-types'
 import type { Transaction } from '@gg/shared-types'
-import { MOCK_INVOICE, MOCK_TRANSACTIONS } from '../mock/patient.mock'
+import { MOCK_INVOICE, MOCK_RX_INVOICE, MOCK_TRANSACTIONS } from '../mock/patient.mock'
 import { MOCK_SP_INVOICES } from '../mock/sp.mock'
 import { useUserStore } from '@gg/shared-stores'
 
@@ -133,6 +133,9 @@ function getMergedPatientInvoices(): PatientInvoice[] {
       )
     }
     list.push(MOCK_INVOICE)
+  }
+  if (!list.some(i => i.id === MOCK_RX_INVOICE.id)) {
+    list.push(MOCK_RX_INVOICE)
   }
   return list
 }

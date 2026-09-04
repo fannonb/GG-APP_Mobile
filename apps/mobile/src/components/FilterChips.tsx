@@ -1,6 +1,7 @@
 import React from 'react'
 import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native'
 import { colors, fontWeights } from '@/theme'
+import { hapticSelection } from '@/lib/haptics'
 
 interface FilterItem {
   label: string
@@ -14,6 +15,13 @@ interface FilterChipsProps {
 }
 
 export default function FilterChips({ items, activeIndex, onSelect }: FilterChipsProps) {
+  const handleSelect = (index: number) => {
+    if (index !== activeIndex) {
+      hapticSelection()
+    }
+    onSelect(index)
+  }
+
   return (
     <ScrollView
       horizontal
@@ -25,8 +33,12 @@ export default function FilterChips({ items, activeIndex, onSelect }: FilterChip
         return (
           <Pressable
             key={i}
-            onPress={() => onSelect(i)}
-            style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
+            onPress={() => handleSelect(i)}
+            style={({ pressed }) => [
+              styles.chip,
+              active ? styles.chipActive : styles.chipInactive,
+              pressed && styles.chipPressed,
+            ]}
           >
             <Text style={[styles.chipText, active ? styles.textActive : styles.textInactive]}>
               {item.label}
@@ -62,6 +74,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 9999,
     gap: 6,
+  },
+  chipPressed: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.88,
   },
   chipActive: {
     backgroundColor: colors.navy,

@@ -8,6 +8,8 @@ import {
 } from 'react-native'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import {
   Screen,
@@ -20,13 +22,15 @@ import {
   MoneyText,
   StatTile,
   MProgress,
+  NotifBanner,
 } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
-import { useCreditStatus, usePatientTransactions } from '@gg/shared-hooks'
+import FinancePartnerLogo from '@/components/FinancePartnerLogo'
+import { useCreditStatus, usePatientTransactions, usePatientInvoices } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
-import { formatCurrency, formatDate } from '@gg/shared-utils'
-import { getCountryByCode } from '@gg/shared-config'
-import type { CreditStatusResponse, Transaction, Patient } from '@gg/shared-types'
+import { formatCurrency, formatDate, isCreditRunningLow, isActionablePendingInvoice } from '@gg/shared-utils'
+import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
+import type { CreditStatusResponse, Transaction, Patient, PatientInvoice } from '@gg/shared-types'
 import { EmptyWalletScreen } from './EmptyWalletScreen'
 
 /* ------------------------------------------------------------------ */
@@ -92,10 +96,12 @@ function TxRowIcon({ status }: { status: string }) {
 /* ------------------------------------------------------------------ */
 export function CreditWalletScreen() {
   const navigation = useNavigation<any>()
+  const insets = useSafeAreaInsets()
   const u = useUserStore(s => s.user) as Patient | undefined
   const beneficiaries = useUserStore(s => (s as any).beneficiaries) ?? []
   const { data: creditData, isLoading: creditLoading } = useCreditStatus()
   const { data: transactions = [], isLoading: txLoading } = usePatientTransactions()
+  const { data: invoices = [] } = usePatientInvoices()
 
   /* Show empty wallet if no credit applied */
   if (u?.creditStatus === 'not_applied') {
@@ -104,6 +110,7 @@ export function CreditWalletScreen() {
 
 
   /* derived — resilient to null */
+  const partner = u?.financePartnerId ? getFinancePartnerSummary(u.financePartnerId) : undefined
   const country = getCountryByCode(u?.countryCode ?? 'KE')
   const currency = country?.currencySymbol ?? 'Ksh.'
   const creditAvailable = u?.creditAvailable ?? 0
@@ -125,13 +132,26 @@ export function CreditWalletScreen() {
     })
     .reduce((sum: number, t: any) => sum + (t.amount ?? 0), 0)
 
-  const recentTx = transactions.slice(0, 5)
+  const thisMonthCount = spendable.filter((t: Transaction) => {
+    const d = new Date(t.date)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
+
+  const recentTx = [...transactions]
+    .sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5)
   const activeBeneficiaries: any[] = beneficiaries ?? []
+  const pendingInvoices = (invoices as PatientInvoice[]).filter(isActionablePendingInvoice)
+  const firstPending = pendingInvoices[0]
+  const accountRef = u?.creditAccountRef ?? creditData?.creditAccountRef
+  const showLowBalance =
+    u?.creditStatus === 'approved' &&
+    isCreditRunningLow(creditAvailable, u?.countryCode ?? 'KE')
 
   /* loading */
   if ((creditLoading || txLoading) && !creditData && transactions.length === 0) {
     return (
-      <Screen>
+      <Screen headerPattern="dark-curve">
         <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} />
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
@@ -142,119 +162,160 @@ export function CreditWalletScreen() {
   }
 
   return (
-    <Screen>
+    <Screen headerPattern="dark-curve">
       <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} />
 
-      <ScrollArea gap={14} px={16} py={14}>
+      <ScrollArea gap={24} px={16} py={14}>
+        {firstPending && (
+          <NotifBanner
+            icon={<CheckIcon size={18} color="#FFFFFF" />}
+            tone="warning"
+            title={`${pendingInvoices.length} invoice${pendingInvoices.length === 1 ? '' : 's'} waiting for Triple-PIN`}
+            body={`${firstPending.provider.name} · authorize to pay from your healthcare credit.`}
+            cta="Authorize now"
+            onCta={() =>
+              navigation.navigate('InvoicesTab', {
+                screen: 'InvoiceReview',
+                params: { invoiceId: firstPending.id },
+                initial: false,
+              })
+            }
+          />
+        )}
+        {showLowBalance && (
+          <NotifBanner
+            icon={<CheckIcon size={18} color="#FFFFFF" />}
+            tone="navy"
+            title="Your healthcare balance is running low"
+            body={`Request a limit increase so you can keep paying providers without interruption.`}
+            cta="Request Increase"
+            onCta={() => navigation.navigate('CreditIncrease')}
+          />
+        )}
         {/* ====== 1. Main Balance Hero ====== */}
-        <View style={s.heroCard}>
-          {/* Status pills row */}
-          <View style={s.pillsRow}>
-            <View style={s.activePill}>
-              <View style={s.greenDot} />
-              <Text style={s.activePillText}>ACTIVE BALANCE</Text>
-            </View>
+        <View style={s.creditCardHero}>
+          <LinearGradient
+            colors={['#091C44', '#132854']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.creditCardGradient}
+          >
+            <View style={s.ccGlow} />
 
-            {country && (
+            {/* Status pills row */}
+            <View style={s.pillsRow}>
+              <View style={s.activePill}>
+                <View style={s.greenDot} />
+                <Text style={s.activePillText}>ACTIVE BALANCE</Text>
+              </View>
+
+              {country && (
+                <View style={s.infoPill}>
+                  <Text style={s.infoPillText}>
+                    {country.flag ?? ''} {country.currencyCode ?? 'KES'}
+                  </Text>
+                </View>
+              )}
+
               <View style={s.infoPill}>
-                <Text style={s.infoPillText}>
-                  {country.flag ?? ''} {country.currencyCode ?? 'KES'}
+                <Text style={[s.infoPillText, { fontFamily: fontWeights.semiBold }]}>
+                  ID: {accountRef ?? 'Pending'}
                 </Text>
               </View>
-            )}
-
-            <View style={s.infoPill}>
-              <Text style={[s.infoPillText, { fontFamily: fontWeights.semiBold }]}>
-                ID: GGA-847291
-              </Text>
             </View>
-          </View>
 
-          {/* Available balance */}
-          <Text style={s.balanceLabel}>AVAILABLE BALANCE</Text>
-          <Text style={s.balanceAmount}>{formatCurrency(creditAvailable, currency)}</Text>
+            {/* Available balance */}
+            <Text style={s.balanceLabel}>AVAILABLE BALANCE</Text>
+            <Text style={s.balanceAmount}>{formatCurrency(creditAvailable, currency)}</Text>
 
-          {/* Limit / Progress inner card */}
-          <View style={s.limitCard}>
-            <View style={s.limitRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.limitLabel}>Approved Limit</Text>
-                <Text style={s.limitValue}>{formatCurrency(creditLimit, currency)}</Text>
+            {/* Limit / Progress inner card */}
+            <View style={s.limitCard}>
+              <View style={s.limitRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.limitLabel}>Approved Limit</Text>
+                  <Text style={s.limitValue}>{formatCurrency(creditLimit, currency)}</Text>
+                </View>
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Text style={s.limitLabel}>Limit Used</Text>
+                  <Text style={s.limitValuePct}>{limitUsedPct}%</Text>
+                </View>
               </View>
-              <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={s.limitLabel}>Limit Used</Text>
-                <Text style={[s.limitValue, { color: colors.blueInk }]}>{limitUsedPct}%</Text>
+
+              <MProgress
+                value={creditLimit - creditAvailable}
+                max={creditLimit}
+                height={6}
+                color={colors.blue}
+                bgColor="rgba(255,255,255,0.18)"
+              />
+
+              <View style={s.progressLabels}>
+                <Text style={s.progressLabelText}>
+                  {formatCurrency(creditAvailable, currency)} available
+                </Text>
+                <Text style={s.progressLabelText}>
+                  {formatCurrency(creditLimit, currency)} approved
+                </Text>
               </View>
             </View>
 
-            <MProgress
-              value={creditLimit - creditAvailable}
-              max={creditLimit}
-              height={6}
-              color={colors.blue}
-              bgColor="rgba(255,255,255,0.18)"
-            />
-
-            <View style={s.progressLabels}>
-              <Text style={s.progressLabelText}>
-                {formatCurrency(creditAvailable, currency)} available
-              </Text>
-              <Text style={s.progressLabelText}>
-                {formatCurrency(creditLimit, currency)} approved
-              </Text>
+            {/* Outstanding / This month 2-col */}
+            <View style={s.statsRow}>
+              <View style={s.statBlock}>
+                <Text style={s.statLabel}>Outstanding</Text>
+                <Text style={s.statValue}>{formatCurrency(outstanding, currency)}</Text>
+              </View>
+              <View style={s.statDivider} />
+              <View style={s.statBlock}>
+                <Text style={s.statLabel}>This Month</Text>
+                <Text style={s.statValueBlue}>
+                  {formatCurrency(thisMonthUsage, currency)}
+                </Text>
+                <Text style={s.statLabel}>{thisMonthCount} payment{thisMonthCount === 1 ? '' : 's'}</Text>
+              </View>
             </View>
-          </View>
 
-          {/* Outstanding / This month 2-col */}
-          <View style={s.statsRow}>
-            <View style={s.statBlock}>
-              <Text style={s.statLabel}>Outstanding Repayment</Text>
-              <Text style={s.statValue}>{formatCurrency(outstanding, currency)}</Text>
+            {/* Action buttons */}
+            <View style={s.actionRow}>
+              <MBtn
+                variant="ghost"
+                sm
+                style={s.btnRequest}
+                onPress={() => navigation.navigate('CreditIncrease')}
+              >
+                Request Increase
+              </MBtn>
+              <MBtn
+                variant="action"
+                sm
+                style={s.btnUse}
+                onPress={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
+              >
+                Use Balance →
+              </MBtn>
             </View>
-            <View style={s.statDivider} />
-            <View style={s.statBlock}>
-              <Text style={s.statLabel}>This Month's Usage</Text>
-              <Text style={[s.statValue, { color: colors.blueInk }]}>
-                {formatCurrency(thisMonthUsage, currency)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Action buttons */}
-          <View style={s.actionRow}>
-            <MBtn
-              variant="ghost"
-              sm
-              style={{ flex: 1 }}
-              onPress={() => navigation.navigate('CreditIncrease')}
-            >
-              Request Increase
-            </MBtn>
-            <MBtn
-              variant="action"
-              sm
-              style={{ flex: 1 }}
-              onPress={() =>
-                navigation.navigate('ServicesTab', { screen: 'FindService' })
-              }
-            >
-              Use Balance →
-            </MBtn>
-          </View>
+          </LinearGradient>
         </View>
 
         {/* ====== 2. Finance Partner Card ====== */}
-        <MCard padding={16}>
+        <View style={s.contentSection}>
           <View style={s.partnerRow}>
+            {partner ? (
+              <View style={s.partnerIcon}>
+                <FinancePartnerLogo partnerId={partner.id} height={24} />
+              </View>
+            ) : null}
             <View style={{ flex: 1 }}>
               <Text style={s.partnerLabel}>Financing Partner</Text>
-              <Text style={s.partnerName}>Accredited Finance Partner</Text>
+              <Text style={s.partnerName}>{partner?.name ?? 'Accredited Finance Partner'}</Text>
               <Text style={s.partnerDesc}>
-                Your credit account is compiled securely with accredited and verified finance partners.
+                {partner
+                  ? `Your credit account is compiled securely with ${partner.name}.`
+                  : 'Your credit account is compiled securely with accredited and verified finance partners.'}
               </Text>
             </View>
           </View>
-        </MCard>
+        </View>
 
         {/* ====== 3. Info Notice ====== */}
         <View style={s.infoNotice}>
@@ -264,14 +325,14 @@ export function CreditWalletScreen() {
             <Circle cx={8} cy={11.5} r={0.9} fill={colors.blue} />
           </Svg>
           <Text style={s.infoText}>
-            Funds can only be used with GG'APP-approved providers through the
-            invoice flow. Repayments are handled directly with your accredited
-            finance partner.
+            {partner
+              ? `Funds can only be used with GG'APP-approved providers. Authorization uses Triple-PIN. Repayments are handled directly with ${partner.name}.`
+              : "Funds can only be used with GG'APP-approved providers through the invoice flow. Authorization uses Triple-PIN. Repayments are handled directly with your accredited finance partner."}
           </Text>
         </View>
 
         {/* ====== 4. Transaction History ====== */}
-        <MCard padding={0}>
+        <View style={s.contentSection}>
           <View style={s.sectionHeader}>
             <View>
               <Text style={s.sectionTitle}>Transaction History</Text>
@@ -316,10 +377,10 @@ export function CreditWalletScreen() {
               )
             })
           )}
-        </MCard>
+        </View>
 
         {/* ====== 5. Authorized Beneficiaries ====== */}
-        <MCard padding={0}>
+        <View style={s.contentSection}>
           <View style={s.sectionHeader}>
             <View>
               <Text style={s.sectionTitle}>Authorized Beneficiaries</Text>
@@ -327,8 +388,8 @@ export function CreditWalletScreen() {
                 Registered beneficiaries on this balance
               </Text>
             </View>
-            <Pressable>
-              <Text style={s.viewAll}>+ Add</Text>
+            <Pressable onPress={() => navigation.navigate('ProfileTab', { screen: 'Beneficiaries' })}>
+              <Text style={s.viewAll}>Manage →</Text>
             </Pressable>
           </View>
 
@@ -353,10 +414,10 @@ export function CreditWalletScreen() {
               </View>
             ))
           )}
-        </MCard>
+        </View>
 
         {/* Bottom spacer */}
-        <View style={{ height: 24 }} />
+        <View style={{ height: 40 }} />
       </ScrollArea>
     </Screen>
   )
@@ -382,11 +443,26 @@ const s = StyleSheet.create({
   },
 
   /* navy balance hero */
-  heroCard: {
-    backgroundColor: colors.navy,
-    borderRadius: radii.card,
-    padding: 20,
+  creditCardHero: {
+    marginHorizontal: 4,
+    marginBottom: 8,
     ...shadows.raised,
+  },
+  creditCardGradient: {
+    borderRadius: 24,
+    padding: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  ccGlow: {
+    position: 'absolute',
+    top: '-40%',
+    right: '-10%',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(56, 182, 255, 0.06)',
   },
 
   /* pills row */
@@ -474,6 +550,12 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.3,
   },
+  limitValuePct: {
+    fontSize: 18,
+    fontFamily: fontWeights.extraBold,
+    color: '#38B6FF',
+    letterSpacing: -0.3,
+  },
   progressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -512,11 +594,36 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
   },
+  statValueBlue: {
+    fontSize: 16,
+    fontFamily: fontWeights.extraBold,
+    color: '#38B6FF',
+  },
 
   /* action buttons */
   actionRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
+    marginTop: 8,
+  },
+  btnRequest: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  btnUse: {
+    flex: 1,
+  },
+
+  /* container sections */
+  contentSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 0,
+    paddingVertical: 12,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.05)',
+    ...shadows.card,
   },
 
   /* partner card */
@@ -558,16 +665,19 @@ const s = StyleSheet.create({
   infoNotice: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: colors.blue3,
-    borderRadius: radii.default,
-    padding: 14,
+    backgroundColor: '#F5F9FF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 4,
     alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 182, 255, 0.1)',
   },
   infoText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: colors.text,
+    fontFamily: fontWeights.medium,
+    color: colors.navy,
     lineHeight: 18,
   },
 

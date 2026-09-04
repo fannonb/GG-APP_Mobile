@@ -9,9 +9,11 @@ import {
 import Svg, { Rect, Line, Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, FilterChips, MoneyText, StatusPill } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, FilterChips, MoneyText, StatusPill, NotifBanner } from '@/components'
+import CheckIcon from '@/icons/CheckIcon'
 import { usePatientInvoices } from '@gg/shared-hooks'
-import { formatDate } from '@gg/shared-utils'
+import { formatDate, isActionablePendingInvoice } from '@gg/shared-utils'
+import type { PatientInvoice } from '@gg/shared-types'
 
 /* ------------------------------------------------------------------ */
 /*  Status config                                                      */
@@ -62,13 +64,17 @@ export function InvoiceListScreen() {
     date: string
     status: string
     service: string
-  }> = (invoiceData ?? []).map((inv: any) => ({
+    isPrescription: boolean
+    prescriptionQuoteReviewed: boolean
+  }> = (invoiceData ?? []).map((inv: PatientInvoice) => ({
     id: inv.id,
-    provider: inv.provider?.name ?? inv.provider ?? 'Provider',
+    provider: inv.provider?.name ?? 'Provider',
     amount: inv.amount ?? 0,
     date: inv.date ?? '',
     status: inv.status ?? 'pending_auth',
-    service: inv.services?.[0]?.name ?? inv.service ?? 'Healthcare Service',
+    service: inv.services?.[0]?.name ?? 'Healthcare Service',
+    isPrescription: Boolean(inv.isPrescription),
+    prescriptionQuoteReviewed: Boolean(inv.prescriptionQuoteReviewed),
   }))
 
   /* Filter by chip */
@@ -77,6 +83,9 @@ export function InvoiceListScreen() {
     { label: 'Pending' },
     { label: 'Paid' },
   ]
+
+  const pendingInvoices = invoices.filter(isActionablePendingInvoice)
+  const firstPending = pendingInvoices[0]
 
   const filtered =
     filterIndex === 0
@@ -99,10 +108,26 @@ export function InvoiceListScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar title="Invoices" subtitle="Review and authorize pending invoices" variant="hero" back={false} />
+    <Screen headerPattern="dark-curve">
+        <AppBar
+          title="Invoices"
+          subtitle={pendingInvoices.length > 0 ? `${pendingInvoices.length} to authorize` : 'Review and settle your medical bills'}
+          variant="hero"
+          back={false}
+        />
 
       <ScrollArea gap={14} px={16} py={14}>
+        {firstPending && (
+          <NotifBanner
+            icon={<CheckIcon size={18} color="#FFFFFF" />}
+            tone="warning"
+            title={`${pendingInvoices.length} invoice${pendingInvoices.length === 1 ? '' : 's'} waiting for Triple-PIN`}
+            body={`${firstPending.provider} — authorize to pay from your healthcare credit.`}
+            cta="Authorize now"
+            onCta={() => navigation.navigate('InvoiceReview', { invoiceId: firstPending.id })}
+          />
+        )}
+
         {/* === Filter Chips === */}
         <FilterChips
           items={filterLabels}
@@ -160,7 +185,7 @@ export function InvoiceListScreen() {
 
                   <View style={s.invoiceInfo}>
                     <Text style={s.invoiceService} numberOfLines={1}>
-                      {inv.service}
+                      {inv.isPrescription ? 'Prescription order' : inv.service}
                     </Text>
                     <Text style={s.invoiceProvider} numberOfLines={1}>
                       {inv.provider}

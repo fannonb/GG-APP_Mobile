@@ -16,6 +16,7 @@ interface FieldProps {
   editable?: boolean
   keyboardType?: TextInputProps['keyboardType']
   autoCapitalize?: TextInputProps['autoCapitalize']
+  variant?: 'light' | 'dark'
 }
 
 export default function Field({
@@ -32,30 +33,38 @@ export default function Field({
   editable = true,
   keyboardType,
   autoCapitalize,
+  variant = 'light',
 }: FieldProps) {
   const [isFocused, setIsFocused] = useState(false)
+  const isDark = variant === 'dark'
 
-  const borderColor = error
-    ? colors.error
-    : isFocused
-    ? colors.navy
-    : colors.border
+  const getBorderColor = () => {
+    if (error) return colors.error
+    if (isFocused) return isDark ? colors.blue : colors.navy
+    return isDark ? 'rgba(255,255,255,0.1)' : colors.border
+  }
 
   return (
     <View style={styles.wrapper}>
       {/* Label row */}
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
-        {required && <Text style={styles.asterisk}> *</Text>}
+        <Text style={[styles.label, isDark && styles.labelDark]}>{label}</Text>
+        {required && !isDark && <Text style={styles.asterisk}> *</Text>}
       </View>
 
       {/* Input container */}
-      <View style={[styles.inputContainer, { borderColor }]}>
+      <View
+        style={[
+          styles.inputContainer,
+          isDark && styles.inputContainerDark,
+          { borderColor: getBorderColor() },
+        ]}
+      >
         <TextInput
-          style={styles.input}
+          style={[styles.input, isDark && styles.inputDark]}
           value={value}
           placeholder={placeholder}
-          placeholderTextColor={colors.textLight}
+          placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : colors.textLight}
           onChangeText={onChangeText}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
@@ -74,7 +83,9 @@ export default function Field({
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {/* Hint text */}
-      {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
+      {hint && !error ? (
+        <Text style={[styles.hint, isDark && styles.hintDark]}>{hint}</Text>
+      ) : null}
     </View>
   )
 }
@@ -92,6 +103,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.navy,
   },
+  labelDark: {
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: fontWeights.medium,
+  },
   asterisk: {
     fontFamily: fontWeights.bold,
     fontSize: 14,
@@ -106,12 +121,19 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: colors.card,
   },
+  inputContainerDark: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1.5,
+  },
   input: {
     flex: 1,
     fontFamily: fontWeights.regular,
     fontSize: 15,
     color: colors.text,
     padding: 0,
+  },
+  inputDark: {
+    color: '#FFFFFF',
   },
   right: {
     marginLeft: 10,
@@ -127,6 +149,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textLight,
     marginTop: 4,
+  },
+  hintDark: {
+    color: 'rgba(255,255,255,0.5)',
   },
 })
 

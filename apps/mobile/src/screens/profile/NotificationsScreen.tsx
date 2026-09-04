@@ -132,6 +132,10 @@ const NOTIF_CONFIG: Record<
     icon: <PrescriptionIcon size={18} color={colors.teal} />,
     bg: colors.tealBg,
   },
+  ledger: {
+    icon: <SystemIcon size={18} color={colors.navy} />,
+    bg: colors.blue3,
+  },
   system: {
     icon: <SystemIcon size={18} color={colors.textSub} />,
     bg: colors.bg,

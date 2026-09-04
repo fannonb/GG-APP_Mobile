@@ -20,6 +20,7 @@ interface DateFieldProps {
   hint?: string
   maximumDate?: Date
   minimumDate?: Date
+  variant?: 'light' | 'dark'
 }
 
 export default function DateField({
@@ -31,6 +32,7 @@ export default function DateField({
   hint,
   maximumDate = new Date(),
   minimumDate = new Date(new Date().getFullYear() - 120, 0, 1),
+  variant = 'light',
 }: DateFieldProps) {
   const [showPicker, setShowPicker] = useState(false)
   const pickerDate = parseDobToDate(value) ?? defaultDobPickerDate()
@@ -50,6 +52,7 @@ export default function DateField({
         required={required}
         error={error}
         hint={hint}
+        variant={variant}
         right={
           <Pressable
             onPress={() => setShowPicker(true)}
@@ -57,7 +60,7 @@ export default function DateField({
             accessibilityRole="button"
             accessibilityLabel="Open date picker"
           >
-            <CalendarIcon size={20} color={colors.textSub} />
+            <CalendarIcon size={20} color={variant === 'dark' ? 'rgba(255,255,255,0.5)' : colors.textSub} />
           </Pressable>
         }
       />

@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, StyleSheet, ActivityIndicator, Pressable } from 'react-native'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
 import { usePatientAppointments, useConfirmRescheduledAppointmentMutation, useCancelPatientAppointmentMutation } from '@gg/shared-hooks'
-import { formatDate, formatTime12h } from '@gg/shared-utils'
+import { formatDate, formatTime12h, getAppointmentDisplayStatus } from '@gg/shared-utils'
 import type { HomeScreenProps } from '@/navigation/types'
 import type { Appointment } from '@gg/shared-types'
 
@@ -26,6 +26,14 @@ function ClockIcon({ size = 20, color = colors.blue }: { size?: number; color?: 
   )
 }
 
+const CANCEL_REASONS = [
+  'Schedule conflict',
+  'Feeling better',
+  'Found another provider',
+  'Provider unavailable',
+  'Other',
+] as const
+
 export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'RescheduleReview'>) {
   const { appointmentId } = route.params
   const { data: appointmentsData, isLoading } = usePatientAppointments()
@@ -35,6 +43,7 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
   const [confirmed, setConfirmed] = useState(false)
   const [showDecline, setShowDecline] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
+  const [cancelNote, setCancelNote] = useState('')
 
   const appointments = [
     ...(appointmentsData?.upcoming ?? []),
@@ -59,6 +68,25 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
         <AppBar title="Reschedule Review" back />
         <View style={st.centered}>
           <Text style={st.emptyText}>Appointment not found.</Text>
+          <MBtn variant="secondary" onPress={() => navigation.goBack()}>Go Back</MBtn>
+        </View>
+      </Screen>
+    )
+  }
+
+  const displayStatus = getAppointmentDisplayStatus(apt)
+  const hasProposal = Boolean((apt as Appointment).rescheduledAt) && displayStatus === 'pending'
+
+  if (displayStatus === 'confirmed' || !hasProposal) {
+    return (
+      <Screen>
+        <AppBar title="Reschedule Review" back />
+        <View style={st.centered}>
+          <Text style={st.emptyText}>
+            {displayStatus === 'confirmed'
+              ? 'This appointment is already confirmed.'
+              : 'No pending reschedule proposal for this appointment.'}
+          </Text>
           <MBtn variant="secondary" onPress={() => navigation.goBack()}>Go Back</MBtn>
         </View>
       </Screen>
@@ -99,8 +127,15 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
   }
 
   const handleDecline = () => {
+    if (!declineReason) return
     cancelMutation.mutate(
-      { id: appointmentId, payload: { reason: declineReason || 'Declined reschedule' } },
+      {
+        id: appointmentId,
+        payload: {
+          reason: declineReason,
+          note: declineReason === 'Other' ? cancelNote.trim() || undefined : undefined,
+        },
+      },
       { onSuccess: () => navigation.navigate('Appointments') },
     )
   }
@@ -186,16 +221,32 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
             <Text style={st.declineDesc}>
               Let the provider know why this time doesn't work. The appointment will be cancelled.
             </Text>
-            <TextInput
-              style={st.declineInput}
-              placeholder="Reason (optional)"
-              placeholderTextColor={colors.textLight}
-              value={declineReason}
-              onChangeText={setDeclineReason}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
+            <View style={{ gap: 8, marginBottom: 14 }}>
+              {CANCEL_REASONS.map(reason => {
+                const active = declineReason === reason
+                return (
+                  <Pressable
+                    key={reason}
+                    onPress={() => setDeclineReason(reason)}
+                    style={[st.reasonChip, active && st.reasonChipActive]}
+                  >
+                    <Text style={[st.reasonChipText, active && st.reasonChipTextActive]}>{reason}</Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+            {declineReason === 'Other' && (
+              <TextInput
+                style={st.declineInput}
+                placeholder="Please describe your reason…"
+                placeholderTextColor={colors.textLight}
+                value={cancelNote}
+                onChangeText={setCancelNote}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            )}
             <View style={st.btnRow}>
               <MBtn variant="secondary" style={{ flex: 1 }} onPress={() => setShowDecline(false)}>
                 Back
@@ -203,7 +254,7 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
               <MBtn
                 variant="primary"
                 style={[{ flex: 2 }, { backgroundColor: colors.error }]}
-                disabled={cancelMutation.isPending}
+                disabled={cancelMutation.isPending || !declineReason}
                 onPress={handleDecline}
               >
                 {cancelMutation.isPending ? 'Declining...' : 'Decline & Cancel'}
@@ -253,4 +304,18 @@ const st = StyleSheet.create({
   declineTitle: { fontSize: 15, fontFamily: fontWeights.bold, color: colors.error, marginBottom: 6 },
   declineDesc: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 18, marginBottom: 12 },
   declineInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontWeights.regular, fontSize: 14, color: colors.text, backgroundColor: colors.bg, minHeight: 70, marginBottom: 14 },
+  reasonChip: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: colors.card,
+  },
+  reasonChipActive: {
+    borderColor: colors.blueInk,
+    backgroundColor: colors.blue100,
+  },
+  reasonChipText: { fontSize: 13, fontFamily: fontWeights.medium, color: colors.text },
+  reasonChipTextActive: { color: colors.blueInk, fontFamily: fontWeights.bold },
 })

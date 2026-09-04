@@ -71,7 +71,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
             screens: {
               Profile: 'app/profile',
               Beneficiaries: 'app/beneficiaries',
-              Notifications: 'app/notifications',
               SecurityPIN: 'app/security/pin',
               HealthLedger: 'app/ledger',
               LedgerPinSetup: 'app/ledger/pin',
@@ -80,6 +79,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
           },
         },
       },
+      Notifications: 'app/notifications',
     },
   },
 }

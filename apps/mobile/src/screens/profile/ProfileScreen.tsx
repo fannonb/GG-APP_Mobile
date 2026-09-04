@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { useNavigation, useRoute } from '@react-navigation/native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import {
   Screen,
@@ -21,18 +22,22 @@ import {
   StatTile,
   SegmentedTabs,
   Field,
+  PhonePrefixInput,
+  HelpSupportModal,
 } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
 import { usePatientProfile, usePatientTransactions, useUpdatePatientProfileMutation } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
 import { authService } from '@gg/shared-api'
-import { formatCurrency, formatDate, formatPhone } from '@gg/shared-utils'
+import { formatPhone } from '@gg/shared-utils'
 import {
   getCountryByCode,
   getWorldCountryByCode,
   isOperatingCountryCode,
   resolveResidenceSelectCode,
   WORLD_COUNTRIES,
+  getCountryDial,
+  splitPhonePrefix,
 } from '@gg/shared-config'
 import type { Patient, Beneficiary } from '@gg/shared-types'
 
@@ -87,12 +92,14 @@ export function ProfileScreen() {
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
-    phone: '',
     residenceCountryCode: 'KE',
   })
+  const [phoneCountryCode, setPhoneCountryCode] = useState('KE')
+  const [phoneDigits, setPhoneDigits] = useState('')
   const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   /* Deep-link support: when the dashboard sends us here with openSection, mount
      the profile root first, then push the requested screen so back always
@@ -176,15 +183,31 @@ export function ProfileScreen() {
     { label: 'Country of Residence', val: residenceCountryName },
     { label: 'Market Country', val: marketCountryName },
     { label: 'Currency', val: currencyLabel },
-    { label: 'National ID', val: displayValue(u?.nationalId) },
-    { label: 'Date of Birth', val: dateOfBirth },
+    { label: 'National ID', val: displayValue(u?.nationalId), locked: true },
+    { label: 'Date of Birth', val: dateOfBirth, locked: true },
     { label: 'Member Since', val: memberSince },
   ]
+
+  const startEditing = () => {
+    const residenceCode = resolveResidenceSelectCode(u ?? {})
+    const parsed = splitPhonePrefix(u?.phone, residenceCode)
+    setEditForm({
+      name: u?.name ?? '',
+      email: u?.email ?? '',
+      residenceCountryCode: residenceCode,
+    })
+    setPhoneCountryCode(parsed.countryCode)
+    setPhoneDigits(parsed.digits)
+    setEditError(null)
+    setShowCountryPicker(false)
+    setEditing(true)
+    setActiveTab(0)
+  }
 
   /* loading */
   if (isLoading && !u) {
     return (
-      <Screen>
+      <Screen headerPattern="dark-curve">
         <View style={s.loadWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadText}>Loading profile...</Text>
@@ -194,71 +217,69 @@ export function ProfileScreen() {
   }
 
   return (
-    <Screen>
+    <Screen headerPattern="dark-curve">
       <AppBar title="My Profile" subtitle="Manage your account" variant="hero" back={false} />
 
-      <ScrollArea gap={14} px={16} py={14}>
+      <ScrollArea gap={24} px={16} py={14}>
         {/* ============================================================ */}
         {/*  1. Profile Header (navy gradient card)                      */}
         {/* ============================================================ */}
         <View style={s.heroCard}>
-          {/* decorative circles */}
-          <View style={s.decoCircle1} />
-          <View style={s.decoCircle2} />
-
-          <View style={s.heroContent}>
-            {/* avatar with verification badge */}
-            <View style={s.avatarWrap}>
-              <MAvatar
-                name={u?.name ?? 'User'}
-                size={60}
-                bg="rgba(255,255,255,0.15)"
-              />
-              <View style={s.verifyBadge}>
-                <CheckIcon size={10} color="#FFFFFF" />
-              </View>
-            </View>
-
-            {/* name + info */}
-            <View style={s.heroInfo}>
-              <Text style={s.heroName}>{u?.name ?? 'Patient'}</Text>
-              <Text style={s.heroMeta}>
-                {flag} {displayValue(u?.nationalId)} {'·'} {countryName}{' '}
-                {'·'} {currencyCode}
-              </Text>
-
-              {/* status pills */}
-              <View style={s.pillRow}>
-                <StatusPill label="Verified Patient" tone="success" size="sm" />
-                <StatusPill label="Balance Active" tone="info" size="sm" />
-                <StatusPill
-                  label={`${beneficiaries.length} Beneficiary${beneficiaries.length === 1 ? '' : 's'}`}
-                  tone="teal"
-                  size="sm"
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* edit profile ghost button */}
-          <MBtn
-            variant="ghost"
-            sm
-            onPress={() => {
-              setEditForm({
-                name: u?.name ?? '',
-                email: u?.email ?? '',
-                phone: u?.phone ?? '',
-                residenceCountryCode: resolveResidenceSelectCode(u ?? {}),
-              })
-              setEditError(null)
-              setShowCountryPicker(false)
-              setEditing(true)
-              setActiveTab(0)
-            }}
+          <LinearGradient
+            colors={['#091C44', '#132854']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.heroGradient}
           >
-            Edit Profile
-          </MBtn>
+            {/* decorative circles */}
+            <View style={s.decoCircle1} />
+            <View style={s.decoCircle2} />
+
+            <View style={s.heroContent}>
+              {/* avatar with verification badge */}
+              <View style={s.avatarWrap}>
+                <MAvatar
+                  name={u?.name ?? 'User'}
+                  size={60}
+                  bg="rgba(255,255,255,0.15)"
+                />
+                <View style={s.verifyBadge}>
+                  <CheckIcon size={10} color="#FFFFFF" />
+                </View>
+              </View>
+
+              {/* name + info */}
+              <View style={s.heroInfo}>
+                <Text style={s.heroName}>{u?.name ?? 'Patient'} {flag}</Text>
+                <Text style={s.heroMeta}>
+                  {livesAbroad
+                    ? `${residenceCountryName} (lives abroad) · ${marketCountryName} market · ${currencyCode}`
+                    : `${displayValue(u?.nationalId)} · ${countryName} · ${currencyCode}`}
+                </Text>
+
+                {/* status pills */}
+                <View style={s.pillRow}>
+                  <StatusPill label="Verified Patient" tone="success" size="sm" />
+                  <StatusPill label="Balance Active" tone="info" size="sm" />
+                  <StatusPill
+                    label={`${beneficiaries.length} Beneficiary${beneficiaries.length === 1 ? '' : 's'}`}
+                    tone="teal"
+                    size="sm"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* edit profile ghost button */}
+            <MBtn
+              variant="ghost"
+              sm
+              style={{ marginTop: 16, backgroundColor: 'rgba(255,255,255,0.1)' }}
+              onPress={startEditing}
+            >
+              Edit Profile
+            </MBtn>
+          </LinearGradient>
         </View>
 
         {/* ============================================================ */}
@@ -282,7 +303,7 @@ export function ProfileScreen() {
         </View>
 
         {/* Health Ledger entry — matches web patient nav */}
-        <MCard padding={16}>
+        <View style={s.contentSection}>
           <View style={s.sectionHead}>
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={s.sectionTitle}>Health Ledger</Text>
@@ -295,7 +316,7 @@ export function ProfileScreen() {
           <MBtn variant="primary" sm onPress={() => navigation.navigate('HealthLedger')}>
             Open Health Ledger
           </MBtn>
-        </MCard>
+        </View>
 
         {/* ============================================================ */}
         {/*  4. Tab Bar                                                  */}
@@ -310,24 +331,14 @@ export function ProfileScreen() {
         {/*  5. Tab Content                                              */}
         {/* ============================================================ */}
         {activeTab === 0 && !editing && (
-          <MCard padding={20}>
+          <View style={s.contentSection}>
             {/* header */}
             <View style={s.sectionHead}>
               <Text style={s.sectionTitle}>Personal Details</Text>
               <MBtn
                 variant="secondary"
                 sm
-                onPress={() => {
-                  setEditForm({
-                    name: u?.name ?? '',
-                    email: u?.email ?? '',
-                    phone: u?.phone ?? '',
-                    residenceCountryCode: resolveResidenceSelectCode(u ?? {}),
-                  })
-                  setEditError(null)
-                  setShowCountryPicker(false)
-                  setEditing(true)
-                }}
+                onPress={startEditing}
               >
                 Edit
               </MBtn>
@@ -342,15 +353,20 @@ export function ProfileScreen() {
                   i < personalFields.length - 1 && s.fieldRowBorder,
                 ]}
               >
-                <Text style={s.fieldLabel}>{f.label}</Text>
-                <Text style={s.fieldValue}>{f.val}</Text>
+                <View style={{ flex: 1 }}>
+                  <View style={s.labelRow}>
+                    <Text style={s.fieldLabel}>{f.label}</Text>
+                    {f.locked ? <Text style={s.lockHint}>Locked</Text> : null}
+                  </View>
+                  <Text style={s.fieldValue}>{f.val}</Text>
+                </View>
               </View>
             ))}
-          </MCard>
+          </View>
         )}
 
         {activeTab === 0 && editing && (
-          <MCard padding={20}>
+          <View style={s.contentSection}>
             <View style={s.sectionHead}>
               <Text style={s.sectionTitle}>Edit Personal Details</Text>
             </View>
@@ -370,13 +386,13 @@ export function ProfileScreen() {
               onChangeText={(v: string) => setEditForm(prev => ({ ...prev, email: v }))}
               required
             />
-            <Field
+            <PhonePrefixInput
               label="Phone Number"
-              placeholder="Enter your phone number"
-              keyboardType="phone-pad"
-              value={editForm.phone}
-              onChangeText={(v: string) => setEditForm(prev => ({ ...prev, phone: v }))}
               required
+              countryCode={phoneCountryCode}
+              onCountryChange={setPhoneCountryCode}
+              digits={phoneDigits}
+              onDigitsChange={setPhoneDigits}
             />
 
             <View style={{ marginBottom: 12 }}>
@@ -429,7 +445,7 @@ export function ProfileScreen() {
               {!isOperatingCountryCode(editForm.residenceCountryCode) && (
                 <Text style={s.residenceHint}>
                   You are living abroad. Your wallet currency stays tied to your registered
-                  market ({marketCountryName}).
+                  market ({marketCountryName}). Beneficiaries must reside in Kenya, Zimbabwe, or Zambia.
                 </Text>
               )}
             </View>
@@ -481,6 +497,10 @@ export function ProfileScreen() {
                     setEditError('Email is required')
                     return
                   }
+                  if (!phoneDigits.trim()) {
+                    setEditError('Phone number is required')
+                    return
+                  }
                   if (!editForm.residenceCountryCode) {
                     setEditError('Country of residence is required')
                     return
@@ -492,7 +512,7 @@ export function ProfileScreen() {
                     await updateProfileMutation.mutateAsync({
                       name: editForm.name.trim(),
                       email: editForm.email.trim(),
-                      phone: editForm.phone.trim(),
+                      phone: `${getCountryDial(phoneCountryCode)} ${phoneDigits}`.trim(),
                       residenceCountryCode: editForm.residenceCountryCode,
                       residenceCountryName: selected?.name ?? editForm.residenceCountryCode,
                     })
@@ -507,15 +527,14 @@ export function ProfileScreen() {
                 {editLoading ? 'Saving...' : 'Save Changes'}
               </MBtn>
             </View>
-          </MCard>
+          </View>
         )}
 
         {activeTab === 1 && (
-          <MCard padding={24}>
+          <View style={s.contentSection}>
             <Text style={s.placeholderTitle}>Beneficiaries</Text>
             <Text style={s.placeholderBody}>
-              View and manage your covered family members on the dedicated
-              Beneficiaries screen.
+              View and manage your covered family members. Beneficiaries must reside in Kenya, Zimbabwe, or Zambia.
             </Text>
             <MBtn
               variant="primary"
@@ -524,11 +543,11 @@ export function ProfileScreen() {
             >
               Go to Beneficiaries
             </MBtn>
-          </MCard>
+          </View>
         )}
 
         {activeTab === 2 && (
-          <MCard padding={24}>
+          <View style={s.contentSection}>
             <Text style={s.placeholderTitle}>Security & PIN</Text>
             <Text style={s.placeholderBody}>
               Manage your payment PIN authorization and password settings on the
@@ -551,8 +570,30 @@ export function ProfileScreen() {
                 Health Ledger PIN
               </MBtn>
             </View>
-          </MCard>
+          </View>
         )}
+
+        <Pressable
+          style={s.helpBtn}
+          onPress={() => setHelpOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Open help and support"
+        >
+          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+            <Circle cx={12} cy={12} r={9.25} stroke={colors.blueInk} strokeWidth={1.8} />
+            <Path
+              d="M9.1 9a3 3 0 015.82 1c0 2-3 3-3 3"
+              stroke={colors.blueInk}
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <Path d="M12 17.25h.01" stroke={colors.blueInk} strokeWidth={2.4} strokeLinecap="round" />
+          </Svg>
+          <Text style={s.helpBtnText}>Help & Support</Text>
+        </Pressable>
+
+        <HelpSupportModal visible={helpOpen} onClose={() => setHelpOpen(false)} />
 
         {/* Sign Out */}
         <Pressable
@@ -612,12 +653,15 @@ const s = StyleSheet.create({
 
   /* hero card */
   heroCard: {
-    backgroundColor: colors.navy,
-    borderRadius: radii.card,
+    marginHorizontal: 4,
+    ...shadows.raised,
+  },
+  heroGradient: {
+    borderRadius: 24,
     padding: 24,
     overflow: 'hidden',
-    gap: 16,
-    ...shadows.raised,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   decoCircle1: {
     position: 'absolute',
@@ -698,6 +742,16 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.bold,
   },
 
+  /* container sections */
+  contentSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.05)',
+    ...shadows.card,
+  },
   /* section header */
   sectionHead: {
     flexDirection: 'row',
@@ -779,6 +833,30 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
+  },
+  helpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: radii.large,
+    borderWidth: 1.5,
+    borderColor: 'rgba(11, 114, 187, 0.28)',
+    backgroundColor: colors.card,
+    marginTop: 8,
+  },
+  helpBtnText: {
+    fontSize: 14,
+    fontFamily: fontWeights.semiBold,
+    color: colors.blueInk,
+  },
+  lockHint: {
+    fontSize: 10,
+    fontFamily: fontWeights.bold,
+    color: colors.textLight,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   labelRow: { flexDirection: 'row', marginBottom: 6 },
   asterisk: { fontFamily: fontWeights.bold, fontSize: 12, color: colors.error },

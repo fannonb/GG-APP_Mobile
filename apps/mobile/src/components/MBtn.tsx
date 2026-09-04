@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native'
 import { colors, fontWeights, radii } from '@/theme'
+import { hapticLight } from '@/lib/haptics'
 
 type Variant =
   | 'primary'
@@ -18,6 +19,7 @@ interface MBtnProps {
   sm?: boolean
   fullWidth?: boolean
   disabled?: boolean
+  haptic?: boolean
   onPress?: () => void
   children: React.ReactNode
   style?: StyleProp<ViewStyle>
@@ -73,15 +75,24 @@ export default function MBtn({
   sm,
   fullWidth,
   disabled,
+  haptic = true,
   onPress,
   children,
   style,
 }: MBtnProps) {
   const scheme = variantStyles[variant]
 
+  const handlePress = () => {
+    if (disabled) return
+    if (haptic) {
+      hapticLight()
+    }
+    onPress?.()
+  }
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
@@ -117,8 +128,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.large,
   },
   pressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.975 }],
   },
   fullWidth: {
     width: '100%',

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native'
 import Svg, { Path, Circle } from 'react-native-svg'
 import type { LedgerEntry } from '@gg/shared-types'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -316,7 +316,34 @@ export function LedgerTimeline({
   entries: LedgerEntry[]
   emptyMessage?: string
 }) {
-  const allIds = useMemo(() => entries.map(entryKey), [entries])
+  const [query, setQuery] = useState('')
+  const [kindFilter, setKindFilter] = useState<'all' | 'visit' | 'prescription'>('all')
+  const [dateFilter, setDateFilter] = useState<'all' | '30d' | '6m' | '12m'>('all')
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const cutoff = dateFilter === 'all'
+      ? null
+      : Date.now() - (dateFilter === '30d' ? 30 : dateFilter === '6m' ? 182 : 365) * 24 * 60 * 60 * 1000
+    return entries.filter(entry => {
+      if (kindFilter !== 'all' && entry.kind !== kindFilter) return false
+      if (cutoff && new Date(entry.date).getTime() < cutoff) return false
+      if (!q) return true
+      const blob = [
+        entry.kind,
+        entry.provider?.name,
+        'diagnosis' in entry ? entry.diagnosis : '',
+        'service' in entry ? entry.service : '',
+        'items' in entry ? entry.items.map(i => i.name).join(' ') : '',
+        'services' in entry ? entry.services.join(' ') : '',
+      ].join(' ').toLowerCase()
+      return blob.includes(q)
+    })
+  }, [entries, query, kindFilter, dateFilter])
+
+  const hasActiveFilters = Boolean(query.trim()) || kindFilter !== 'all' || dateFilter !== 'all'
+
+  const allIds = useMemo(() => filtered.map(entryKey), [filtered])
   const entriesFingerprint = allIds.join('|')
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
@@ -363,26 +390,74 @@ export function LedgerTimeline({
 
   return (
     <View style={styles.timeline}>
+      <TextInput
+        style={styles.search}
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search provider, diagnosis, or items"
+        placeholderTextColor={colors.textLight}
+      />
+      <View style={styles.filterRow}>
+        {([
+          ['all', 'All'],
+          ['visit', 'Visits'],
+          ['prescription', 'Prescriptions'],
+        ] as const).map(([id, label]) => (
+          <Pressable
+            key={id}
+            onPress={() => setKindFilter(id)}
+            style={[styles.chip, kindFilter === id && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, kindFilter === id && styles.chipTextActive]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.filterRow}>
+        {([
+          ['30d', 'Last 30 days'],
+          ['6m', 'Last 6 months'],
+          ['12m', 'Last 12 months'],
+        ] as const).map(([id, label]) => (
+          <Pressable
+            key={id}
+            onPress={() => setDateFilter(prev => (prev === id ? 'all' : id))}
+            style={[styles.chip, dateFilter === id && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, dateFilter === id && styles.chipTextActive]}>{label}</Text>
+          </Pressable>
+        ))}
+        {hasActiveFilters && (
+          <Pressable onPress={() => { setQuery(''); setKindFilter('all'); setDateFilter('all') }}>
+            <Text style={styles.clearFilters}>Clear</Text>
+          </Pressable>
+        )}
+      </View>
       <View style={styles.controls}>
         <Text style={styles.recordCount}>
-          {entries.length} {entries.length === 1 ? 'treatment record' : 'treatment records'}
+          {filtered.length} {filtered.length === 1 ? 'treatment record' : 'treatment records'}
         </Text>
         <Pressable onPress={toggleAll} hitSlop={8} accessibilityRole="button">
           <Text style={styles.toggleAll}>{allExpanded ? 'Collapse all' : 'Expand all'}</Text>
         </Pressable>
       </View>
 
-      {entries.map(entry => {
-        const idKey = entryKey(entry)
-        return (
-          <CollapsibleEntryCard
-            key={idKey}
-            entry={entry}
-            isExpanded={expandedIds.has(idKey)}
-            onToggle={() => toggleExpand(idKey)}
-          />
-        )
-      })}
+      {filtered.length === 0 ? (
+        <MCard padding={24}>
+          <Text style={styles.emptyCenter}>No records match these filters.</Text>
+        </MCard>
+      ) : (
+        filtered.map(entry => {
+          const idKey = entryKey(entry)
+          return (
+            <CollapsibleEntryCard
+              key={idKey}
+              entry={entry}
+              isExpanded={expandedIds.has(idKey)}
+              onToggle={() => toggleExpand(idKey)}
+            />
+          )
+        })
+      )}
     </View>
   )
 }
@@ -390,6 +465,48 @@ export function LedgerTimeline({
 const styles = StyleSheet.create({
   timeline: {
     gap: 14,
+  },
+  search: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: fontWeights.regular,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.card,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipActive: {
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
+  },
+  chipText: {
+    fontSize: 12,
+    fontFamily: fontWeights.semiBold,
+    color: colors.textSub,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+  clearFilters: {
+    fontSize: 12,
+    fontFamily: fontWeights.bold,
+    color: colors.blueInk,
   },
   controls: {
     flexDirection: 'row',

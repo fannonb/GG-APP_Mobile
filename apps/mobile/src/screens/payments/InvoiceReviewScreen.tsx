@@ -169,7 +169,10 @@ export function InvoiceReviewScreen() {
               <Text style={s.providerName}>{providerName}</Text>
               {providerAddress ? <Text style={s.providerAddress}>{providerAddress}</Text> : null}
             </View>
-            <GGPill type={statusPill.type}>{statusPill.label}</GGPill>
+            <View style={{ alignItems: 'flex-end', gap: 6 }}>
+              <GGPill type={statusPill.type}>{statusPill.label}</GGPill>
+              {inv.isPrescription ? <GGPill type="info">Prescription</GGPill> : null}
+            </View>
           </View>
 
           <View style={s.divider} />
@@ -186,7 +189,7 @@ export function InvoiceReviewScreen() {
             <>
               <View style={s.divider} />
               <View style={s.lineItemSection}>
-                <Text style={s.lineItemHeader}>Services</Text>
+                <Text style={s.lineItemHeader}>{inv.isPrescription ? 'Medications' : 'Services Rendered'}</Text>
                 {services.map((svc: InvoiceLineItem, i: number) => (
                   <View key={i} style={[s.lineItemRow, i < services.length - 1 && s.lineItemBorder]}>
                     <Text style={s.lineItemName}>{svc.name}</Text>

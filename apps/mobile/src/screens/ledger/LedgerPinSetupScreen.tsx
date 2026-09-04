@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useLedgerStatus, useSetupLedgerPinMutation } from '@gg/shared-hooks'
+import { useLedgerStatus, useSetupLedgerPinMutation, useResetLedgerPinMutation } from '@gg/shared-hooks'
 import { colors, fontWeights, radii } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
 
@@ -17,11 +17,13 @@ export function LedgerPinSetupScreen() {
   const navigation = useNavigation<any>()
   const statusQuery = useLedgerStatus()
   const setupPinMutation = useSetupLedgerPinMutation()
+  const resetPinMutation = useResetLedgerPinMutation()
   const isReset = statusQuery.data?.hasPin ?? false
 
-  const [form, setForm] = useState({ currentPin: '', pin: '', confirmPin: '' })
+  const [form, setForm] = useState({ currentPin: '', password: '', pin: '', confirmPin: '' })
   const [expiresInDays, setExpiresInDays] = useState<number | undefined>(undefined)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [forgotMode, setForgotMode] = useState(false)
 
   const title = isReset ? 'Change Ledger PIN' : 'Create Ledger PIN'
   const subtitle = isReset
@@ -33,8 +35,11 @@ export function LedgerPinSetupScreen() {
 
   const validate = () => {
     const nextErrors: Record<string, string> = {}
-    if (isReset && form.currentPin.length < 4) {
+    if (isReset && !forgotMode && form.currentPin.length < 4) {
       nextErrors.currentPin = 'Enter your current ledger PIN'
+    }
+    if (forgotMode && !form.password.trim()) {
+      nextErrors.password = 'Confirm your account password to reset the ledger PIN'
     }
     if (!/^\d{4,6}$/.test(form.pin)) {
       nextErrors.pin = 'PIN must be 4 to 6 digits'
@@ -46,16 +51,27 @@ export function LedgerPinSetupScreen() {
     return Object.keys(nextErrors).length === 0
   }
 
+  const saving = setupPinMutation.isPending || resetPinMutation.isPending
+
   const handleSubmit = async () => {
     if (!validate()) return
 
     try {
-      await setupPinMutation.mutateAsync({
-        currentPin: isReset ? form.currentPin : undefined,
-        pin: form.pin,
-        confirmPin: form.confirmPin,
-        expiresInDays,
-      })
+      if (forgotMode) {
+        await resetPinMutation.mutateAsync({
+          password: form.password,
+          pin: form.pin,
+          confirmPin: form.confirmPin,
+          expiresInDays,
+        })
+      } else {
+        await setupPinMutation.mutateAsync({
+          currentPin: isReset ? form.currentPin : undefined,
+          pin: form.pin,
+          confirmPin: form.confirmPin,
+          expiresInDays,
+        })
+      }
       navigation.navigate('HealthLedger')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save your ledger PIN.'
@@ -77,17 +93,60 @@ export function LedgerPinSetupScreen() {
           </View>
 
           <View style={styles.form}>
-            {isReset ? (
-              <Field
-                label="Current PIN"
-                value={form.currentPin}
-                onChangeText={val => setField('currentPin', val.replace(/\D/g, '').slice(0, 6))}
-                placeholder="Enter current PIN"
-                secureTextEntry
-                keyboardType="number-pad"
-                required
-                error={errors.currentPin}
-              />
+            {isReset && !forgotMode ? (
+              <View>
+                <Field
+                  label="Current PIN"
+                  value={form.currentPin}
+                  onChangeText={val => setField('currentPin', val.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Enter current PIN"
+                  secureTextEntry
+                  keyboardType="number-pad"
+                  required
+                  error={errors.currentPin}
+                />
+                <Pressable
+                  onPress={() => {
+                    setForgotMode(true)
+                    setErrors({})
+                    setField('currentPin', '')
+                  }}
+                  hitSlop={8}
+                >
+                  <Text style={styles.forgotLink}>Forgot PIN?</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {forgotMode ? (
+              <View>
+                <View style={styles.resetBox}>
+                  <Text style={styles.resetText}>
+                    The old PIN cannot be recovered. Confirm your GG'APP account password, then
+                    choose a new Ledger PIN. This revokes any current provider access.
+                  </Text>
+                </View>
+                <Field
+                  label="Account password"
+                  value={form.password}
+                  onChangeText={val => setField('password', val)}
+                  placeholder="Enter your account password"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  required
+                  error={errors.password}
+                />
+                <Pressable
+                  onPress={() => {
+                    setForgotMode(false)
+                    setErrors({})
+                    setField('password', '')
+                  }}
+                  hitSlop={8}
+                >
+                  <Text style={styles.forgotLink}>I remember my PIN</Text>
+                </Pressable>
+              </View>
             ) : null}
 
             <Field
@@ -154,12 +213,12 @@ export function LedgerPinSetupScreen() {
               <MBtn
                 variant="primary"
                 style={{ flex: 1 }}
-                disabled={setupPinMutation.isPending || statusQuery.isLoading}
+                disabled={saving || statusQuery.isLoading}
                 onPress={handleSubmit}
               >
-                {setupPinMutation.isPending
+                {saving
                   ? 'Saving PIN...'
-                  : isReset
+                  : forgotMode || isReset
                     ? 'Update PIN'
                     : 'Create PIN'}
               </MBtn>
@@ -192,6 +251,27 @@ const styles = StyleSheet.create({
   },
   infoBold: {
     fontFamily: fontWeights.bold,
+  },
+  forgotLink: {
+    fontFamily: fontWeights.bold,
+    fontSize: 13,
+    color: colors.blueInk,
+    marginTop: 8,
+  },
+  resetBox: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: colors.bg,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 12,
+  },
+  resetText: {
+    fontFamily: fontWeights.regular,
+    fontSize: 13,
+    color: colors.textSub,
+    lineHeight: 20,
   },
   form: {
     gap: 16,

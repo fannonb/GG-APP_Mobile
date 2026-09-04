@@ -13,7 +13,8 @@ import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
-import { getCountryByCode } from '@gg/shared-config'
+import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
+import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import type { Patient } from '@gg/shared-types'
 
 const REASON_OPTIONS = [
@@ -79,7 +80,9 @@ export function CreditIncreaseScreen() {
   const creditLimit = u?.creditLimit ?? 0
   const creditAvailable = u?.creditAvailable ?? 0
   const inUse = creditLimit - creditAvailable
-  const refNum = u?.creditAccountRef ?? 'GGA-847291'
+  const refNum = u?.creditAccountRef ?? creditData?.creditAccountRef ?? 'Pending'
+
+  const partner = u?.financePartnerId ? getFinancePartnerSummary(u.financePartnerId) : undefined
 
   const pendingReview = u?.creditStatus === 'pending'
   const pendingIncrease =
@@ -163,18 +166,39 @@ export function CreditIncreaseScreen() {
 
       <ScrollArea gap={14} px={16} py={14}>
         <MCard padding={16}>
-          <View style={s.partnerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.partnerName}>Accredited Finance Partner</Text>
-              <Text style={s.partnerDesc}>
-                Limit increases follow the same review process as your original
-                application — your finance partner reassesses and approves the request.
-              </Text>
-              <View style={s.linkedBadge}>
-                <Text style={s.linkedBadgeText}>Linked to your active credit line</Text>
+          {partner ? (
+            <>
+              <Text style={s.partnerLabel}>Your Finance Partner</Text>
+              <View style={s.partnerRow}>
+                <View style={s.partnerLogoZone}>
+                  <FinancePartnerLogo partnerId={partner.id} height={26} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.partnerName}>{partner.name}</Text>
+                  <Text style={s.partnerDesc}>
+                    Limit increases follow the same review process as your original
+                    application — {partner.shortName} reassesses and approves the request.
+                  </Text>
+                  <View style={s.linkedBadge}>
+                    <Text style={s.linkedBadgeText}>Linked to your active credit line</Text>
+                  </View>
+                </View>
+              </View>
+            </>
+          ) : (
+            <View style={s.partnerRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.partnerName}>Accredited Finance Partner</Text>
+                <Text style={s.partnerDesc}>
+                  Limit increases follow the same review process as your original
+                  application — your finance partner reassesses and approves the request.
+                </Text>
+                <View style={s.linkedBadge}>
+                  <Text style={s.linkedBadgeText}>Linked to your active credit line</Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </MCard>
 
         {pendingReview && (
@@ -436,6 +460,14 @@ export default CreditIncreaseScreen
 
 const s = StyleSheet.create({
   partnerRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+  partnerLabel: {
+    fontSize: 10,
+    fontFamily: fontWeights.bold,
+    color: colors.textSub,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
   partnerLogoZone: {
     width: 112,
     height: 56,

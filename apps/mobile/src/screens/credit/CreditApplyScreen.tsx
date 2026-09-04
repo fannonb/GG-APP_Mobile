@@ -88,7 +88,7 @@ export function CreditApplyScreen() {
   const creditLimit = u?.creditLimit ?? 0
   const creditAvailable = u?.creditAvailable ?? 0
   const inUse = creditLimit - creditAvailable
-  const refNum = (u as any)?.creditAccountRef ?? 'GGA-847291'
+  const refNum = u?.creditAccountRef ?? creditData?.creditAccountRef ?? 'Pending'
 
   /* form state */
   const [increaseAmount, setIncreaseAmount] = useState('')

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react'
 import {
   View,
   Text,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,8 +10,9 @@ import {
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as SecureStore from 'expo-secure-store'
-import { colors, fontWeights, radii } from '@/theme'
-import { ScrollArea, MCard, MBtn, GGPill, NotifBanner, AdBanner, MoneyText, StatusPill } from '@/components'
+import { LinearGradient } from 'expo-linear-gradient'
+import { colors, fontWeights, radii, shadows } from '@/theme'
+import { Screen, ScrollArea, MCard, MBtn, GGPill, NotifBanner, AdBanner, MoneyText, StatusPill } from '@/components'
 import BellIcon from '@/icons/BellIcon'
 import PharmacyIcon from '@/icons/PharmacyIcon'
 import LaboratoryIcon from '@/icons/LaboratoryIcon'
@@ -49,13 +49,14 @@ import {
 } from '@/lib/notification-banners'
 import type { NotifBannerItem } from '@/lib/notification-banners'
 
-const appLogo = require('../../../assets/gg-logo.png')
+// Removed logo import
 import {
   formatCurrency,
   formatDate,
   formatTime12h,
   getAppointmentDisplayStatus,
   isCreditRunningLow,
+  isActionablePendingInvoice,
 } from '@gg/shared-utils'
 import { getCountryByCode, SERVICE_CATEGORIES } from '@gg/shared-config'
 import type { Appointment, PrescriptionRequest, Transaction } from '@gg/shared-types'
@@ -87,6 +88,15 @@ const FLAG_EMOJI: Record<string, string> = {
   KE: '\u{1F1F0}\u{1F1EA}',
   ZW: '\u{1F1FF}\u{1F1FC}',
   ZM: '\u{1F1FF}\u{1F1F2}',
+}
+
+function recentActivityStatus(status: Transaction['status']): {
+  label: string
+  tone: 'success' | 'warning' | 'error'
+} {
+  if (status === 'failed') return { label: 'Failed', tone: 'error' }
+  if (status === 'pending') return { label: 'Pending', tone: 'warning' }
+  return { label: 'Paid', tone: 'success' }
 }
 
 /* ------------------------------------------------------------------ */
@@ -244,7 +254,7 @@ export function DashboardScreen() {
   const rescheduleApt = appointments.find(
     a => getAppointmentDisplayStatus(a) === 'pending' && (a as any).rescheduledAt,
   )
-  const pendingInvoice = (invoices as any[]).find((inv: any) => inv.status === 'pending_auth')
+  const pendingInvoice = (invoices as any[]).find(isActionablePendingInvoice)
   const isLowBalance =
     creditStatus === 'approved' &&
     isCreditRunningLow(currentUser?.creditAvailable ?? 0, currentUser?.countryCode ?? 'KE')
@@ -291,6 +301,18 @@ export function DashboardScreen() {
   )
   const prescriptionReadyItems = getUnreadPrescriptionReadyItems(notifications)
   const prescriptionInvoiceItems = getUnreadPrescriptionInvoiceItems(notifications)
+  const hasUnresolvedAction = Boolean(
+    pendingInvoice ||
+      rescheduleApt ||
+      pendingApt ||
+      prescriptionQuoteItems.length ||
+      prescriptionInvoiceItems.length ||
+      prescriptionReadyItems.length ||
+      isCreditUnderReview,
+  )
+  const recentActivity = [...transactions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3)
 
   const dismissNotifBannerItems = (items: NotifBannerItem[]) => {
     items.forEach(item => {
@@ -335,25 +357,21 @@ export function DashboardScreen() {
   /* loading state */
   if (isLoading && !dashData) {
     return (
-      <View style={[s.loadingContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={colors.blue} />
-        <Text style={s.loadingText}>Loading dashboard...</Text>
-      </View>
+      <Screen headerPattern="dark-curve">
+        <View style={s.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={s.loadingText}>Loading dashboard...</Text>
+        </View>
+      </Screen>
     )
   }
 
   /* ---------------------------------------------------------------- */
   return (
-    <View style={s.root}>
-      {/* === 1. Navy Header === */}
-      <View style={[s.header, { paddingTop: insets.top + 14 }]}>
-        {/* decorative circles */}
-        <View style={s.decoCircle1} />
-        <View style={s.decoCircle2} />
-
+    <Screen headerPattern="dark-curve">
+      {/* === 1. Header === */}
+      <View style={[s.header, { paddingTop: insets.top + 20 }]}>
         <View style={s.headerRow}>
-          {/* logo */}
-          <Image source={appLogo} style={s.headerLogo} resizeMode="contain" />
           {/* left */}
           <View style={s.headerLeft}>
             <Text style={s.greetLabel}>{getGreeting()}</Text>
@@ -366,10 +384,10 @@ export function DashboardScreen() {
           {/* right */}
           <View style={s.headerRight}>
             <Pressable
-              style={s.bellWrap}
-              onPress={() => navigation.navigate('ProfileTab', { screen: 'Notifications' })}
+              style={({ pressed }) => [s.bellWrap, pressed && s.bellWrapPressed]}
+              onPress={() => navigation.navigate('Notifications')}
             >
-              <BellIcon size={18} color="#FFFFFF" />
+              <BellIcon size={20} color={colors.navy} />
               {unreadCount > 0 && (
                 <View style={s.bellBadge}>
                   <Text style={s.bellBadgeText}>
@@ -451,7 +469,7 @@ export function DashboardScreen() {
             title="Invoice Awaiting Authorization"
             body={`${pendingInvoice.provider?.name ?? pendingInvoice.provider ?? 'Provider'} - ${formatCurrency(pendingInvoice.amount, currency)}`}
             cta="Authorize Now"
-            onCta={() => navigation.navigate('InvoicesTab', { screen: 'InvoiceReview', params: { invoiceId: pendingInvoice.id } })}
+            onCta={() => navigation.navigate('InvoicesTab', { screen: 'InvoiceReview', params: { invoiceId: pendingInvoice.id }, initial: false })}
             onDismiss={() => dismissBanner(pendingInvoiceBannerId)}
           />
         )}
@@ -531,7 +549,7 @@ export function DashboardScreen() {
           />
         ))}
 
-        {prescriptionInvoiceItems.map(item => (
+        {!pendingInvoice && prescriptionInvoiceItems.map(item => (
           <NotifBanner
             key={item.id}
             icon={<CheckIcon size={18} color="#FFFFFF" />}
@@ -557,46 +575,52 @@ export function DashboardScreen() {
           />
         ))}
 
-        {/* === 3. Available Balance === */}
+        {/* === 3. Digital Credit Card Hero === */}
         <Pressable
-          style={s.balanceHeroStandalone}
+          style={({ pressed }) => [
+            s.creditCardHero,
+            pressed && s.creditCardHeroPressed,
+          ]}
           onPress={() => navigation.navigate('WalletTab', { screen: 'CreditWallet' })}
         >
-          <Text style={s.balanceHeroLabel}>
-            AVAILABLE BALANCE {flag} {country?.currencyCode ?? 'KES'}
-          </Text>
-          <MoneyText
-            amount={currentUser?.creditAvailable ?? 0}
-            currency={currency}
-            size="hero"
-            color={colors.blue}
-          />
-          <Text style={s.balanceHeroSub}>
-            of {formatCurrency(currentUser?.creditLimit ?? 0, currency)} limit
-          </Text>
-        </Pressable>
-
-
-
-        {/* === 5. Spent this Month === */}
-        <MCard padding={16} style={s.spentRow}>
-          <View style={s.spentLeft}>
-            <Text style={s.statLabel}>SPENT THIS MONTH</Text>
-            <MoneyText
-              amount={spentThisMonth}
-              currency={currency}
-              size="lg"
-            />
-            <Text style={s.spentSub}>{spentThisMonthCount} payments</Text>
-          </View>
-          <Pressable
-            onPress={() => navigation.navigate('WalletTab', { screen: 'TransactionHistory' })}
-            hitSlop={8}
-            style={s.historyBtn}
+          <LinearGradient
+            colors={['#091C44', '#132854']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.creditCardGradient}
           >
-            <Text style={s.historyLink}>History →</Text>
-          </Pressable>
-        </MCard>
+            <View style={s.ccGlow} />
+            <View style={s.ccTopRow}>
+              <Text style={s.ccBrand}>GG'APP Credit</Text>
+              <Text style={s.ccFlag}>{flag}</Text>
+            </View>
+
+            <View style={s.ccBalanceSection}>
+              <Text style={s.ccBalanceLabel}>AVAILABLE BALANCE ({country?.currencyCode ?? 'KES'})</Text>
+              <MoneyText
+                amount={currentUser?.creditAvailable ?? 0}
+                currency={currency}
+                size="hero"
+                color="#FFFFFF"
+              />
+              <Text style={s.ccLimit}>
+                of {formatCurrency(currentUser?.creditLimit ?? 0, currency)} limit
+              </Text>
+            </View>
+
+            <View style={s.ccBottomRow}>
+              <View style={s.ccSpent}>
+                <Text style={s.ccSpentLabel}>Spent this month</Text>
+                <Text style={s.ccSpentAmount}>
+                  {formatCurrency(spentThisMonth, currency)} ({spentThisMonthCount})
+                </Text>
+              </View>
+              <View style={s.ccHistoryBtn}>
+                <Text style={s.ccHistoryText}>History →</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
 
         {/* === 6. Pending Confirmation Banner === */}
         {pendingApt && pendingAptDate && (
@@ -626,7 +650,7 @@ export function DashboardScreen() {
         )}
 
         {/* === 6. Find a Service === */}
-        <MCard padding={16}>
+        <View style={s.servicesSection}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Find a Service</Text>
             <Pressable
@@ -642,7 +666,10 @@ export function DashboardScreen() {
             {SERVICE_CATEGORIES.filter(c => !c.isComingSoon).map(cat => (
               <Pressable
                 key={cat.id}
-                style={s.catItem}
+                style={({ pressed }) => [
+                  s.catItem,
+                  pressed && s.catItemPressed,
+                ]}
                 onPress={() => {
                   navigation.navigate('ServicesTab', {
                     screen: 'ProviderList',
@@ -660,28 +687,33 @@ export function DashboardScreen() {
             ))}
           </View>
 
-          {/* Global Specialists row */}
-          <Pressable style={s.globalRow}>
-            <View style={s.globalLeft}>
-              <View style={s.catIconWrap}>
-                <GlobeIcon size={22} color={colors.blue} />
+            {/* Global Specialists row */}
+            <Pressable
+              style={({ pressed }) => [
+                s.globalRow,
+                pressed && s.globalRowPressed,
+              ]}
+            >
+              <View style={s.globalLeft}>
+                <View style={s.globalIconWrap}>
+                  <GlobeIcon size={22} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={s.catLabelGlobal}>Global Specialists</Text>
+                  <Text style={s.globalDesc}>International tertiary care</Text>
+                </View>
               </View>
-              <View>
-                <Text style={s.catLabel}>Global Specialists</Text>
-                <Text style={s.globalDesc}>International tertiary care</Text>
+              <View style={s.comingSoonPill}>
+                <Text style={s.comingSoonText}>Coming Soon</Text>
               </View>
-            </View>
-            <View style={s.comingSoonPill}>
-              <Text style={s.comingSoonText}>Coming Soon</Text>
-            </View>
-          </Pressable>
-        </MCard>
+            </Pressable>
+        </View>
 
         {/* === 7. Appointments === */}
-        <MCard padding={16}>
+        <View style={s.appointmentsSection}>
           <View style={s.sectionHeader}>
             <View style={s.sectionHeaderLeft}>
-              <CalendarIcon size={18} color={colors.blue} />
+              <CalendarIcon size={18} color={colors.navy} />
               <Text style={s.sectionTitle}>Appointments</Text>
             </View>
             <Pressable onPress={() => navigation.navigate('Appointments')}>
@@ -690,7 +722,17 @@ export function DashboardScreen() {
           </View>
 
           {nextApt ? (
-            <View style={s.aptCard}>
+            <Pressable
+              style={({ pressed }) => [
+                s.aptCard,
+                pressed && s.aptCardPressed,
+              ]}
+              onPress={() =>
+                getAppointmentDisplayStatus(nextApt) === 'pending' && (nextApt as any).rescheduledAt
+                  ? navigation.navigate('RescheduleReview', { appointmentId: String(nextApt.id) })
+                  : navigation.navigate('Appointments')
+              }
+            >
               {/* date badge */}
               <View style={s.aptBadge}>
                 <Text style={s.aptBadgeDay}>
@@ -716,20 +758,65 @@ export function DashboardScreen() {
                 </GGPill>
               </View>
               <ChevronRightIcon size={18} color={colors.textLight} />
-            </View>
+            </Pressable>
           ) : (
-            <Text style={s.emptyText}>No upcoming appointments</Text>
+            <View style={s.emptyAptCard}>
+              <Text style={s.emptyText}>No upcoming appointments</Text>
+            </View>
           )}
-        </MCard>
+        </View>
 
-        <HealthNewsSection />
+        {recentActivity.length > 0 && (
+          <View style={s.appointmentsSection}>
+            <View style={s.sectionHeader}>
+              <View style={s.sectionHeaderLeft}>
+                <Text style={s.sectionTitle}>Recent activity</Text>
+              </View>
+              <Pressable onPress={() => navigation.navigate('WalletTab', { screen: 'TransactionHistory' })}>
+                <Text style={s.seeAll}>View all →</Text>
+              </Pressable>
+            </View>
+            <MCard padding={0}>
+              {recentActivity.map((tx, i) => {
+                const status = recentActivityStatus(tx.status)
+                return (
+                <Pressable
+                  key={tx.id}
+                  style={[s.txRow, i < recentActivity.length - 1 && s.txRowBorder]}
+                  onPress={() =>
+                    tx.invoiceId
+                      ? navigation.navigate('InvoicesTab', {
+                          screen: 'InvoiceReview',
+                          params: { invoiceId: tx.invoiceId },
+                          initial: false,
+                        })
+                      : navigation.navigate('WalletTab', { screen: 'TransactionHistory' })
+                  }
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.txProvider} numberOfLines={1}>{tx.provider}</Text>
+                    <Text style={s.txMeta}>{tx.service} · {formatDate(tx.date)}</Text>
+                  </View>
+                  <StatusPill
+                    label={status.label}
+                    tone={status.tone}
+                    size="sm"
+                  />
+                </Pressable>
+                )
+              })}
+            </MCard>
+          </View>
+        )}
 
-        <AdBanner countryName={country?.name} />
+        {!hasUnresolvedAction && <HealthNewsSection />}
 
-        {/* bottom spacer for tab bar */}
-        <View style={{ height: 24 }} />
+        {!hasUnresolvedAction && <AdBanner countryName={country?.name} />}
+
+        {/* Bottom spacing */}
+        <View style={{ height: 40 }} />
       </ScrollArea>
-    </View>
+    </Screen>
   )
 }
 
@@ -759,31 +846,19 @@ const s = StyleSheet.create({
   },
 
   /* ---- 1. header ---- */
-  header: {
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.navy,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  decoCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(56,182,255,0.08)',
-    right: -80,
-    top: -80,
-  },
-  decoCircle2: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    borderWidth: 1,
-    borderColor: 'rgba(56,182,255,0.05)',
-    right: -80,
-    top: -80,
+  header: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
   headerRow: {
     flexDirection: 'row',
@@ -791,72 +866,56 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
-  headerLogo: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-  },
   headerLeft: { flex: 1, gap: 2 },
   greetLabel: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
+    fontFamily: fontWeights.medium,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   greetName: {
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
     letterSpacing: -0.5,
+    marginVertical: 2,
   },
   greetDate: {
-    fontSize: 11,
-    fontFamily: fontWeights.regular,
-    color: 'rgba(255,255,255,0.3)',
-    marginTop: 2,
+    fontSize: 12,
+    fontFamily: fontWeights.medium,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   headerRight: {
     alignItems: 'flex-end',
     gap: 10,
   },
-  balancePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(34,201,138,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 9999,
-  },
-  greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.success,
-  },
-  balancePillText: {
-    fontSize: 11,
-    fontFamily: fontWeights.bold,
-    color: colors.success,
-  },
   bellWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.05)',
+    ...shadows.card,
+  },
+  bellWrapPressed: {
+    transform: [{ scale: 0.92 }],
+    opacity: 0.82,
   },
   bellBadge: {
     position: 'absolute',
-    top: -2,
+    top: 0,
     right: -2,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   bellBadgeText: {
     fontSize: 9,
@@ -864,98 +923,95 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  /* ---- 3. stats ---- */
-  balanceHeroStandalone: {
-    backgroundColor: colors.navy,
-    borderRadius: radii.large,
-    padding: 20,
-    justifyContent: 'center',
+  /* ---- 3. Digital Credit Card Hero ---- */
+  creditCardHero: {
+    marginHorizontal: 8,
+    marginBottom: 24,
+    ...shadows.raised,
   },
-  balanceHeroLabel: {
+  creditCardHeroPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.94,
+  },
+  creditCardGradient: {
+    borderRadius: 24,
+    padding: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  ccGlow: {
+    position: 'absolute',
+    top: '-40%',
+    right: '-10%',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(56, 182, 255, 0.06)',
+  },
+  ccTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ccBrand: {
+    fontSize: 14,
+    fontFamily: fontWeights.extraBold,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    letterSpacing: 1,
+  },
+  ccFlag: {
+    fontSize: 18,
+  },
+  ccBalanceSection: {
+    paddingVertical: 32,
+  },
+  ccBalanceLabel: {
     fontSize: 10,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    letterSpacing: 1.5,
     marginBottom: 8,
   },
-  balanceHeroSub: {
+  ccLimit: {
     fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 6,
-  },
-  appointmentStandalone: {
-    backgroundColor: colors.card,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontFamily: fontWeights.bold,
-    color: colors.textSub,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  aptDateRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
-    marginBottom: 8,
-  },
-  aptDate: {
-    fontSize: 15,
-    fontFamily: fontWeights.extraBold,
-    color: colors.navy,
-  },
-  aptTime: {
-    fontSize: 13,
-    fontFamily: fontWeights.semiBold,
-    color: colors.navy,
-  },
-  aptProvider: {
-    fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
+    fontFamily: fontWeights.medium,
+    color: 'rgba(255,255,255,0.6)',
     marginTop: 8,
   },
-  aptNone: {
-    fontSize: 15,
-    fontFamily: fontWeights.extraBold,
-    color: colors.navy,
-    marginBottom: 4,
-  },
-  aptSub: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-  },
-
-  /* ---- 4. spent this month ---- */
-  spentRow: {
+  ccBottomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
+    alignItems: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 16,
   },
-  spentLeft: {
+  ccSpent: {
     flex: 1,
   },
-  spentSub: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    marginTop: 6,
+  ccSpentLabel: {
+    fontSize: 11,
+    fontFamily: fontWeights.medium,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 4,
   },
-  historyBtn: {
+  ccSpentAmount: {
+    fontSize: 15,
+    fontFamily: fontWeights.bold,
+    color: '#FFFFFF',
+  },
+  ccHistoryBtn: {
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: colors.bg,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 9999,
   },
-  historyLink: {
-    fontSize: 13,
-    fontFamily: fontWeights.semiBold,
-    color: colors.blueInk,
+  ccHistoryText: {
+    fontSize: 12,
+    fontFamily: fontWeights.bold,
+    color: '#FFFFFF',
   },
 
   /* ---- 5. pending banner ---- */
@@ -1001,11 +1057,21 @@ const s = StyleSheet.create({
   },
 
   /* ---- 6. find a service ---- */
+  servicesSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 8,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.05)',
+    ...shadows.card,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 20,
   },
   sectionHeaderLeft: {
     flexDirection: 'row',
@@ -1013,114 +1079,189 @@ const s = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
+    fontSize: 18,
+    fontFamily: fontWeights.extraBold,
+    color: colors.navy,
   },
   seeAll: {
-    fontSize: 12,
-    fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    fontSize: 13,
+    fontFamily: fontWeights.bold,
+    color: colors.blueInk,
   },
   catGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 14,
+    gap: 16,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   catItem: {
-    width: '30%',
+    width: '28%',
     alignItems: 'center',
     gap: 8,
   },
+  catItemPressed: {
+    transform: [{ scale: 0.94 }],
+    opacity: 0.88,
+  },
   catIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.blue3,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.04)',
+    ...shadows.card,
   },
   catLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: fontWeights.semiBold,
-    color: colors.text,
+    color: colors.textSub,
     textAlign: 'center',
   },
   globalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 14,
+    backgroundColor: colors.navy,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+  },
+  globalRowPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.9,
   },
   globalLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+  globalIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catLabelGlobal: {
+    fontSize: 14,
+    fontFamily: fontWeights.bold,
+    color: '#FFFFFF',
+  },
   globalDesc: {
-    fontSize: 10,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
+    fontSize: 11,
+    fontFamily: fontWeights.medium,
+    color: 'rgba(255,255,255,0.6)',
     marginTop: 2,
   },
   comingSoonPill: {
-    backgroundColor: colors.warningBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 9999,
   },
   comingSoonText: {
     fontSize: 10,
     fontFamily: fontWeights.bold,
-    color: colors.warning,
+    color: '#FFFFFF',
   },
 
-  /* ---- 7. appointments ---- */
-  aptCard: {
+  txRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  txRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  txProvider: {
+    fontSize: 14,
+    fontFamily: fontWeights.semiBold,
+    color: colors.text,
+  },
+  txMeta: {
+    fontSize: 12,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    marginTop: 2,
+  },
+
+  /* ---- 7. appointments ---- */
+  appointmentsSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 8,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.05)',
+    ...shadows.card,
+  },
+  aptCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: colors.bg,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  aptCardPressed: {
+    transform: [{ scale: 0.985 }],
+    backgroundColor: '#F8FAFC',
+    borderColor: colors.blue100,
   },
   aptBadge: {
-    width: 50,
-    height: 54,
+    width: 56,
+    height: 60,
     borderRadius: 12,
-    backgroundColor: colors.blue,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(9, 28, 68, 0.05)',
+    ...shadows.card,
   },
   aptBadgeDay: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: fontWeights.extraBold,
-    color: '#FFFFFF',
-    lineHeight: 22,
+    color: colors.navy,
+    lineHeight: 24,
   },
   aptBadgeMonth: {
     fontSize: 10,
     fontFamily: fontWeights.bold,
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textLight,
   },
   aptCardInfo: { flex: 1, gap: 4 },
   aptCardProvider: {
-    fontSize: 14,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
+    fontSize: 15,
+    fontFamily: fontWeights.extraBold,
+    color: colors.navy,
   },
   aptCardTime: {
-    fontSize: 12,
-    fontFamily: fontWeights.regular,
+    fontSize: 13,
+    fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
+  emptyAptCard: {
+    backgroundColor: colors.bg,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
   emptyText: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
+    fontSize: 14,
+    fontFamily: fontWeights.medium,
     color: colors.textSub,
-    textAlign: 'center',
-    paddingVertical: 16,
   },
 
   /* ---- 8. news ---- */

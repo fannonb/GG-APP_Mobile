@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { ProfileScreen } from '@/screens/profile/ProfileScreen'
 import { BeneficiariesScreen } from '@/screens/profile/BeneficiariesScreen'
-import { NotificationsScreen } from '@/screens/profile/NotificationsScreen'
 import { SecurityPINScreen } from '@/screens/profile/SecurityPINScreen'
 import { HealthLedgerScreen } from '@/screens/ledger/HealthLedgerScreen'
 import { LedgerPinSetupScreen } from '@/screens/ledger/LedgerPinSetupScreen'
@@ -18,7 +17,6 @@ export function ProfileStack() {
     >
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Beneficiaries" component={BeneficiariesScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="SecurityPIN" component={SecurityPINScreen} />
       <Stack.Screen name="HealthLedger" component={HealthLedgerScreen} />
       <Stack.Screen name="LedgerPinSetup" component={LedgerPinSetupScreen} />

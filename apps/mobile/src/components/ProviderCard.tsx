@@ -32,7 +32,13 @@ export default function ProviderCard({
     .toUpperCase()
 
   return (
-    <Pressable onPress={onPress} style={styles.card}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.cardPressed,
+      ]}
+    >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{initials}</Text>
       </View>
@@ -66,6 +72,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     gap: 12,
+  },
+  cardPressed: {
+    transform: [{ scale: 0.985 }],
+    backgroundColor: '#F8FAFC',
+    borderColor: colors.blue100,
   },
   avatar: {
     width: 44,
