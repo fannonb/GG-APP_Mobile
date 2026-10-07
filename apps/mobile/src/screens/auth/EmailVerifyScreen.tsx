@@ -1,33 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, Linking } from 'react-native'
+import { View, Text, StyleSheet, Linking } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights } from '@/theme'
-import { Screen, AppBar, MBtn } from '@/components'
+import { Field } from '@/components'
+import { AuthShell, AuthButton, AuthLink, AuthNotice } from '@/components/AuthShell'
 import { useVerifyEmailMutation } from '@gg/shared-hooks'
-import { getIsMockApi } from '@gg/shared-api'
+import { authService } from '@gg/shared-api'
+import { isValidEmail, normalizeEmail } from '@/lib/validation'
 import type { AuthScreenProps } from '@/navigation/types'
 
-function MailIcon() {
-  return (
-    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
-        stroke={colors.blue}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M22 6l-10 7L2 6"
-        stroke={colors.blue}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
+const RESEND_COOLDOWN_SECONDS = 60
 
 export function EmailVerifyScreen() {
   const navigation = useNavigation<AuthScreenProps<'EmailVerify'>['navigation']>()
@@ -35,10 +18,16 @@ export function EmailVerifyScreen() {
   const token = route.params?.token?.trim()
   const verifyMutation = useVerifyEmailMutation()
 
+  const [email, setEmail] = useState(route.params?.email ?? '')
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
-  const [resent, setResent] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+  const [resendError, setResendError] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(0)
   const [verifyError, setVerifyError] = useState<string | null>(null)
   const [verified, setVerified] = useState(false)
+
+  const knownEmail = Boolean(route.params?.email)
 
   useEffect(() => {
     if (!token) return
@@ -65,147 +54,134 @@ export function EmailVerifyScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  const handleOpenEmail = () => {
-    Linking.openURL('mailto:')
-  }
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
 
-  const handleContinue = () => {
-    // Mirrors the PWA: the onboarding wizard follows email verification in
-    // demo/mock mode, while the real backend routes to sign-in.
-    if (getIsMockApi()) {
-      navigation.replace('Onboarding')
+  const goToLogin = () => navigation.replace('Login')
+
+  const handleResend = async () => {
+    setResendError(null)
+    setResendMessage(null)
+    if (!isValidEmail(email)) {
+      setEmailError('Enter the email address you registered with.')
       return
     }
-    navigation.navigate('Login')
-  }
-  const handleResend = async () => {
+    setEmailError(null)
     setResending(true)
-    // Backend resend endpoint is not exposed yet — keep UX feedback only.
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setResending(false)
-    setResent(true)
+    try {
+      const result = await authService.resendVerification(normalizeEmail(email))
+      setResendMessage(result.message)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err: unknown) {
+      setResendError(err instanceof Error ? err.message : 'We could not send the email. Please try again.')
+    } finally {
+      setResending(false)
+    }
+  }
+
+  const resendDisabled = resending || cooldown > 0
+  const resendLabel = resending
+    ? 'Sending…'
+    : cooldown > 0
+      ? `Resend in ${cooldown}s`
+      : 'Resend verification email'
+
+  const resendBlock = (
+    <View style={styles.resendBlock}>
+      {!knownEmail && (
+        <Field
+          label="Email address"
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={v => { setEmail(v); setEmailError(null) }}
+          error={emailError ?? undefined}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          variant="dark"
+        />
+      )}
+      {resendMessage ? <AuthNotice tone="success">{resendMessage}</AuthNotice> : null}
+      {resendError ? <AuthNotice tone="error">{resendError}</AuthNotice> : null}
+      <Pressable
+        onPress={handleResend}
+        disabled={resendDisabled}
+        hitSlop={8}
+        style={styles.resendRow}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: resendDisabled }}
+      >
+        <Text style={styles.resendText}>
+          Didn't receive it?{' '}
+          <Text style={[styles.resendLink, resendDisabled && styles.resendLinkDisabled]}>{resendLabel}</Text>
+        </Text>
+      </Pressable>
+    </View>
+  )
+
+  if (token) {
+    return (
+      <AuthShell
+        title={verified ? 'Email' : verifyMutation.isPending ? 'Verifying your' : 'Link not'}
+        highlight={verified ? 'verified.' : verifyMutation.isPending ? 'email…' : 'valid.'}
+        subtitle={
+          verified
+            ? 'Your account is active. Sign in to continue.'
+            : verifyMutation.isPending
+              ? 'This only takes a moment.'
+              : 'This verification link has expired or was already used. Request a new one below, or sign in if you have already verified.'
+        }
+        onBack={goToLogin}
+      >
+        {verifyError && !verified ? <AuthNotice tone="error">{verifyError}</AuthNotice> : null}
+        <AuthButton onPress={goToLogin}>{verified ? 'Continue to sign in' : 'Back to sign in'}</AuthButton>
+        {!verified && !verifyMutation.isPending ? resendBlock : null}
+      </AuthShell>
+    )
   }
 
   return (
-    <Screen bg={colors.bg}>
-      <AppBar
-        title="Verify Email"
-        back={() => navigation.navigate('Login')}
-      />
-
-      <View style={styles.content}>
-        <View style={styles.iconCircle}>
-          <MailIcon />
-        </View>
-
-        {token ? (
-          <>
-            <Text style={styles.title}>
-              {verified ? 'Email Verified' : verifyMutation.isPending ? 'Verifying…' : 'Verify Email'}
-            </Text>
-            <Text style={styles.description}>
-              {verified
-                ? 'Your email has been verified. You can sign in to continue.'
-                : verifyMutation.isPending
-                  ? 'Please wait while we verify your email address.'
-                  : 'We could not complete verification automatically. Try again from the link in your email, or sign in if you already verified.'}
-            </Text>
-            {verifyError ? <Text style={styles.errorText}>{verifyError}</Text> : null}
-            <MBtn
-              variant="primary"
-              onPress={handleContinue}
-              style={styles.openBtn}
-            >
-              {verified ? 'Continue to Sign In →' : 'Back to Sign In'}
-            </MBtn>
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>Check Your Email</Text>
-            <Text style={styles.description}>
-              We've sent a verification link to your email. Click the link to verify your account.
-            </Text>
-
-            <MBtn variant="primary" onPress={handleOpenEmail} style={styles.openBtn}>
-              Open Email App
-            </MBtn>
-
-            <Pressable onPress={handleResend} disabled={resending}>
-              <Text style={styles.resendText}>
-                Didn't receive it?{' '}
-                <Text style={styles.resendLink}>
-                  {resending ? 'Sending...' : resent ? 'Sent!' : 'Resend'}
-                </Text>
-              </Text>
-            </Pressable>
-
-            <MBtn
-              variant="secondary"
-              onPress={handleContinue}
-              style={styles.backBtn}
-            >
-              Back to Sign In
-            </MBtn>
-          </>
-        )}
-      </View>
-    </Screen>
+    <AuthShell
+      title="Check your"
+      highlight="email."
+      subtitle={
+        knownEmail
+          ? `We sent a verification link to ${email}. Open it on this phone to activate your account.`
+          : 'We sent a verification link to your email. Open it on this phone to activate your account.'
+      }
+      onBack={goToLogin}
+    >
+      <AuthButton onPress={() => Linking.openURL('mailto:')}>Open email app</AuthButton>
+      {resendBlock}
+      <AuthLink onPress={goToLogin}>Back to sign in</AuthLink>
+    </AuthShell>
   )
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
+  resendBlock: {
+    marginTop: 20,
+  },
+  resendRow: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.blue3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontFamily: fontWeights.extraBold,
-    color: colors.text,
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 14,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    textAlign: 'center',
-    maxWidth: 280,
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  errorText: {
-    fontSize: 13,
-    fontFamily: fontWeights.medium,
-    color: colors.error,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  openBtn: {
-    paddingHorizontal: 40,
-    marginBottom: 20,
+    paddingVertical: 4,
   },
   resendText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    marginBottom: 16,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
   },
   resendLink: {
     fontFamily: fontWeights.bold,
     color: colors.blue,
   },
-  backBtn: {
-    paddingHorizontal: 32,
+  resendLinkDisabled: {
+    color: 'rgba(255,255,255,0.45)',
   },
 })

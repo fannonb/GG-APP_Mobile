@@ -6,14 +6,14 @@
     "apps/*"
   ],
   "scripts": {
-    "web": "npm run dev --workspace=apps/web",
     "mobile": "npm run start --workspace=apps/mobile",
-    "typecheck": "tsc --noEmit --workspace=packages/*"
+    "android": "npm run android --workspace=apps/mobile",
+    "typecheck": "tsc --noEmit -p apps/mobile"
   },
   "dependencies": {
-    "@expo/log-box": "^56.0.13",
+    "@expo/log-box": "^57.0.4",
     "babel-plugin-module-resolver": "^5.0.3",
-    "babel-preset-expo": "^56.0.15",
-    "expo-asset": "^56.0.17"
+    "babel-preset-expo": "^57.0.14",
+    "expo-asset": "^57.0.19"
   }
 }

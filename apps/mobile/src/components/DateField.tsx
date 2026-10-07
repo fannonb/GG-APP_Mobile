@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Pressable } from 'react-native'
+
+import Pressable from '@/components/Pressable'
 import { colors } from '@/theme'
 import Field from './Field'
 import DatePickerModal from './DatePickerModal'

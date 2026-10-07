@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native'
+import { View, Text, StyleSheet, TextInput } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { animateNextLayout } from '@/lib/motion'
 import Svg, { Path, Circle } from 'react-native-svg'
 import type { LedgerEntry } from '@gg/shared-types'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -105,6 +107,11 @@ function ChevronDownIcon({
   )
 }
 
+/** "1 item", "3 items". */
+function countLabel(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? '' : 's'}`
+}
+
 function VitalChip({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.vitalChip}>
@@ -179,9 +186,6 @@ function PrescriptionCardContent({
     <View style={styles.entryBody}>
       <View style={styles.rxMetaRow}>
         <View style={styles.pillRow}>
-          <GGPill type="info">
-            {entry.fulfillmentMode === 'DELIVERY' ? 'Delivered' : 'Collected'}
-          </GGPill>
           {entry.beneficiaryName ? <GGPill type="info">For: {entry.beneficiaryName}</GGPill> : null}
         </View>
         <Text style={styles.refText}>
@@ -243,43 +247,31 @@ function CollapsibleEntryCard({
               ) : null}
             </View>
 
-            <View style={styles.metaRow}>
-              <Text style={styles.providerName}>{entry.provider.name}</Text>
-              <Text style={styles.dot}>•</Text>
-              <GGPill type="default">{categoryLabel(entry.provider.category)}</GGPill>
-              {isVisit ? (
-                <>
-                  <Text style={styles.dot}>•</Text>
-                  <Text style={styles.metaText}>{entry.service ?? 'Medical Visit'}</Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.dot}>•</Text>
-                  <GGPill type="info">Prescription</GGPill>
-                </>
-              )}
-            </View>
+            {/* Plain text lines: the old pill-and-dot row wrapped and left stray "•" separators. */}
+            <Text style={styles.providerName} numberOfLines={1}>{entry.provider.name}</Text>
+            <Text style={styles.metaText} numberOfLines={1}>
+              {[categoryLabel(entry.provider.category), isVisit ? entry.service ?? 'Medical visit' : 'Prescription']
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
           </View>
         </View>
 
         <View style={styles.headerRight}>
-          <View style={styles.statPills}>
-            {isVisit ? (
-              <>
-                {vitalsCount > 0 ? <GGPill type="default">{vitalsCount} Vitals</GGPill> : null}
-                {entry.services.length > 0 ? (
-                  <GGPill type="default">{entry.services.length} Services</GGPill>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <GGPill type="info">
-                  {entry.fulfillmentMode === 'DELIVERY' ? 'Delivered' : 'Collected'}
-                </GGPill>
-                <GGPill type="default">{entry.items.length} Items</GGPill>
-              </>
-            )}
-          </View>
+          <Text style={styles.summaryText}>
+            {(isVisit
+              ? [
+                  vitalsCount > 0 ? countLabel(vitalsCount, 'vital') : null,
+                  entry.services.length > 0 ? countLabel(entry.services.length, 'service') : null,
+                ]
+              : [
+                  entry.fulfillmentMode === 'DELIVERY' ? 'Delivered' : 'Collected',
+                  countLabel(entry.items.length, 'item'),
+                ]
+            )
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
 
           <View
             style={[
@@ -376,6 +368,7 @@ export function LedgerTimeline({
   const allExpanded = allIds.length > 0 && allIds.every(id => expandedIds.has(id))
 
   const toggleExpand = (id: string) => {
+    animateNextLayout()
     setExpandedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -385,6 +378,7 @@ export function LedgerTimeline({
   }
 
   const toggleAll = () => {
+    animateNextLayout()
     setExpandedIds(allExpanded ? new Set() : new Set(allIds))
   }
 
@@ -577,26 +571,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.navy,
   },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-  },
   providerName: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12.5,
-    color: colors.textSub,
+    fontSize: 14,
+    color: colors.text,
+    marginTop: 2,
   },
   metaText: {
     fontFamily: fontWeights.regular,
     fontSize: 12.5,
     color: colors.textSub,
-  },
-  dot: {
-    fontFamily: fontWeights.regular,
-    fontSize: 12.5,
-    color: colors.borderStrong,
   },
   headerRight: {
     flexDirection: 'row',
@@ -605,11 +589,11 @@ const styles = StyleSheet.create({
     gap: 10,
     marginLeft: 54,
   },
-  statPills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  summaryText: {
     flex: 1,
+    fontFamily: fontWeights.medium,
+    fontSize: 13,
+    color: colors.textSub,
   },
   chevronBtn: {
     width: 32,
@@ -646,12 +630,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   vitalChip: {
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
     minWidth: 120,
     flexGrow: 1,
     flexBasis: 130,
@@ -663,28 +642,20 @@ const styles = StyleSheet.create({
   },
   vitalValue: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 15,
     color: colors.navy,
     marginTop: 2,
   },
   detailField: {
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  detailFieldHighlight: {
-    backgroundColor: colors.blue100,
-    borderColor: 'rgba(56,182,255,0.45)',
-  },
+  detailFieldHighlight: {},
   fieldLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSub,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
     marginBottom: 4,
   },
   fieldLabelHighlight: {
@@ -697,7 +668,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   fieldValueHighlight: {
-    fontFamily: fontWeights.semiBold,
+    fontFamily: fontWeights.bold,
+    fontSize: 15,
   },
   pillRow: {
     flexDirection: 'row',

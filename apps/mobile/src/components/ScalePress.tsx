@@ -1,11 +1,11 @@
 import React, { useRef } from 'react'
 import {
   Animated,
-  Pressable,
   StyleProp,
   ViewStyle,
   GestureResponderEvent,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { hapticLight } from '@/lib/haptics'
 
 export interface ScalePressProps {

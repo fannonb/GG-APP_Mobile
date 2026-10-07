@@ -1,21 +1,16 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator, TextInput } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, MCard, Stars, CategoryCard, AppBar, StatusPill } from '@/components'
+import { Screen, ScrollArea, MCard, AppBar, StatusPill, LoadError } from '@/components'
 import SearchIcon from '@/icons/SearchIcon'
-import PharmacyIcon from '@/icons/PharmacyIcon'
-import LaboratoryIcon from '@/icons/LaboratoryIcon'
-import DoctorIcon from '@/icons/DoctorIcon'
-import RadiologyIcon from '@/icons/RadiologyIcon'
-import HospitalIcon from '@/icons/HospitalIcon'
-import ClinicIcon from '@/icons/ClinicIcon'
-import GlobeIcon from '@/icons/GlobeIcon'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
 import { useProviders, useDrivingDistances } from '@gg/shared-hooks'
 import { useLocationStore } from '@gg/shared-stores'
 import { getProviderHoursSummary } from '@gg/shared-utils'
+import { CARE_CATEGORY_STYLE, CareCategoryIcon } from '@/icons/CareCategoryIcons'
 import { SERVICE_CATEGORIES } from '@gg/shared-config'
 import type { Provider } from '@gg/shared-types'
 import type { ServicesScreenProps } from '@/navigation/types'
@@ -23,28 +18,6 @@ import type { ServicesScreenProps } from '@/navigation/types'
 /* ------------------------------------------------------------------ */
 /*  Category icon map                                                  */
 /* ------------------------------------------------------------------ */
-const CAT_ICONS: Record<string, React.ReactNode> = {
-  pharmacy:            <PharmacyIcon size={22} color={colors.blue} />,
-  laboratory:          <LaboratoryIcon size={22} color={colors.blue} />,
-  doctor:              <DoctorIcon size={22} color={colors.blue} />,
-  radiology:           <RadiologyIcon size={22} color={colors.blue} />,
-  hospital:            <HospitalIcon size={22} color={colors.blue} />,
-  clinic:              <ClinicIcon size={22} color={colors.blue} />,
-  global_specialists:  <GlobeIcon size={22} color={colors.blue} />,
-}
-
-/* ------------------------------------------------------------------ */
-/*  Clock icon (inline SVG for "Verified Network")                     */
-/* ------------------------------------------------------------------ */
-function ClockIcon({ size = 16, color = '#FFFFFF' }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={1.8} />
-      <Path d="M12 7v5l3 3" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  )
-}
-
 /* ------------------------------------------------------------------ */
 /*  Search helpers                                                     */
 /* ------------------------------------------------------------------ */
@@ -73,11 +46,9 @@ function matchesProvider(provider: Provider, query: string): boolean {
 /* ------------------------------------------------------------------ */
 export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindService'>) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [openNowOnly, setOpenNowOnly] = useState(false)
-  const [nearbyExpanded, setNearbyExpanded] = useState(false)
-  const { data: providers = [], isLoading } = useProviders()
+  const { data: providers = [], isLoading, isError, isFetching, refetch } = useProviders()
   const position = useLocationStore(s => s.position)
-  const { getKm, getLabel } = useDrivingDistances(position, providers)
+  const { getLabel } = useDrivingDistances(position, providers)
 
   /* Category provider counts */
   const categoryCounts = useMemo(() => {
@@ -94,23 +65,6 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
     return counts
   }, [providers])
 
-  /* Nearby providers — sorted by driving distance, first 4 */
-  const nearbyProviders = useMemo(() => {
-    let list = [...providers].sort((a, b) => {
-      const dA = getKm(a) ?? (parseFloat(a.distance) || 999)
-      const dB = getKm(b) ?? (parseFloat(b.distance) || 999)
-      return dA - dB
-    })
-    if (openNowOnly) list = list.filter(provider => provider.status === 'open')
-    return nearbyExpanded ? list : list.slice(0, 3)
-  }, [providers, getKm, openNowOnly, nearbyExpanded])
-
-  const nearbyTotal = useMemo(() => {
-    let list = [...providers]
-    if (openNowOnly) list = list.filter(provider => provider.status === 'open')
-    return list.length
-  }, [providers, openNowOnly])
-
   const searchResults = useMemo(() => {
     const q = searchQuery.trim()
     if (!q) return []
@@ -123,7 +77,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
   if (isLoading && providers.length === 0) {
     return (
       <Screen>
-        <AppBar title="Find a Service" subtitle="Search verified healthcare providers & clinics" variant="hero" back={false} />
+        <AppBar title="Find a Service" subtitle="Verified clinics, labs and pharmacies" variant="hero" back={false} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.blue} />
         </View>
@@ -131,28 +85,12 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
     )
   }
 
-  /* ----- Empty state ----- */
-  if (providers.length === 0 && !isLoading) {
-    return (
-      <Screen>
-        <AppBar title="Find a Service" subtitle="Search verified healthcare providers & clinics" variant="hero" back={false} />
-        <View style={styles.centered}>
-          <SearchIcon size={48} color={colors.textLight} />
-          <Text style={styles.emptyTitle}>No providers found</Text>
-          <Text style={styles.emptyDesc}>
-            We could not find any providers at this time. Please try again later.
-          </Text>
-        </View>
-      </Screen>
-    )
-  }
-
   return (
     <Screen headerPattern="dark-curve">
-      <AppBar title="Find a Service" subtitle="Search verified healthcare providers & clinics" variant="hero" back={false} />
+      <AppBar title="Find a Service" subtitle="Verified clinics, labs and pharmacies" variant="hero" back={false} />
 
       <ScrollArea gap={16} px={16} py={14}>
-        {/* ===== Section 1 — Search Input & Verified Badge ===== */}
+        {/* ===== Section 1 — Search ===== */}
         <View style={styles.searchContainer}>
           <View style={styles.searchField}>
             <SearchIcon size={18} color={colors.textLight} />
@@ -166,17 +104,23 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
               autoCorrect={false}
             />
           </View>
-          <View style={styles.verifiedBadge}>
-            <ClockIcon size={12} color={colors.blueInk} />
-            <Text style={styles.verifiedText}>Verified Network</Text>
-          </View>
         </View>
+
+        {/* No providers is not a reason to hide search and categories: the
+            patient still needs to see what GG'APP offers. */}
+        {isError && providers.length === 0 ? (
+          <LoadError
+            title="We couldn't load providers."
+            body="Check your connection and try again."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : null}
 
         {showSearchResults && (
           <View>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionBar} />
-              <Text style={styles.sectionTitle}>Search Results</Text>
+              <Text style={[styles.sectionTitle, styles.sectionTitleOnDark]}>Search Results</Text>
             </View>
             <MCard padding={0}>
               {searchResults.length === 0 ? (
@@ -197,8 +141,16 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                       <View style={styles.providerInfo}>
                         <Text style={styles.providerName}>{provider.name}</Text>
                         <Text style={styles.providerMeta}>
-                          {provider.category} · {getLabel(provider)} · {getProviderHoursSummary(provider)}
+                          {provider.category ? provider.category.charAt(0).toUpperCase() + provider.category.slice(1) : ''} · {getLabel(provider)} · {getProviderHoursSummary(provider)}
                         </Text>
+                        <View style={styles.resultBadges}>
+                          <Text style={styles.resultRating}>★ {provider.rating.toFixed(1)}</Text>
+                          <StatusPill
+                            label={provider.status === 'open' ? 'Open' : 'Closed'}
+                            tone={provider.status === 'open' ? 'success' : 'navy'}
+                            size="sm"
+                          />
+                        </View>
                       </View>
                       <ChevronRightIcon size={16} color={colors.textLight} />
                     </Pressable>
@@ -214,116 +166,55 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
           <>
         <View>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionBar} />
-            <Text style={styles.sectionTitle}>Select a Category</Text>
+            <Text style={[styles.sectionTitle, styles.sectionTitleOnDark]}>Select a Category</Text>
           </View>
 
-          <View style={styles.grid}>
-            {SERVICE_CATEGORIES.filter((cat) => !cat.isComingSoon).map((cat) => (
-              <View key={cat.id} style={styles.gridItem}>
-                <CategoryCard
-                  icon={CAT_ICONS[cat.id] ?? <DoctorIcon size={22} color={colors.blue} />}
-                  label={cat.label}
-                  desc={cat.desc}
-                  count={categoryCounts.get(cat.id) ?? 0}
-                  onPress={() =>
-                    navigation.navigate('ProviderList', { category: cat.id })
-                  }
-                />
-              </View>
-            ))}
-          </View>
-
-          {/* Global Specialists — Coming Soon */}
-          {SERVICE_CATEGORIES.filter((cat) => cat.isComingSoon).map((cat) => (
-            <View key={cat.id} style={styles.globalCard}>
-              <View style={styles.globalLeft}>
-                <View style={styles.globalIconWrap}>
-                  <GlobeIcon size={22} color={colors.blue} />
-                </View>
-                <View style={styles.globalTextWrap}>
-                  <Text style={styles.globalLabel}>{cat.label}</Text>
-                  <Text style={styles.globalDesc}>{cat.desc}</Text>
-                </View>
-              </View>
-              <StatusPill label="Coming Soon" tone="warning" size="sm" />
-            </View>
-          ))}
-        </View>
-
-        {/* ===== Section 3 — Nearby Verified Providers ===== */}
-        <View>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionBar} />
-            <Text style={styles.sectionTitle}>Nearby Verified Providers</Text>
-            <Pressable onPress={() => setOpenNowOnly(v => !v)}>
-              <Text style={[styles.openNow, openNowOnly && styles.openNowActive]}>
-                Open now
-              </Text>
-            </Pressable>
-          </View>
-
-          <MCard padding={0}>
-            {nearbyProviders.length === 0 ? (
-              <View style={styles.centered}>
-                <Text style={styles.emptyDesc}>
-                  {openNowOnly ? 'No providers are open nearby right now.' : 'No nearby providers found.'}
-                </Text>
-              </View>
-            ) : (
-              nearbyProviders.map((provider, index) => (
-              <React.Fragment key={provider.id}>
+          {/* Compact rows: all categories fit on one screen (the old cards took about 1.5). */}
+          <View style={styles.categoryList}>
+            {SERVICE_CATEGORIES.map((cat, i) => {
+              const soon = Boolean(cat.isComingSoon)
+              const count = categoryCounts.get(cat.id) ?? 0
+              return (
                 <Pressable
-                  style={styles.providerRow}
-                  onPress={() =>
-                    navigation.navigate('ProviderProfile', {
-                      providerId: provider.id,
-                    })
-                  }
+                  key={cat.id}
+                  disabled={soon}
+                  onPress={() => navigation.navigate('ProviderList', { category: cat.id })}
+                  style={[styles.categoryRow, i < SERVICE_CATEGORIES.length - 1 && styles.categoryDivider]}
+                  accessibilityRole="button"
+                  accessibilityLabel={soon ? `${cat.label}, coming soon` : `${cat.label}, ${count} ${count === 1 ? 'provider' : 'providers'}`}
+                  accessibilityState={{ disabled: soon }}
                 >
-                  <View style={styles.providerAvatar}>
-                    <Text style={styles.providerAvatarText}>
-                      {provider.name
-                        .split(' ')
-                        .map((w) => w[0])
-                        .join('')
-                        .slice(0, 2)
-                        .toUpperCase()}
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      { backgroundColor: CARE_CATEGORY_STYLE[cat.id]?.tint ?? colors.blue100 },
+                      soon && styles.categoryIconSoon,
+                    ]}
+                  >
+                    <CareCategoryIcon id={cat.id} size={27} color={soon ? colors.textLight : undefined} />
+                  </View>
+                  <View style={styles.categoryText}>
+                    <Text style={[styles.categoryName, soon && styles.categoryNameSoon]} numberOfLines={1}>
+                      {cat.label}
+                    </Text>
+                    <Text style={styles.categoryDesc} numberOfLines={1}>
+                      {cat.desc}
                     </Text>
                   </View>
-
-                  <View style={styles.providerInfo}>
-                    <Text style={styles.providerName} numberOfLines={1}>
-                      {provider.name}
-                    </Text>
-                    <Text style={styles.providerMeta} numberOfLines={1}>
-                      {provider.category} · {getLabel(provider)} · {getProviderHoursSummary(provider)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.providerRight}>
-                    <Stars rating={provider.rating} count={provider.reviews} />
-                    <StatusPill
-                      label={provider.status === 'open' ? 'Open' : 'Closed'}
-                      tone={provider.status === 'open' ? 'success' : 'navy'}
-                      size="sm"
-                    />
-                  </View>
+                  {soon ? (
+                    <StatusPill label="Coming soon" tone="warning" size="sm" />
+                  ) : (
+                    <>
+                      <Text style={styles.categoryCount}>{count}</Text>
+                      <ChevronRightIcon size={16} color={colors.textLight} />
+                    </>
+                  )}
                 </Pressable>
-
-                {index < nearbyProviders.length - 1 && (
-                  <View style={styles.divider} />
-                )}
-              </React.Fragment>
-            ))
-            )}
-            {nearbyTotal > 3 && (
-              <Pressable style={styles.seeAllBtn} onPress={() => setNearbyExpanded(v => !v)}>
-                <Text style={styles.seeAllText}>{nearbyExpanded ? 'Show less' : 'See all →'}</Text>
-              </Pressable>
-            )}
-          </MCard>
+              )
+            })}
+          </View>
         </View>
+
         </>
         )}
       </ScrollArea>
@@ -342,18 +233,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
     gap: 12,
-  },
-  loadingText: {
-    fontFamily: fontWeights.medium,
-    fontSize: 14,
-    color: colors.textSub,
-    marginTop: 8,
-  },
-  emptyTitle: {
-    fontFamily: fontWeights.bold,
-    fontSize: 16,
-    color: colors.text,
-    marginTop: 8,
   },
   emptyDesc: {
     fontFamily: fontWeights.regular,
@@ -385,21 +264,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 0,
   },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: colors.blue100,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.full,
-    gap: 6,
-  },
-  verifiedText: {
-    fontFamily: fontWeights.semiBold,
-    fontSize: 11,
-    color: colors.blueInk,
-  },
 
   /* Section headers */
   sectionHeader: {
@@ -408,11 +272,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 14,
   },
-  sectionBar: {
-    width: 3,
-    height: 16,
-    backgroundColor: colors.blue,
-    borderRadius: 2,
+  // Headings that sit on the navy curve at the top of the scroll.
+  sectionTitleOnDark: {
+    color: '#FFFFFF',
   },
   sectionTitle: {
     fontFamily: fontWeights.bold,
@@ -421,57 +283,70 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  /* Section 2 — Category grid */
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  gridItem: {
-    width: '48%',
-    flexGrow: 1,
-  },
-
-  /* Global Specialists card */
-  globalCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  /* Section 2 — Category rows */
+  categoryList: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: radii.large,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    marginTop: 12,
+    overflow: 'hidden',
   },
-  globalLeft: {
+  categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  globalIconWrap: {
+  categoryDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  categoryIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: colors.blue3,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  globalTextWrap: {
+  categoryIconSoon: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  categoryText: {
     flex: 1,
+    gap: 2,
   },
-  globalLabel: {
+  categoryName: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 15,
     color: colors.text,
-    marginBottom: 2,
   },
-  globalDesc: {
-    fontFamily: fontWeights.regular,
-    fontSize: 11,
+  categoryNameSoon: {
     color: colors.textSub,
   },
+  categoryDesc: {
+    fontFamily: fontWeights.regular,
+    fontSize: 13,
+    color: colors.textSub,
+  },
+  categoryCount: {
+    fontFamily: fontWeights.semiBold,
+    fontSize: 14,
+    color: colors.textSub,
+  },
+  resultBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  resultRating: {
+    fontFamily: fontWeights.semiBold,
+    fontSize: 13,
+    color: colors.text,
+  },
+
+  /* Global Specialists card */
 
   /* Section 3 — Nearby Providers */
   providerRow: {
@@ -479,19 +354,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     gap: 12,
-  },
-  providerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.blue3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerAvatarText: {
-    fontFamily: fontWeights.bold,
-    fontSize: 13,
-    color: colors.blue,
   },
   providerInfo: {
     flex: 1,
@@ -507,32 +369,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSub,
   },
-  providerRight: {
-    alignItems: 'flex-end',
-    gap: 6,
-  },
   divider: {
     height: 1,
     backgroundColor: colors.border,
     marginHorizontal: 14,
-  },
-  openNow: {
-    fontFamily: fontWeights.semiBold,
-    fontSize: 12,
-    color: colors.textSub,
-  },
-  openNowActive: {
-    color: colors.blueInk,
-  },
-  seeAllBtn: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  seeAllText: {
-    fontFamily: fontWeights.bold,
-    fontSize: 13,
-    color: colors.blueInk,
   },
 })

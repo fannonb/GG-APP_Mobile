@@ -2,14 +2,14 @@ import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   TextInput,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, ActionBar } from '@/components'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
@@ -102,8 +102,9 @@ export function CreditIncreaseScreen() {
   const newLimit = creditLimit + (Number.isFinite(increaseNum) ? increaseNum : 0)
   const selectedReason = REASON_OPTIONS.find(r => r.value === reason)
 
+  // Boolean(): a blank field is '' and must never reach JSX as a child of <View>.
   const showNextSteps = useMemo(() => {
-    return (
+    return Boolean(
       increaseAmount &&
       monthlyIncome &&
       reason &&
@@ -225,29 +226,16 @@ export function CreditIncreaseScreen() {
         )}
 
         <MCard padding={16}>
-          <Text style={s.cardTitle}>Your Current Credit</Text>
-          <View style={s.creditGrid}>
-            {[
-              { label: 'Approved Limit', value: formatCurrency(creditLimit, currency), color: colors.navy },
-              { label: 'Available', value: formatCurrency(creditAvailable, currency), color: colors.blue },
-              { label: 'In Use', value: formatCurrency(inUse, currency), color: colors.textSub },
-              { label: 'Account Ref', value: refNum, color: colors.text, mono: true },
-            ].map(item => (
-              <View key={item.label} style={s.creditCell}>
-                <Text style={s.creditCellLabel}>{item.label}</Text>
-                <Text
-                  style={[
-                    s.creditCellValue,
-                    { color: item.color },
-                    item.mono && { fontFamily: fontWeights.semiBold, fontSize: 13 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.value}
-                </Text>
-              </View>
-            ))}
+          {/* One summary instead of four boxed figures that repeated the wallet. */}
+          <Text style={s.cardTitle}>Your current credit</Text>
+          <View style={s.summaryRow}>
+            <Text style={s.summaryAmount}>{formatCurrency(creditLimit, currency)}</Text>
+            <Text style={s.summaryLabel}>limit</Text>
           </View>
+          <Text style={s.summaryDetail}>
+            {formatCurrency(creditAvailable, currency)} available · {formatCurrency(inUse, currency)} in use
+          </Text>
+          <Text style={s.summaryDetail}>Account ref {refNum}</Text>
         </MCard>
 
         <MCard padding={18} style={pendingReview ? s.formDisabled : undefined}>
@@ -257,10 +245,10 @@ export function CreditIncreaseScreen() {
             They will reassess based on your current limit and repayment history.
           </Text>
 
-          <View style={s.fieldRow}>
-            <View style={{ flex: 1 }}>
+          <View>
+            <View>
               <Field
-                label="Increase Amount"
+                label="Increase amount"
                 placeholder="e.g. 2500"
                 keyboardType="numeric"
                 value={increaseAmount}
@@ -270,9 +258,9 @@ export function CreditIncreaseScreen() {
                 editable={!pendingReview}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View>
               <Field
-                label="Current Monthly Income"
+                label="Current monthly income"
                 placeholder="e.g. 1200"
                 keyboardType="numeric"
                 value={monthlyIncome}
@@ -284,7 +272,7 @@ export function CreditIncreaseScreen() {
             </View>
           </View>
 
-          {increaseAmount && !isNaN(increaseNum) && increaseNum >= MIN_INCREASE && (
+          {Boolean(increaseAmount) && !isNaN(increaseNum) && increaseNum >= MIN_INCREASE && (
             <View style={s.previewBanner}>
               <Text style={s.previewLabel}>New limit if approved</Text>
               <Text style={s.previewValue}>{formatCurrency(newLimit, currency)}</Text>
@@ -327,7 +315,7 @@ export function CreditIncreaseScreen() {
                     <Text
                       style={[
                         s.dropdownOptionText,
-                        reason === opt.value && { color: colors.blue, fontFamily: fontWeights.bold },
+                        reason === opt.value && { color: colors.blueInk, fontFamily: fontWeights.bold },
                       ]}
                     >
                       {opt.label}
@@ -362,7 +350,7 @@ export function CreditIncreaseScreen() {
               for use with verified healthcare providers.
             </Text>
 
-            {increaseAmount && !isNaN(increaseNum) && increaseNum > 0 && (
+            {Boolean(increaseAmount) && !isNaN(increaseNum) && increaseNum > 0 && (
               <View style={s.feeBreakdown}>
                 <View style={s.feeRow}>
                   <Text style={s.feeRowLabel}>Increase amount</Text>
@@ -433,25 +421,25 @@ export function CreditIncreaseScreen() {
             </Text>
           </View>
 
-          {error && <Text style={s.errorText}>{error}</Text>}
         </MCard>
 
-        <View style={s.btnRow}>
-          <MBtn variant="secondary" style={{ flex: 1 }} onPress={() => navigation.goBack()}>
-            Cancel
-          </MBtn>
-          <MBtn
-            variant="primary"
-            style={{ flex: 2 }}
-            disabled={loading || pendingReview}
-            onPress={handleSubmit}
-          >
-            {loading ? 'Submitting...' : 'Submit Request'}
-          </MBtn>
-        </View>
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 8 }} />
       </ScrollArea>
+
+      <ActionBar error={error}>
+        <MBtn variant="secondary" style={{ flex: 1 }} onPress={() => navigation.goBack()}>
+          Cancel
+        </MBtn>
+        <MBtn
+          variant="primary"
+          style={{ flex: 2 }}
+          disabled={loading || pendingReview}
+          onPress={handleSubmit}
+        >
+          {loading ? 'Submitting...' : 'Submit Request'}
+        </MBtn>
+      </ActionBar>
     </Screen>
   )
 }
@@ -461,11 +449,9 @@ export default CreditIncreaseScreen
 const s = StyleSheet.create({
   partnerRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   partnerLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
     marginBottom: 10,
   },
   partnerLogoZone: {
@@ -502,7 +488,7 @@ const s = StyleSheet.create({
   linkedBadgeText: {
     fontSize: 10,
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   pendingCard: {
     backgroundColor: colors.blue3,
@@ -536,29 +522,10 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   formDisabled: { opacity: 0.5 },
-  creditGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-  creditCell: {
-    width: '47%',
-    backgroundColor: colors.bg,
-    borderRadius: radii.default,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 12,
-  },
-  creditCellLabel: {
-    fontSize: 10,
-    fontFamily: fontWeights.bold,
-    color: colors.textLight,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  creditCellValue: {
-    fontSize: 17,
-    fontFamily: fontWeights.extraBold,
-    letterSpacing: -0.3,
-  },
-  fieldRow: { flexDirection: 'row', gap: 10, marginBottom: 2 },
+  summaryRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 8 },
+  summaryAmount: { fontFamily: fontWeights.extraBold, fontSize: 22, color: colors.text },
+  summaryLabel: { fontFamily: fontWeights.medium, fontSize: 14, color: colors.textSub },
+  summaryDetail: { fontFamily: fontWeights.regular, fontSize: 13, lineHeight: 19, color: colors.textSub, marginTop: 4 },
   labelRow: { flexDirection: 'row', marginBottom: 6 },
   fieldLabel: { fontFamily: fontWeights.bold, fontSize: 12, color: colors.text },
   asterisk: { fontFamily: fontWeights.bold, fontSize: 12, color: colors.error },
@@ -633,8 +600,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontFamily: fontWeights.extraBold,
     color: colors.navy,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
     marginBottom: 8,
   },
   feeDesc: {
@@ -711,6 +676,4 @@ const s = StyleSheet.create({
   nextStepText: { flex: 1, fontSize: 12, fontFamily: fontWeights.regular, color: colors.blueInk, lineHeight: 19 },
   warningNote: { backgroundColor: colors.warningBg, borderRadius: radii.default, padding: 14 },
   warningText: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.warning, lineHeight: 18 },
-  errorText: { fontSize: 12, fontFamily: fontWeights.semiBold, color: colors.error, marginTop: 8 },
-  btnRow: { flexDirection: 'row', gap: 10 },
 })

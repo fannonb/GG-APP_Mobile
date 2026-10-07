@@ -2,14 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
-  Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import Pressable from '@/components/Pressable'
+import BottomSheet from './BottomSheet'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import MBtn from './MBtn'
 import CalendarIcon from '@/icons/CalendarIcon'
@@ -179,7 +178,6 @@ export default function DatePickerModal({
   onConfirm,
   onCancel,
 }: DatePickerModalProps) {
-  const insets = useSafeAreaInsets()
   const [draft, setDraft] = useState(() => clampDate(value, minimumDate, maximumDate))
 
   // Latest draft, readable from stable callbacks without re-creating them.
@@ -256,98 +254,68 @@ export default function DatePickerModal({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onCancel} accessibilityLabel="Close date picker" />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onCancel} closeLabel="Close date picker">
 
-          <View style={styles.header}>
-            <View style={styles.headerIcon}>
-              <CalendarIcon size={20} color={colors.blue} />
-            </View>
-            <View style={styles.headerText}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>Scroll to choose day, month, and year</Text>
-            </View>
-          </View>
-
-          <View style={styles.pickerWrap}>
-            <View style={styles.selectionBand} pointerEvents="none" />
-            <View style={styles.pickerRow}>
-              <PickerWheel
-                flex={0.7}
-                items={days}
-                selectedIndex={dayIndex}
-                onSelectIndex={handleDaySelect}
-              />
-              <PickerWheel
-                flex={1.4}
-                items={MONTH_ITEMS}
-                selectedIndex={monthIndex}
-                onSelectIndex={handleMonthSelect}
-              />
-              <PickerWheel
-                flex={0.9}
-                items={years}
-                selectedIndex={yearIndex}
-                onSelectIndex={handleYearSelect}
-              />
-            </View>
-            <View style={styles.columnLabels} pointerEvents="none">
-              <Text style={[styles.columnLabel, styles.colDay]}>Day</Text>
-              <Text style={[styles.columnLabel, styles.colMonth]}>Month</Text>
-              <Text style={[styles.columnLabel, styles.colYear]}>Year</Text>
-            </View>
-          </View>
-
-          <View style={styles.preview}>
-            <Text style={styles.previewLabel}>Selected</Text>
-            <Text style={styles.previewValue}>
-              {String(draft.getDate()).padStart(2, '0')}/
-              {String(draft.getMonth() + 1).padStart(2, '0')}/{draft.getFullYear()}
-            </Text>
-          </View>
-
-          <View style={styles.actions}>
-            <MBtn variant="secondary" style={styles.actionBtn} onPress={onCancel}>
-              Cancel
-            </MBtn>
-            <MBtn variant="primary" style={styles.actionBtn} onPress={handleConfirm}>
-              Confirm
-            </MBtn>
-          </View>
+      <View style={styles.header}>
+        <View style={styles.headerIcon}>
+          <CalendarIcon size={20} color={colors.blue} />
+        </View>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>Scroll to choose day, month, and year</Text>
         </View>
       </View>
-    </Modal>
+
+      <View style={styles.pickerWrap}>
+        <View style={styles.selectionBand} pointerEvents="none" />
+        <View style={styles.pickerRow}>
+          <PickerWheel
+            flex={0.7}
+            items={days}
+            selectedIndex={dayIndex}
+            onSelectIndex={handleDaySelect}
+          />
+          <PickerWheel
+            flex={1.4}
+            items={MONTH_ITEMS}
+            selectedIndex={monthIndex}
+            onSelectIndex={handleMonthSelect}
+          />
+          <PickerWheel
+            flex={0.9}
+            items={years}
+            selectedIndex={yearIndex}
+            onSelectIndex={handleYearSelect}
+          />
+        </View>
+        <View style={styles.columnLabels} pointerEvents="none">
+          <Text style={[styles.columnLabel, styles.colDay]}>Day</Text>
+          <Text style={[styles.columnLabel, styles.colMonth]}>Month</Text>
+          <Text style={[styles.columnLabel, styles.colYear]}>Year</Text>
+        </View>
+      </View>
+
+      <View style={styles.preview}>
+        <Text style={styles.previewLabel}>Selected</Text>
+        <Text style={styles.previewValue}>
+          {String(draft.getDate()).padStart(2, '0')}/
+          {String(draft.getMonth() + 1).padStart(2, '0')}/{draft.getFullYear()}
+        </Text>
+      </View>
+
+      <View style={styles.actions}>
+        <MBtn variant="secondary" style={styles.actionBtn} onPress={onCancel}>
+          Cancel
+        </MBtn>
+        <MBtn variant="primary" style={styles.actionBtn} onPress={handleConfirm}>
+          Confirm
+        </MBtn>
+      </View>
+</BottomSheet>
   )
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(13, 30, 66, 0.45)',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: radii.large,
-    borderTopRightRadius: radii.large,
-    paddingTop: 8,
-    paddingHorizontal: 20,
-    ...shadows.raised,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: 16,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -427,10 +395,8 @@ const styles = StyleSheet.create({
   columnLabel: {
     textAlign: 'center',
     fontFamily: fontWeights.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSub,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   colDay: { flex: 0.7 },
   colMonth: { flex: 1.4 },

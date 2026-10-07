@@ -1,15 +1,13 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useRef, useState } from 'react'
+import { View, Text, StyleSheet, TextInput } from 'react-native'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
 import { colors, fontWeights } from '@/theme'
-import { Screen, ScrollArea, AppBar, Field, MBtn } from '@/components'
-import { LockIcon } from '@/icons'
+import { Field } from '@/components'
+import { AuthShell, AuthButton, AuthLink, AuthNotice } from '@/components/AuthShell'
 import { authService } from '@gg/shared-api'
 import type { AuthStackParamList, AuthScreenProps } from '@/navigation/types'
 
-/* ------------------------------------------------------------------ */
-/*  Password strength (same logic as RegisterScreen)                   */
-/* ------------------------------------------------------------------ */
+/* Password strength (same logic as RegisterScreen) */
 function getPasswordStrength(pw: string): number {
   let score = 0
   if (pw.length >= 8) score++
@@ -19,27 +17,27 @@ function getPasswordStrength(pw: string): number {
   return score
 }
 
-const STRENGTH_COLORS = [colors.error, colors.warning, colors.blue, colors.success]
+// Same on-navy palette as RegisterScreen's strength meter.
+const STRENGTH_COLORS = [colors.errorOnDark, '#F5B54A', colors.blue, '#4ADE9B']
 const STRENGTH_LABELS = ['Weak', 'Fair', 'Good', 'Strong']
 
-/* ------------------------------------------------------------------ */
-/*  Screen                                                             */
-/* ------------------------------------------------------------------ */
 export function ResetPasswordScreen() {
   const navigation = useNavigation<AuthScreenProps<'ResetPassword'>['navigation']>()
   const route = useRoute<RouteProp<AuthStackParamList, 'ResetPassword'>>()
   const token = route.params?.token ?? ''
+  const confirmRef = useRef<TextInput>(null)
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
 
   const pwStrength = getPasswordStrength(password)
 
   const handleReset = async () => {
-    if (!password || !confirmPassword) {
-      setError('Please fill in both password fields.')
+    if (password.length < 8) {
+      setError('Use at least 8 characters.')
       return
     }
     if (password !== confirmPassword) {
@@ -47,139 +45,104 @@ export function ResetPasswordScreen() {
       return
     }
     if (!token) {
-      setError('Invalid or missing reset token.')
+      setError('This reset link is incomplete. Request a new one from the sign-in screen.')
       return
     }
     setError(null)
     setLoading(true)
     try {
       await authService.resetPassword(token, password)
-      // Navigate to Login with implicit success
-      navigation.navigate('Login')
+      setDone(true)
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Password reset failed. Please try again.'
-      setError(message)
+      setError(err instanceof Error ? err.message : 'Password reset failed. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
+  if (done) {
+    return (
+      <AuthShell title="Password" highlight="updated." subtitle="You can now sign in with your new password.">
+        <AuthButton onPress={() => navigation.replace('Login')}>Continue to sign in</AuthButton>
+      </AuthShell>
+    )
+  }
+
   return (
-    <Screen bg={colors.bg}>
-      <AppBar
-        title="Reset Password"
-        subtitle="Create a new password"
-        dark
+    <AuthShell
+      title="Choose a new"
+      highlight="password."
+      subtitle="Use at least 8 characters. Mixing in capitals, numbers and symbols makes it stronger."
+      onBack={() => navigation.navigate('Login')}
+    >
+      {error ? <AuthNotice tone="error">{error}</AuthNotice> : null}
+
+      <Field
+        label="New Password"
+        placeholder="••••••••"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => confirmRef.current?.focus()}
+        variant="dark"
       />
 
-      <ScrollArea gap={16} py={28} px={20}>
-        {/* Lock icon */}
-        <View style={styles.iconWrap}>
-          <View style={styles.iconCircle}>
-            <LockIcon size={30} color={colors.blue} />
-          </View>
-        </View>
-
-        {/* Heading */}
-        <Text style={styles.heading}>Create New Password</Text>
-
-        {/* Description */}
-        <Text style={styles.description}>
-          Enter a strong password for your account.
-        </Text>
-
-        {/* Password fields */}
-        <Field
-          label="New Password"
-          placeholder={'••••••••'}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          required
-        />
-
-        <Field
-          label="Confirm Password"
-          placeholder={'••••••••'}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          required
-        />
-
-        {/* Password strength indicator (4 bars) */}
-        {password.length > 0 && (
-          <View style={styles.strengthSection}>
-            <View style={styles.strengthBars}>
-              {[0, 1, 2, 3].map(i => (
-                <View
-                  key={i}
-                  style={[
-                    styles.strengthBar,
-                    {
-                      backgroundColor:
-                        i < pwStrength
-                          ? STRENGTH_COLORS[pwStrength - 1]
-                          : colors.border,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            {pwStrength > 0 && (
-              <Text
+      {password.length > 0 && (
+        <View style={styles.strengthSection}>
+          <View style={styles.strengthBars}>
+            {[0, 1, 2, 3].map(i => (
+              <View
+                key={i}
                 style={[
-                  styles.strengthLabel,
-                  { color: STRENGTH_COLORS[pwStrength - 1] },
+                  styles.strengthBar,
+                  { backgroundColor: i < pwStrength ? STRENGTH_COLORS[pwStrength - 1] : 'rgba(255,255,255,0.1)' },
                 ]}
-              >
-                {STRENGTH_LABELS[pwStrength - 1]}
-              </Text>
-            )}
+              />
+            ))}
           </View>
-        )}
+          {pwStrength > 0 && (
+            <Text style={[styles.strengthLabel, { color: STRENGTH_COLORS[pwStrength - 1] }]}>
+              {STRENGTH_LABELS[pwStrength - 1]}
+            </Text>
+          )}
+        </View>
+      )}
 
-        {/* Error message */}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <Field
+        ref={confirmRef}
+        label="Confirm Password"
+        placeholder="••••••••"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="go"
+        onSubmitEditing={handleReset}
+        variant="dark"
+      />
 
-        {/* Submit button */}
-        <MBtn variant="primary" fullWidth onPress={handleReset} disabled={loading}>
-          {loading ? 'Resetting...' : 'Reset Password'}
-        </MBtn>
-      </ScrollArea>
-    </Screen>
+      <AuthButton onPress={handleReset} disabled={loading} busy={loading}>
+        {loading ? 'Saving…' : 'Save new password'}
+      </AuthButton>
+      <AuthLink onPress={() => navigation.navigate('Login')}>Back to sign in</AuthLink>
+    </AuthShell>
   )
 }
 
 const styles = StyleSheet.create({
-  iconWrap: {
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.blue3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heading: {
-    fontSize: 22,
-    fontFamily: fontWeights.extraBold,
-    color: colors.text,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  description: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
   strengthSection: {
     gap: 6,
+    marginTop: -6,
+    marginBottom: 14,
   },
   strengthBars: {
     flexDirection: 'row',
@@ -191,13 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   strengthLabel: {
-    fontSize: 11,
-    fontFamily: fontWeights.semiBold,
-  },
-  errorText: {
     fontSize: 13,
-    fontFamily: fontWeights.medium,
-    color: colors.error,
-    textAlign: 'center',
+    fontFamily: fontWeights.semiBold,
   },
 })

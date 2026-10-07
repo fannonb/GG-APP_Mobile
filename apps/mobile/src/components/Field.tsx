@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { forwardRef, useState } from 'react'
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native'
 import { colors, fontWeights } from '@/theme'
 
@@ -16,30 +16,49 @@ interface FieldProps {
   editable?: boolean
   keyboardType?: TextInputProps['keyboardType']
   autoCapitalize?: TextInputProps['autoCapitalize']
+  /** Autofill hints so password managers and the OS keyboard can fill the field. */
+  autoComplete?: TextInputProps['autoComplete']
+  textContentType?: TextInputProps['textContentType']
+  autoCorrect?: boolean
+  returnKeyType?: TextInputProps['returnKeyType']
+  onSubmitEditing?: () => void
+  /** Keep the keyboard open when "next" moves focus to another field. */
+  submitBehavior?: TextInputProps['submitBehavior']
+  maxLength?: number
   variant?: 'light' | 'dark'
 }
 
-export default function Field({
-  label,
-  value,
-  placeholder,
-  onChangeText,
-  onBlur,
-  secureTextEntry,
-  required,
-  error,
-  hint,
-  right,
-  editable = true,
-  keyboardType,
-  autoCapitalize,
-  variant = 'light',
-}: FieldProps) {
+const Field = forwardRef<TextInput, FieldProps>(function Field(
+  {
+    label,
+    value,
+    placeholder,
+    onChangeText,
+    onBlur,
+    secureTextEntry,
+    required,
+    error,
+    hint,
+    right,
+    editable = true,
+    keyboardType,
+    autoCapitalize,
+    autoComplete,
+    textContentType,
+    autoCorrect,
+    returnKeyType,
+    onSubmitEditing,
+    submitBehavior,
+    maxLength,
+    variant = 'light',
+  },
+  ref,
+) {
   const [isFocused, setIsFocused] = useState(false)
   const isDark = variant === 'dark'
 
   const getBorderColor = () => {
-    if (error) return colors.error
+    if (error) return isDark ? colors.errorOnDark : colors.error
     if (isFocused) return isDark ? colors.blue : colors.navy
     return isDark ? 'rgba(255,255,255,0.1)' : colors.border
   }
@@ -57,14 +76,16 @@ export default function Field({
         style={[
           styles.inputContainer,
           isDark && styles.inputContainerDark,
+          !editable && (isDark ? styles.inputLockedDark : styles.inputLocked),
           { borderColor: getBorderColor() },
         ]}
       >
         <TextInput
-          style={[styles.input, isDark && styles.inputDark]}
+          ref={ref}
+          style={[styles.input, isDark && styles.inputDark, !editable && styles.inputTextLocked]}
           value={value}
           placeholder={placeholder}
-          placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : colors.textLight}
+          placeholderTextColor={isDark ? 'rgba(255,255,255,0.45)' : colors.textLight}
           onChangeText={onChangeText}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
@@ -75,12 +96,26 @@ export default function Field({
           editable={editable}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          autoCorrect={autoCorrect}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          submitBehavior={submitBehavior}
+          maxLength={maxLength}
+          accessibilityLabel={required ? `${label}, required` : label}
+          accessibilityHint={error ?? hint}
+          accessibilityState={{ disabled: !editable }}
         />
         {right ? <View style={styles.right}>{right}</View> : null}
       </View>
 
       {/* Error text */}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.error, isDark && styles.errorDark]} accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
 
       {/* Hint text */}
       {hint && !error ? (
@@ -88,7 +123,9 @@ export default function Field({
       ) : null}
     </View>
   )
-}
+})
+
+export default Field
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -125,6 +162,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5,
   },
+  inputLocked: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  inputLockedDark: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
   input: {
     flex: 1,
     fontFamily: fontWeights.regular,
@@ -135,6 +178,9 @@ const styles = StyleSheet.create({
   inputDark: {
     color: '#FFFFFF',
   },
+  inputTextLocked: {
+    opacity: 0.7,
+  },
   right: {
     marginLeft: 10,
   },
@@ -144,6 +190,9 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginTop: 4,
   },
+  errorDark: {
+    color: colors.errorOnDark,
+  },
   hint: {
     fontFamily: fontWeights.regular,
     fontSize: 12,
@@ -151,7 +200,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   hintDark: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.6)',
   },
 })
-

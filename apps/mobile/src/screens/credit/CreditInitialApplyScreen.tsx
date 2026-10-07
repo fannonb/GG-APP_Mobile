@@ -1,168 +1,115 @@
 import React, { useState } from 'react'
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  TextInput,
-} from 'react-native'
-import Svg, { Path, Circle } from 'react-native-svg'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
+import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
-import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
+import { colors, fontWeights, radii } from '@/theme'
+import { useCurrency } from '@/lib/useCurrency'
+import { displayCurrencySymbol, formatCurrency } from '@gg/shared-utils'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, ActionBar } from '@/components'
 import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import { useApplyCreditMutation } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
-import { getWorldCountryByCode } from '@gg/shared-config'
+import {
+  getFinancePartnerIdForCountry,
+  getFinancePartnerSummary,
+  getWorldCountryByCode,
+} from '@gg/shared-config'
 
-/* ------------------------------------------------------------------ */
-/*  Finance partner options                                            */
-/* ------------------------------------------------------------------ */
-const PARTNERS = [
-  {
-    id: 'moneymart' as const,
-    name: 'Moneymart Finance',
-    tagline: 'Healthcare micro-lending specialist',
-    processingTime: '24-48 hrs',
-  },
-  {
-    id: 'equity' as const,
-    name: 'Equity Bank',
-    tagline: 'Trusted banking partner',
-    processingTime: '48-72 hrs',
-  },
-]
-
-/* ------------------------------------------------------------------ */
-/*  Employment status options                                          */
-/* ------------------------------------------------------------------ */
 const EMPLOYMENT_OPTIONS = [
   { value: 'employed', label: 'Employed' },
   { value: 'self-employed', label: 'Self-employed' },
-  { value: 'business-owner', label: 'Business Owner' },
+  { value: 'business-owner', label: 'Business owner' },
   { value: 'student', label: 'Student' },
   { value: 'other', label: 'Other' },
 ]
 
-/* ------------------------------------------------------------------ */
-/*  Inline icons                                                       */
-/* ------------------------------------------------------------------ */
+const MIN_AMOUNT = 1000
+const MAX_AMOUNT = 50000
+const QUICK_AMOUNTS = [5000, 10000, 20000, 50000]
+
+type FieldKey = 'employment' | 'income' | 'amount'
+
 function CheckSquare({ checked }: { checked: boolean }) {
   return (
-    <View
-      style={[
-        st.checkBox,
-        {
-          backgroundColor: checked ? colors.success : colors.card,
-          borderColor: checked ? colors.success : colors.border,
-        },
-      ]}
-    >
+    <View style={[st.checkBox, checked && st.checkBoxOn]}>
       {checked && (
         <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-          <Path
-            d="M2.5 6l2.5 2.5 4.5-4.5"
-            stroke="#FFFFFF"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <Path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="#FFFFFF" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       )}
     </View>
   )
 }
 
-function BlueCheck() {
+function InfoIcon() {
   return (
-    <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-      <Circle cx={10} cy={10} r={10} fill={colors.blue} />
-      <Path
-        d="M6 10l3 3 5-5"
-        stroke="#FFFFFF"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <Svg width={18} height={18} viewBox="0 0 16 16" fill="none">
+      <Circle cx={8} cy={8} r={6.5} stroke={colors.blueInk} strokeWidth={1.3} />
+      <Line x1={8} y1={7} x2={8} y2={11} stroke={colors.blueInk} strokeWidth={1.6} strokeLinecap="round" />
+      <Circle cx={8} cy={4.8} r={0.9} fill={colors.blueInk} />
     </Svg>
   )
 }
 
-function ChevronDown() {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-      <Path
-        d="M4 6l4 4 4-4"
-        stroke={colors.textLight}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
+/**
+ * The credit application. The finance partner follows the patient's country
+ * (Equity Bank in Kenya, Moneymart Finance in Zimbabwe), so there is nothing
+ * to choose: the screen just says who will review it.
+ */
 export function CreditInitialApplyScreen() {
+  const currency = useCurrency()
+  const symbol = displayCurrencySymbol(currency)
   const navigation = useNavigation<any>()
   const u = useUserStore(s => s.user)
   const applyMutation = useApplyCreditMutation()
 
-  /* form state */
-  const [selectedPartner, setSelectedPartner] = useState<'moneymart' | 'equity'>('moneymart')
+  const countryCode = u?.countryCode ?? 'KE'
+  const partnerId = getFinancePartnerIdForCountry(countryCode)
+  const partner = getFinancePartnerSummary(partnerId)
+  const countryName = getWorldCountryByCode(countryCode)?.name
+
   const [employment, setEmployment] = useState('')
   const [monthlyIncome, setMonthlyIncome] = useState('')
   const [requestedAmount, setRequestedAmount] = useState('')
   const [consent, setConsent] = useState(false)
-  const [showEmploymentPicker, setShowEmploymentPicker] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const selectedEmployment = EMPLOYMENT_OPTIONS.find(e => e.value === employment)
+  const clearError = (key: FieldKey) => setErrors(e => ({ ...e, [key]: undefined }))
+  const digitsOnly = (text: string) => text.replace(/[^\d]/g, '')
+  const shortAmount = (n: number) => `${symbol} ${n.toLocaleString('en-US')}`
 
   const handleSubmit = async () => {
     const income = Number(monthlyIncome)
     const amount = Number(requestedAmount)
+    const next: Partial<Record<FieldKey, string>> = {}
+    if (!employment) next.employment = 'Choose your employment status'
+    if (!monthlyIncome || income <= 0) next.income = 'Enter your monthly income'
+    if (!requestedAmount || amount < MIN_AMOUNT || amount > MAX_AMOUNT) {
+      next.amount = `Enter an amount between ${shortAmount(MIN_AMOUNT)} and ${shortAmount(MAX_AMOUNT)}`
+    }
+    setErrors(next)
+    if (Object.keys(next).length > 0) return
 
-    /* basic validation */
-    if (!employment) {
-      setError('Please select your employment status')
-      return
-    }
-    if (!monthlyIncome || isNaN(income) || income <= 0) {
-      setError('Enter a valid monthly income')
-      return
-    }
-    if (!requestedAmount || isNaN(amount) || amount < 1000 || amount > 50000) {
-      setError('Requested amount must be between Ksh.1,000 and Ksh.50,000')
-      return
-    }
-    if (!consent) {
-      setError('You must confirm the information is accurate')
-      return
-    }
-
-    setError(null)
+    setSubmitError(null)
     setLoading(true)
-
     try {
-      const residenceCountryCode = u?.countryCode ?? 'KE'
       await applyMutation.mutateAsync({
-        financePartnerId: selectedPartner,
+        financePartnerId: partnerId,
         employment,
         monthlyIncome: income,
         requestedAmount: amount,
         consent,
-        residenceCountryCode,
-        residenceCountryName: getWorldCountryByCode(residenceCountryCode)?.name,
+        residenceCountryCode: countryCode,
+        residenceCountryName: countryName,
         coverageType: 'self',
       })
       useAuthStore.getState().completeOnboardingStep(4)
       navigation.navigate('CreditStatus')
     } catch (err: any) {
-      setError(err?.message ?? 'Unable to submit your application right now.')
+      setSubmitError(err?.message ?? 'Unable to submit your application right now.')
     } finally {
       setLoading(false)
     }
@@ -170,382 +117,297 @@ export function CreditInitialApplyScreen() {
 
   return (
     <Screen>
-      <AppBar
-        title="Apply for Credit"
-        subtitle="Submit your healthcare credit application"
-        back
-      />
+      <AppBar title="Apply for credit" subtitle="Takes about 2 minutes" back />
 
       <ScrollArea gap={14} px={16} py={14}>
-        {/* ============================================================ */}
-        {/*  1. Finance Partner Selection                                */}
-        {/* ============================================================ */}
-        <MCard padding={18}>
-          <Text style={st.cardTitle}>Select Your Finance Partner</Text>
-          <Text style={st.cardSubtitle}>
-            Choose which finance partner will process your credit application.
+        {/* 1. Who reviews it */}
+        <MCard padding={16}>
+          <View style={st.partnerRow}>
+            <View style={st.partnerChip}>
+              <FinancePartnerLogo partnerId={partnerId} height={partnerId === 'equity' ? 30 : 28} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.partnerLabel}>Your finance partner</Text>
+              <Text style={st.partnerName}>{partner?.name}</Text>
+              <Text style={st.partnerMeta}>Decision usually within {partner?.processingTime}</Text>
+            </View>
+          </View>
+          <Text style={st.partnerNote}>
+            {countryName ? `Healthcare credit in ${countryName} is provided by ${partner?.name}. ` : ''}
+            They review your application and set your limit.
           </Text>
+        </MCard>
 
-          <View style={st.partnerList}>
-            {PARTNERS.map(partner => {
-              const isSelected = selectedPartner === partner.id
+        {/* 2. About you */}
+        <MCard padding={16}>
+          <Text style={st.cardTitle}>About you</Text>
+
+          <Text style={st.fieldLabel}>Employment status</Text>
+          <View style={st.chips} accessibilityRole="radiogroup">
+            {EMPLOYMENT_OPTIONS.map(opt => {
+              const selected = employment === opt.value
               return (
                 <Pressable
-                  key={partner.id}
-                  style={[
-                    st.partnerCard,
-                    {
-                      borderColor: isSelected ? colors.blue : colors.border,
-                      backgroundColor: isSelected ? colors.blue3 : colors.card,
-                    },
-                  ]}
-                  onPress={() => setSelectedPartner(partner.id)}
+                  key={opt.value}
+                  onPress={() => {
+                    setEmployment(opt.value)
+                    clearError('employment')
+                  }}
+                  style={[st.chip, selected && st.chipOn]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
                 >
-                  <View style={st.partnerLogoZone}>
-                    <FinancePartnerLogo partnerId={partner.id} height={34} />
-                    {isSelected && (
-                      <View style={st.partnerCheck}>
-                        <BlueCheck />
-                      </View>
-                    )}
-                  </View>
-                  <View style={st.partnerBody}>
-                    <Text style={st.partnerName}>{partner.name}</Text>
-                    <Text style={st.partnerTagline}>{partner.tagline}</Text>
-                    <View style={st.processBadge}>
-                      <Text style={st.processBadgeText}>
-                        Processing: {partner.processingTime}
-                      </Text>
-                    </View>
-                  </View>
+                  <Text style={[st.chipText, selected && st.chipTextOn]}>{opt.label}</Text>
                 </Pressable>
               )
             })}
           </View>
+          {errors.employment ? <Text style={st.fieldError}>{errors.employment}</Text> : null}
+
+          <View style={{ height: 16 }} />
+          <Field
+            label="Monthly income"
+            placeholder="e.g. 25,000"
+            keyboardType="number-pad"
+            value={monthlyIncome}
+            onChangeText={t => {
+              setMonthlyIncome(digitsOnly(t))
+              clearError('income')
+            }}
+            right={<Text style={st.unit}>{symbol}</Text>}
+            error={errors.income}
+            hint="Your take-home pay after tax"
+          />
         </MCard>
 
-        {/* ============================================================ */}
-        {/*  2. Application Form                                         */}
-        {/* ============================================================ */}
-        <MCard padding={18}>
-          <Text style={st.cardTitle}>Application Details</Text>
-          <Text style={st.cardSubtitle}>
-            Provide details about your financial situation so the finance partner
-            can assess your application.
-          </Text>
-
-          {/* Employment Status (dropdown) */}
-          <View style={{ marginBottom: 12 }}>
-            <View style={st.labelRow}>
-              <Text style={st.fieldLabel}>Employment Status</Text>
-              <Text style={st.asterisk}> *</Text>
-            </View>
-            <Pressable
-              style={st.dropdownBtn}
-              onPress={() => setShowEmploymentPicker(!showEmploymentPicker)}
-            >
-              <Text
-                style={[
-                  st.dropdownText,
-                  !employment && { color: colors.textLight },
-                ]}
-                numberOfLines={1}
-              >
-                {selectedEmployment?.label ?? 'Select employment status'}
-              </Text>
-              <ChevronDown />
-            </Pressable>
-
-            {showEmploymentPicker && (
-              <View style={st.dropdownList}>
-                {EMPLOYMENT_OPTIONS.map(opt => (
-                  <Pressable
-                    key={opt.value}
-                    style={[
-                      st.dropdownOption,
-                      employment === opt.value && { backgroundColor: colors.blue3 },
-                    ]}
-                    onPress={() => {
-                      setEmployment(opt.value)
-                      setShowEmploymentPicker(false)
-                    }}
-                  >
-                    <Text
-                      style={[
-                        st.dropdownOptionText,
-                        employment === opt.value && {
-                          color: colors.blue,
-                          fontFamily: fontWeights.bold,
-                        },
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
+        {/* 3. Amount */}
+        <MCard padding={16}>
+          <Text style={st.cardTitle}>How much do you need?</Text>
+          <View style={st.amountGrid}>
+            {QUICK_AMOUNTS.map(n => {
+              const selected = Number(requestedAmount) === n
+              return (
+                <Pressable
+                  key={n}
+                  onPress={() => {
+                    setRequestedAmount(String(n))
+                    clearError('amount')
+                  }}
+                  style={[st.chip, st.amountChip, selected && st.chipOn]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[st.chipText, selected && st.chipTextOn]}>{shortAmount(n)}</Text>
+                </Pressable>
+              )
+            })}
           </View>
-
-          {/* Monthly Income */}
+          <View style={{ height: 14 }} />
           <Field
-            label="Monthly Income"
-            placeholder="e.g. 25000"
-            keyboardType="numeric"
-            value={monthlyIncome}
-            onChangeText={setMonthlyIncome}
-            required
-            hint="Net monthly income in Ksh."
-          />
-
-          {/* Requested Amount */}
-          <Field
-            label="Requested Amount"
-            placeholder="e.g. 10000"
-            keyboardType="numeric"
+            label="Or enter an amount"
+            placeholder="e.g. 15,000"
+            keyboardType="number-pad"
             value={requestedAmount}
-            onChangeText={setRequestedAmount}
-            required
-            hint="Ksh.1,000 – Ksh.50,000"
+            onChangeText={t => {
+              setRequestedAmount(digitsOnly(t))
+              clearError('amount')
+            }}
+            right={<Text style={st.unit}>{symbol}</Text>}
+            error={errors.amount}
+            hint={`Between ${formatCurrency(MIN_AMOUNT, currency)} and ${formatCurrency(MAX_AMOUNT, currency)}`}
           />
+        </MCard>
 
-          {/* Consent checkbox */}
+        {/* 4. What happens next */}
+        <View style={st.nextNote}>
+          <InfoIcon />
+          <Text style={st.nextText}>
+            After you submit, {partner?.name ?? 'your finance partner'} reviews your application. We'll notify you as
+            soon as there's a decision, and approved credit appears in your wallet straight away.
+          </Text>
+        </View>
+
+        <View style={{ height: 8 }} />
+      </ScrollArea>
+
+      {/* Consent sits with the button it unlocks, as on the disclosure screen. */}
+      <ActionBar
+        error={submitError}
+        top={
           <Pressable
-            style={[
-              st.consentRow,
-              {
-                backgroundColor: consent ? colors.successBg : colors.bg,
-                borderColor: consent ? colors.success : colors.border,
-              },
-            ]}
+            style={[st.consentRow, consent && st.consentRowOn]}
             onPress={() => setConsent(!consent)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: consent }}
           >
             <CheckSquare checked={consent} />
             <Text style={st.consentText}>
-              I confirm the information provided is accurate and authorise the
-              selected finance partner to process my credit application and
-              perform a credit assessment.
+              The information is accurate, and {partner?.name ?? 'my finance partner'} may run a credit check.
             </Text>
           </Pressable>
-
-          {/* Warning note */}
-          <View style={st.warningNote}>
-            <Text style={st.warningText}>
-              <Text style={{ fontFamily: fontWeights.bold }}>Note: </Text>
-              Your application will be reviewed by the selected finance partner.
-              You will receive a notification once a decision has been made. For
-              now, GG'APP admin reviews and approves applications.
-            </Text>
-          </View>
-
-          {/* Error */}
-          {error && <Text style={st.errorText}>{error}</Text>}
-        </MCard>
-
-        {/* ============================================================ */}
-        {/*  3. Action Buttons                                           */}
-        {/* ============================================================ */}
-        <View style={st.btnRow}>
-          <MBtn
-            variant="secondary"
-            style={{ flex: 1 }}
-            onPress={() => navigation.goBack()}
-          >
-            Cancel
-          </MBtn>
-          <MBtn
-            variant="primary"
-            style={{ flex: 2 }}
-            disabled={loading}
-            onPress={handleSubmit}
-          >
-            {loading ? 'Submitting...' : 'Submit Application →'}
-          </MBtn>
-        </View>
-
-        {/* Bottom spacer */}
-        <View style={{ height: 24 }} />
-      </ScrollArea>
+        }
+      >
+        <MBtn variant="primary" fullWidth disabled={!consent || loading} onPress={handleSubmit}>
+          {loading ? 'Submitting…' : 'Submit application'}
+        </MBtn>
+      </ActionBar>
     </Screen>
   )
 }
 
 export default CreditInitialApplyScreen
 
-/* ================================================================== */
-/*  Styles                                                             */
-/* ================================================================== */
 const st = StyleSheet.create({
-  /* card headings */
-  cardTitle: {
-    fontSize: 15,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
-    marginBottom: 4,
+  partnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
-  cardSubtitle: {
-    fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    lineHeight: 17,
-    marginBottom: 16,
-  },
-
-  /* partner selection */
-  partnerList: {
-    gap: 10,
-  },
-  partnerCard: {
-    borderWidth: 1.5,
-    borderRadius: radii.large,
-    overflow: 'hidden',
-  },
-  partnerLogoZone: {
-    height: 76,
+  partnerChip: {
+    minWidth: 72,
+    height: 56,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
   },
-  partnerCheck: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  partnerBody: {
-    padding: 14,
-    gap: 2,
+  partnerLabel: {
+    fontFamily: fontWeights.medium,
+    fontSize: 12,
+    color: colors.textLight,
   },
   partnerName: {
-    fontSize: 14,
     fontFamily: fontWeights.bold,
+    fontSize: 17,
     color: colors.text,
+    marginTop: 1,
   },
-  partnerTagline: {
-    fontSize: 12,
+  partnerMeta: {
+    fontFamily: fontWeights.medium,
+    fontSize: 13,
+    color: colors.blueInk,
+    marginTop: 2,
+  },
+  partnerNote: {
     fontFamily: fontWeights.regular,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.textSub,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  processBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.blue3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 9999,
-    marginTop: 4,
-  },
-  processBadgeText: {
-    fontSize: 10,
+  cardTitle: {
     fontFamily: fontWeights.bold,
-    color: colors.blue,
-  },
-
-  /* fields */
-  labelRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
+    fontSize: 17,
+    color: colors.text,
+    marginBottom: 14,
   },
   fieldLabel: {
-    fontFamily: fontWeights.bold,
-    fontSize: 12,
-    color: colors.text,
-  },
-  asterisk: {
-    fontFamily: fontWeights.bold,
-    fontSize: 12,
-    color: colors.error,
-  },
-
-  /* dropdown */
-  dropdownBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: colors.card,
-  },
-  dropdownText: {
+    fontFamily: fontWeights.semiBold,
     fontSize: 14,
-    fontFamily: fontWeights.regular,
-    color: colors.text,
-    flex: 1,
+    color: colors.navy,
+    marginBottom: 8,
   },
-  dropdownList: {
-    marginTop: 4,
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
     backgroundColor: colors.card,
-    overflow: 'hidden',
-    ...shadows.card,
   },
-  dropdownOption: {
-    paddingHorizontal: 16,
+  amountGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 8,
+  },
+  amountChip: {
+    width: '48.5%',
+    alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  dropdownOptionText: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
+  chipOn: {
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
+  },
+  chipText: {
+    fontFamily: fontWeights.semiBold,
+    fontSize: 14,
     color: colors.text,
   },
-
-  /* consent */
+  chipTextOn: {
+    color: '#FFFFFF',
+  },
+  fieldError: {
+    fontFamily: fontWeights.medium,
+    fontSize: 12,
+    color: colors.error,
+    marginTop: 6,
+  },
+  unit: {
+    fontFamily: fontWeights.semiBold,
+    fontSize: 14,
+    color: colors.textLight,
+  },
+  nextNote: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+    borderRadius: radii.large,
+    backgroundColor: colors.blue100,
+  },
+  nextText: {
+    flex: 1,
+    fontFamily: fontWeights.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSub,
+  },
   consentRow: {
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-start',
-    padding: 14,
+    padding: 12,
     borderRadius: radii.default,
     borderWidth: 1.5,
-    marginBottom: 12,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+  consentRowOn: {
+    borderColor: colors.navy,
+    backgroundColor: colors.blue100,
   },
   checkBox: {
     width: 20,
     height: 20,
     borderRadius: 5,
     borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
+  checkBoxOn: {
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
+  },
   consentText: {
     flex: 1,
+    fontFamily: fontWeights.regular,
     fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.text,
     lineHeight: 19,
-  },
-
-  /* warning note */
-  warningNote: {
-    backgroundColor: colors.warningBg,
-    borderRadius: radii.default,
-    padding: 14,
-  },
-  warningText: {
-    fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: colors.warning,
-    lineHeight: 18,
-  },
-
-  /* error */
-  errorText: {
-    fontSize: 12,
-    fontFamily: fontWeights.semiBold,
-    color: colors.error,
-    marginTop: 8,
-  },
-
-  /* buttons */
-  btnRow: {
-    flexDirection: 'row',
-    gap: 10,
+    color: colors.text,
   },
 })

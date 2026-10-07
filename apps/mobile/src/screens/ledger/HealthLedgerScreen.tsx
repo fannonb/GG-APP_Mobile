@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import { useNavigation } from '@react-navigation/native'
 import {
   useLedgerStatus,
@@ -14,7 +15,7 @@ import {
   useRevokeLedgerGrantMutation,
 } from '@gg/shared-hooks'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, LoadError } from '@/components'
 import { LedgerTimeline } from '@/components/LedgerTimeline'
 
 function timeRemaining(expiresAt: string) {
@@ -38,9 +39,12 @@ export function HealthLedgerScreen() {
   const [beneficiaryFilter, setBeneficiaryFilter] = useState<string | undefined>(undefined)
   const statusQuery = useLedgerStatus()
   const ledgerQuery = useOwnLedger(beneficiaryFilter)
+  const pull = usePullToRefresh(statusQuery.refetch, ledgerQuery.refetch)
   const revokeGrantMutation = useRevokeLedgerGrantMutation()
 
   const status = statusQuery.data
+  // Without a status we don't know whether a PIN exists, so never claim "not set".
+  const statusUnknown = !status
   const hasPin = status?.hasPin ?? false
   const pinExpired = status?.pinExpired ?? false
   const activeGrants = status?.activeGrants ?? []
@@ -61,7 +65,14 @@ export function HealthLedgerScreen() {
         {
           text: 'Revoke',
           style: 'destructive',
-          onPress: () => revokeGrantMutation.mutate(grantId),
+          onPress: () =>
+            revokeGrantMutation.mutate(grantId, {
+              onError: (err: unknown) =>
+                Alert.alert(
+                  'Access not revoked',
+                  err instanceof Error ? err.message : 'Please check your connection and try again.',
+                ),
+            }),
         },
       ],
     )
@@ -72,7 +83,9 @@ export function HealthLedgerScreen() {
       <AppBar
         title="Health Ledger"
         subtitle={
-          !hasPin
+          statusUnknown
+            ? 'Your treatment history'
+            : !hasPin
             ? pinExpired
               ? 'PIN expired'
               : 'PIN not set'
@@ -82,7 +95,21 @@ export function HealthLedgerScreen() {
         }
         back
       />
-      <ScrollArea gap={16} px={16} py={14}>
+      <ScrollArea gap={16} px={16} py={14} {...pull}>
+        {statusUnknown ? (
+          statusQuery.isError ? (
+            <LoadError
+              title="We couldn't check your ledger PIN."
+              body="Your PIN and any access you've granted are unchanged. Check your connection and try again."
+              onRetry={() => void statusQuery.refetch()}
+              retrying={statusQuery.isFetching}
+            />
+          ) : (
+            <MCard padding={24}>
+              <ActivityIndicator color={colors.blue} />
+            </MCard>
+          )
+        ) : (
         <MCard padding={16}>
           <View style={styles.pinHeader}>
             <View style={styles.pinTitleRow}>
@@ -119,6 +146,7 @@ export function HealthLedgerScreen() {
             </MBtn>
           </View>
         </MCard>
+        )}
 
         {activeGrants.length > 0 ? (
           <MCard padding={16}>
@@ -182,6 +210,13 @@ export function HealthLedgerScreen() {
                 Loading your ledger...
               </Text>
             </MCard>
+          ) : ledgerQuery.isError && !ledgerQuery.data ? (
+            <LoadError
+              title="We couldn't load your health ledger."
+              body="Your records are safe. This is a connection problem, not missing history."
+              onRetry={() => void ledgerQuery.refetch()}
+              retrying={ledgerQuery.isFetching}
+            />
           ) : (
             <LedgerTimeline entries={ledgerQuery.data?.entries ?? []} />
           )}

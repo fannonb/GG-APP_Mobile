@@ -1,15 +1,31 @@
-import React, { useState } from 'react'
-import { View, Text, Image, Pressable, StyleSheet, Dimensions, ScrollView } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Dimensions,
+  ScrollView,
+  BackHandler,
+  TextInput,
+} from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Svg, { Path } from 'react-native-svg'
+import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, Field, DateField, MBtn, PhonePrefixInput } from '@/components'
+import { Screen, Field, DateField, PhonePrefixInput } from '@/components'
 import { CheckIcon } from '@/icons'
 import { authService, getGoogleClientId } from '@gg/shared-api'
 import { useAuthStore } from '@gg/shared-stores'
 import { getCountryDial } from '@gg/shared-config'
 import { normalizeDobInput } from '@/lib/dates'
+import {
+  NATIONAL_ID_FORMATS,
+  isValidEmail,
+  normalizeEmail,
+  passwordProblem,
+} from '@/lib/validation'
 import type { AuthScreenProps, GoogleProfileState } from '@/navigation/types'
 
 const logo = require('../../../assets/gg-logo.png')
@@ -20,6 +36,23 @@ const COUNTRIES = [
   { id: 'ZW', name: 'Zimbabwe', code: '+263', flag: '🇿🇼' },
   { id: 'ZM', name: 'Zambia', code: '+260', flag: '🇿🇲' },
 ]
+
+type FieldErrors = Partial<
+  Record<
+    | 'firstName'
+    | 'lastName'
+    | 'email'
+    | 'country'
+    | 'phone'
+    | 'dob'
+    | 'nationalId'
+    | 'gender'
+    | 'password'
+    | 'confirmPassword'
+    | 'terms',
+    string
+  >
+>
 
 function ChevronDownIcon({ color = 'rgba(255,255,255,0.5)' }: { color?: string }) {
   return (
@@ -35,6 +68,23 @@ function ChevronDownIcon({ color = 'rgba(255,255,255,0.5)' }: { color?: string }
   )
 }
 
+function EyeIcon({ visible }: { visible: boolean }) {
+  const strokeColor = 'rgba(255,255,255,0.6)'
+  if (visible) {
+    return (
+      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke={strokeColor} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        <Circle cx={12} cy={12} r={3} stroke={strokeColor} strokeWidth={1.8} />
+      </Svg>
+    )
+  }
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" stroke={strokeColor} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  )
+}
+
 function getPasswordStrength(pw: string): number {
   let score = 0
   if (pw.length >= 8) score++
@@ -45,7 +95,7 @@ function getPasswordStrength(pw: string): number {
 }
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'] as const
-const STRENGTH_COLORS = [colors.error, colors.warning, colors.blue, colors.success]
+const STRENGTH_COLORS = [colors.errorOnDark, '#F5B54A', colors.blue, '#4ADE9B']
 const STRENGTH_LABELS = ['Weak', 'Fair', 'Good', 'Strong']
 
 export function RegisterScreen() {
@@ -54,6 +104,10 @@ export function RegisterScreen() {
   const route = useRoute<AuthScreenProps<'Register'>['route']>()
   const googleProfile: GoogleProfileState | undefined = route.params?.googleProfile
   const [step, setStep] = useState(0)
+  const scrollRef = useRef<ScrollView>(null)
+  const lastNameRef = useRef<TextInput>(null)
+  const emailRef = useRef<TextInput>(null)
+  const confirmRef = useRef<TextInput>(null)
 
   // Step 1: Personal Info
   const [firstName, setFirstName] = useState(googleProfile?.firstName ?? '')
@@ -72,67 +126,96 @@ export function RegisterScreen() {
   // Step 3: Security
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [agreedTerms, setAgreedTerms] = useState(false)
 
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const selectedCountry = selectedCountryIdx >= 0 ? COUNTRIES[selectedCountryIdx] : null
+  const idFormat = NATIONAL_ID_FORMATS[selectedCountry?.id ?? 'KE']
   const pwStrength = getPasswordStrength(password)
 
-  const handleContinue = () => {
-    setError(null)
-    if (step === 0) {
-      if (!firstName || !lastName || !email || !selectedCountry || !phoneDigits) {
-        setError('Please fill in all required fields.')
-        return
+  const goToStep = (next: number) => {
+    setFieldErrors({})
+    setSubmitError(null)
+    setStep(next)
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
+  }
+
+  // Android hardware back steps through the form instead of discarding it.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step > 0) {
+        goToStep(step - 1)
+        return true
       }
-      setStep(1)
-    } else if (step === 1) {
-      if (!dob || !nationalId || !gender) {
-        setError('Please fill in all required fields.')
-        return
+      return false
+    })
+    return () => sub.remove()
+  }, [step])
+
+  /** Only clear the error for the field being edited, so the others stay visible. */
+  const clearError = (key: keyof FieldErrors) =>
+    setFieldErrors(prev => (prev[key] ? { ...prev, [key]: undefined } : prev))
+
+  const validateStep = (index: number): FieldErrors => {
+    const errors: FieldErrors = {}
+    if (index === 0) {
+      if (!firstName.trim()) errors.firstName = 'Enter your first name.'
+      if (!lastName.trim()) errors.lastName = 'Enter your last name.'
+      if (!email.trim()) errors.email = 'Enter your email address.'
+      else if (!isValidEmail(email)) errors.email = 'Enter a valid email address, like you@example.com.'
+      if (!selectedCountry) errors.country = 'Choose the country where you will receive care.'
+      if (phoneDigits.replace(/\D/g, '').length < 6) errors.phone = 'Enter your phone number.'
+    } else if (index === 1) {
+      const normalized = normalizeDobInput(dob)
+      if (!dob) errors.dob = 'Enter your date of birth.'
+      else if (!normalized) errors.dob = 'Use the format DD/MM/YYYY.'
+      else if (new Date(normalized) > new Date()) errors.dob = 'Date of birth cannot be in the future.'
+      if (nationalId.trim().length < 5) errors.nationalId = 'Enter your full national ID number.'
+      if (!gender) errors.gender = 'Choose an option.'
+    } else {
+      if (!googleProfile) {
+        const problem = passwordProblem(password)
+        if (problem) errors.password = problem
+        if (!confirmPassword) errors.confirmPassword = 'Re-enter your password.'
+        else if (password !== confirmPassword) errors.confirmPassword = 'Passwords do not match.'
       }
-      if (!normalizeDobInput(dob)) {
-        setError('Use a valid date of birth in DD/MM/YYYY or YYYY-MM-DD format.')
-        return
-      }
-      setStep(2)
+      if (!agreedTerms) errors.terms = 'Please accept the Terms of Service and Privacy Policy.'
     }
+    return errors
+  }
+
+  const handleContinue = () => {
+    const errors = validateStep(step)
+    setFieldErrors(errors)
+    if (Object.keys(errors).length === 0) goToStep(step + 1)
   }
 
   const handleSubmit = async () => {
-    setError(null)
-    if (!googleProfile) {
-      if (!password || !confirmPassword) {
-        setError('Please fill in all password fields.')
-        return
-      }
-      if (password !== confirmPassword) {
-        setError('Passwords do not match.')
-        return
-      }
-    }
-    if (!agreedTerms) {
-      setError('You must agree to the Terms of Service.')
-      return
-    }
+    setSubmitError(null)
+    const errors = validateStep(2)
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     const normalizedDob = normalizeDobInput(dob)
     if (!normalizedDob) {
-      setError('Use a valid date of birth in DD/MM/YYYY or YYYY-MM-DD format.')
+      goToStep(1)
       return
     }
     setLoading(true)
     try {
       const result = await authService.registerPatient({
-        firstName,
-        lastName,
-        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: normalizeEmail(email),
         phone: `${getCountryDial(phoneCountryCode)} ${phoneDigits}`,
         country: selectedCountry?.id ?? '',
         dob: normalizedDob,
         gender,
-        nationalId,
+        nationalId: nationalId.trim().toUpperCase(),
         password: googleProfile ? undefined : password,
         googleIdToken: googleProfile?.googleIdToken,
         googleClientId: googleProfile ? getGoogleClientId() : undefined,
@@ -142,10 +225,13 @@ export function RegisterScreen() {
         useAuthStore.getState().setSession('patient')
         return
       }
-      navigation.navigate('EmailVerify', { token: result.verificationToken })
+      navigation.navigate('EmailVerify', {
+        token: result.verificationToken,
+        email: normalizeEmail(email),
+      })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.'
-      setError(message)
+      setSubmitError(message)
     } finally {
       setLoading(false)
     }
@@ -156,11 +242,15 @@ export function RegisterScreen() {
       <View style={styles.bgGlow} />
 
       {/* Sleek Minimalist Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Image source={logo} style={styles.logo} resizeMode="contain" />
-        
+      <View style={[styles.header, { paddingTop: 20 }]}>
+        <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityIgnoresInvertColors />
+
         {/* Minimal Progress Dots */}
-        <View style={styles.progressRow}>
+        <View
+          style={styles.progressRow}
+          accessible
+          accessibilityLabel={`Step ${step + 1} of 3`}
+        >
           {[0, 1, 2].map((i) => (
             <View
               key={i}
@@ -174,18 +264,20 @@ export function RegisterScreen() {
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={{ 
-          paddingBottom: insets.top + 60,
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 60,
           paddingHorizontal: 32,
         }}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Dynamic Titles */}
         <View style={styles.titleWrap}>
           {step === 0 && (
             <>
-              <Text style={styles.stepTitle}>
+              <Text style={styles.stepTitle} accessibilityRole="header">
                 Tell us about{'\n'}
                 <Text style={styles.highlight}>yourself.</Text>
               </Text>
@@ -194,7 +286,7 @@ export function RegisterScreen() {
           )}
           {step === 1 && (
             <>
-              <Text style={styles.stepTitle}>
+              <Text style={styles.stepTitle} accessibilityRole="header">
                 Verify your{'\n'}
                 <Text style={styles.highlight}>identity.</Text>
               </Text>
@@ -203,7 +295,7 @@ export function RegisterScreen() {
           )}
           {step === 2 && (
             <>
-              <Text style={styles.stepTitle}>
+              <Text style={styles.stepTitle} accessibilityRole="header">
                 Secure your{'\n'}
                 <Text style={styles.highlight}>account.</Text>
               </Text>
@@ -212,50 +304,73 @@ export function RegisterScreen() {
           )}
         </View>
 
-        {/* Error Banner */}
-        {error ? (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
         {/* Form Container */}
         <View style={styles.formContainer}>
-          
+
           {/* Step 0: Personal Info */}
           {step === 0 && (
             <>
+              {googleProfile && (
+                <View style={styles.googleNotice}>
+                  <Text style={styles.googleNoticeText}>
+                    Signing up with Google. Your email is confirmed and can't be changed here. Check your name below.
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.nameRow}>
                 <View style={styles.nameField}>
                   <Field
                     label="First Name"
                     placeholder="John"
                     value={firstName}
-                    onChangeText={setFirstName}
+                    onChangeText={v => { setFirstName(v); clearError('firstName') }}
+                    error={fieldErrors.firstName}
                     required
                     variant="dark"
+                    autoComplete="name-given"
+                    textContentType="givenName"
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                    submitBehavior="submit"
+                    onSubmitEditing={() => lastNameRef.current?.focus()}
                   />
                 </View>
                 <View style={styles.nameField}>
                   <Field
+                    ref={lastNameRef}
                     label="Last Name"
                     placeholder="Doe"
                     value={lastName}
-                    onChangeText={setLastName}
+                    onChangeText={v => { setLastName(v); clearError('lastName') }}
+                    error={fieldErrors.lastName}
                     required
                     variant="dark"
+                    autoComplete="name-family"
+                    textContentType="familyName"
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                    submitBehavior="submit"
+                    onSubmitEditing={() => emailRef.current?.focus()}
                   />
                 </View>
               </View>
 
               <Field
+                ref={emailRef}
                 label="Email Address"
                 placeholder="you@example.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={v => { setEmail(v); clearError('email') }}
+                error={fieldErrors.email}
+                hint={googleProfile ? 'Confirmed by Google' : undefined}
+                editable={!googleProfile}
                 required
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
                 variant="dark"
               />
 
@@ -265,8 +380,11 @@ export function RegisterScreen() {
                   <Text style={styles.labelDark}>Country</Text>
                 </View>
                 <Pressable
-                  style={styles.selectBox}
+                  style={[styles.selectBox, fieldErrors.country && styles.selectBoxError]}
                   onPress={() => setShowCountryPicker(!showCountryPicker)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Country, ${selectedCountry ? selectedCountry.name : 'not selected'}`}
+                  accessibilityState={{ expanded: showCountryPicker }}
                 >
                   <Text
                     style={[
@@ -289,10 +407,13 @@ export function RegisterScreen() {
                           styles.pickerItem,
                           idx === selectedCountryIdx && styles.pickerItemActive,
                         ]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: idx === selectedCountryIdx }}
                         onPress={() => {
                           setSelectedCountryIdx(idx)
                           setPhoneCountryCode(c.id)
                           setShowCountryPicker(false)
+                          clearError('country')
                         }}
                       >
                         <Text style={styles.pickerItemText}>
@@ -302,6 +423,7 @@ export function RegisterScreen() {
                     ))}
                   </View>
                 )}
+                {fieldErrors.country ? <Text style={styles.inlineError}>{fieldErrors.country}</Text> : null}
               </View>
 
               <PhonePrefixInput
@@ -311,10 +433,11 @@ export function RegisterScreen() {
                 countryCode={phoneCountryCode}
                 onCountryChange={setPhoneCountryCode}
                 digits={phoneDigits}
-                onDigitsChange={setPhoneDigits}
+                onDigitsChange={v => { setPhoneDigits(v); clearError('phone') }}
+                error={fieldErrors.phone}
               />
 
-              <Pressable style={styles.primaryBtn} onPress={handleContinue}>
+              <Pressable style={styles.primaryBtn} onPress={handleContinue} accessibilityRole="button">
                 <Text style={styles.primaryBtnText}>Continue</Text>
               </Pressable>
 
@@ -322,6 +445,7 @@ export function RegisterScreen() {
                 style={styles.linkRow}
                 onPress={() => navigation.navigate('Login')}
                 hitSlop={12}
+                accessibilityRole="link"
               >
                 <Text style={styles.linkHint}>Already have an account? </Text>
                 <Text style={styles.linkAction}>Sign In</Text>
@@ -335,18 +459,24 @@ export function RegisterScreen() {
               <DateField
                 label="Date of Birth"
                 value={dob}
-                onChangeText={setDob}
+                onChangeText={v => { setDob(v); clearError('dob') }}
+                error={fieldErrors.dob}
+                maximumDate={new Date()}
                 required
                 variant="dark"
               />
 
               <Field
                 label="National ID"
-                placeholder="e.g. 30127843"
+                placeholder={idFormat.placeholder}
+                hint={idFormat.hint}
                 value={nationalId}
-                onChangeText={setNationalId}
+                onChangeText={v => { setNationalId(v); clearError('nationalId') }}
+                error={fieldErrors.nationalId}
                 required
-                keyboardType="numeric"
+                keyboardType={idFormat.numeric ? 'number-pad' : 'default'}
+                autoCapitalize="characters"
+                autoCorrect={false}
                 variant="dark"
               />
 
@@ -354,14 +484,16 @@ export function RegisterScreen() {
                 <View style={styles.labelRow}>
                   <Text style={styles.labelDark}>Gender</Text>
                 </View>
-                <View style={styles.genderRow}>
+                <View style={styles.genderRow} accessibilityRole="radiogroup">
                   {GENDERS.map(option => {
                     const active = gender === option
                     return (
                       <Pressable
                         key={option}
                         style={[styles.genderChip, active && styles.genderChipActive]}
-                        onPress={() => setGender(option)}
+                        onPress={() => { setGender(option); clearError('gender') }}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: active }}
                       >
                         <Text style={[styles.genderChipText, active && styles.genderChipTextActive]}>
                           {option}
@@ -370,13 +502,14 @@ export function RegisterScreen() {
                     )
                   })}
                 </View>
+                {fieldErrors.gender ? <Text style={styles.inlineError}>{fieldErrors.gender}</Text> : null}
               </View>
 
-              <Pressable style={styles.primaryBtn} onPress={handleContinue}>
+              <Pressable style={styles.primaryBtn} onPress={handleContinue} accessibilityRole="button">
                 <Text style={styles.primaryBtnText}>Continue</Text>
               </Pressable>
 
-              <Pressable style={styles.linkRow} onPress={() => setStep(0)} hitSlop={12}>
+              <Pressable style={styles.linkRow} onPress={() => goToStep(0)} hitSlop={12} accessibilityRole="button">
                 <Text style={styles.linkAction}>← Back</Text>
               </Pressable>
             </>
@@ -391,20 +524,29 @@ export function RegisterScreen() {
                     label="Password"
                     placeholder="••••••••"
                     value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
+                    onChangeText={v => { setPassword(v); clearError('password') }}
+                    error={fieldErrors.password}
+                    hint="At least 8 characters, with an uppercase letter and a number."
+                    secureTextEntry={!showPassword}
                     required
                     variant="dark"
-                  />
-
-                  <Field
-                    label="Confirm Password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    required
-                    variant="dark"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                    returnKeyType="next"
+                    submitBehavior="submit"
+                    onSubmitEditing={() => confirmRef.current?.focus()}
+                    right={
+                      <Pressable
+                        onPress={() => setShowPassword(v => !v)}
+                        hitSlop={12}
+                        accessibilityRole="button"
+                        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <EyeIcon visible={showPassword} />
+                      </Pressable>
+                    }
                   />
 
                   {/* Password strength indicator */}
@@ -438,26 +580,38 @@ export function RegisterScreen() {
                       )}
                     </View>
                   )}
-                </>
-              )}
 
-              {googleProfile && (
-                <View style={styles.googleNotice}>
-                  <Text style={styles.googleNoticeText}>
-                    Verified by Google — email is locked in. We've pre-filled your name, feel free to correct it.
-                  </Text>
-                </View>
+                  <Field
+                    ref={confirmRef}
+                    label="Confirm Password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChangeText={v => { setConfirmPassword(v); clearError('confirmPassword') }}
+                    error={fieldErrors.confirmPassword}
+                    secureTextEntry={!showPassword}
+                    required
+                    variant="dark"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                  />
+                </>
               )}
 
               {/* Terms checkbox */}
               <Pressable
                 style={styles.checkboxRow}
-                onPress={() => setAgreedTerms(!agreedTerms)}
+                onPress={() => { setAgreedTerms(!agreedTerms); clearError('terms') }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreedTerms }}
+                accessibilityLabel="I agree to the Terms of Service and Privacy Policy"
               >
                 <View
                   style={[
                     styles.checkbox,
                     agreedTerms && styles.checkboxChecked,
+                    fieldErrors.terms && !agreedTerms && styles.checkboxError,
                   ]}
                 >
                   {agreedTerms && <CheckIcon size={12} color={colors.navy} />}
@@ -469,8 +623,16 @@ export function RegisterScreen() {
                   <Text style={styles.linkInline} onPress={() => navigation.navigate('Privacy')}>Privacy Policy</Text>
                 </Text>
               </Pressable>
+              {fieldErrors.terms ? <Text style={styles.inlineError}>{fieldErrors.terms}</Text> : null}
 
-              <Pressable 
+              {/* Server errors sit next to the button that caused them, not off-screen at the top. */}
+              {submitError ? (
+                <View style={styles.errorBanner} accessibilityLiveRegion="polite">
+                  <Text style={styles.errorText}>{submitError}</Text>
+                </View>
+              ) : null}
+
+              <Pressable
                 style={({ pressed }) => [
                   styles.primaryBtn,
                   pressed && styles.primaryBtnPressed,
@@ -478,13 +640,15 @@ export function RegisterScreen() {
                 ]}
                 onPress={handleSubmit}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading, busy: loading }}
               >
                 <Text style={styles.primaryBtnText}>
                   {loading ? 'Creating Account...' : 'Create Account'}
                 </Text>
               </Pressable>
 
-              <Pressable style={styles.linkRow} onPress={() => setStep(1)} hitSlop={12}>
+              <Pressable style={styles.linkRow} onPress={() => goToStep(1)} hitSlop={12} accessibilityRole="button">
                 <Text style={styles.linkAction}>← Back</Text>
               </Pressable>
             </>
@@ -584,20 +748,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
+  selectBoxError: {
+    borderColor: colors.errorOnDark,
+  },
   selectText: {
     fontFamily: fontWeights.regular,
     fontSize: 15,
     color: '#FFFFFF',
   },
   placeholder: {
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.45)',
   },
   pickerDropdown: {
     marginTop: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     borderRadius: 12,
-    backgroundColor: '#1A2F5E',
+    backgroundColor: colors.navy600,
     overflow: 'hidden',
   },
   pickerItem: {
@@ -614,48 +781,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
   },
-  phoneRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 14,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-  phoneCode: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.1)',
-  },
-  phoneCodeText: {
+  inlineError: {
     fontFamily: fontWeights.medium,
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  phoneInput: {
-    flex: 1,
-    fontFamily: fontWeights.regular,
-    fontSize: 15,
-    color: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    fontSize: 12,
+    color: colors.errorOnDark,
+    marginTop: 6,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(255, 138, 143, 0.12)',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    marginBottom: 16,
+    borderColor: 'rgba(255, 138, 143, 0.35)',
+    marginTop: 16,
   },
   errorText: {
     fontSize: 14,
     fontFamily: fontWeights.medium,
-    color: colors.error,
+    color: colors.errorOnDark,
     textAlign: 'center',
   },
   primaryBtn: {
@@ -695,7 +839,8 @@ const styles = StyleSheet.create({
   },
   strengthSection: {
     gap: 8,
-    marginBottom: 8,
+    marginTop: -6,
+    marginBottom: 14,
   },
   strengthBars: {
     flexDirection: 'row',
@@ -729,6 +874,9 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: colors.blue,
     borderColor: colors.blue,
+  },
+  checkboxError: {
+    borderColor: colors.errorOnDark,
   },
   checkboxLabel: {
     flex: 1,
@@ -773,7 +921,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(56, 182, 255, 0.2)',
-    marginVertical: 8,
+    marginBottom: 16,
   },
   googleNoticeText: {
     fontSize: 14,

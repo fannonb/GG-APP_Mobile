@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import { useLedgerStatus, useSetupLedgerPinMutation, useResetLedgerPinMutation } from '@gg/shared-hooks'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, PinField } from '@/components'
 
 const EXPIRY_OPTIONS: Array<{ value: number | undefined; label: string }> = [
   { value: undefined, label: 'No expiry' },
@@ -27,8 +28,8 @@ export function LedgerPinSetupScreen() {
 
   const title = isReset ? 'Change Ledger PIN' : 'Create Ledger PIN'
   const subtitle = isReset
-    ? 'Changing your PIN revokes access for every provider'
-    : 'This PIN lets you consent to providers viewing your treatment history'
+    ? 'Revokes all current provider access'
+    : 'You decide who sees your records'
 
   const setField = <K extends keyof typeof form>(key: K, value: string) =>
     setForm(current => ({ ...current, [key]: value }))
@@ -95,14 +96,11 @@ export function LedgerPinSetupScreen() {
           <View style={styles.form}>
             {isReset && !forgotMode ? (
               <View>
-                <Field
+                <PinField
                   label="Current PIN"
                   value={form.currentPin}
-                  onChangeText={val => setField('currentPin', val.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="Enter current PIN"
-                  secureTextEntry
-                  keyboardType="number-pad"
-                  required
+                  onChange={val => setField('currentPin', val)}
+                  length={6}
                   error={errors.currentPin}
                 />
                 <Pressable
@@ -149,25 +147,20 @@ export function LedgerPinSetupScreen() {
               </View>
             ) : null}
 
-            <Field
+            <PinField
               label={isReset ? 'New Ledger PIN' : 'Ledger PIN'}
               value={form.pin}
-              onChangeText={val => setField('pin', val.replace(/\D/g, '').slice(0, 6))}
-              placeholder="Enter 4–6 digit PIN"
-              secureTextEntry
-              keyboardType="number-pad"
-              required
+              onChange={val => setField('pin', val)}
+              length={6}
+              hint="4 to 6 digits"
               error={errors.pin}
             />
 
-            <Field
+            <PinField
               label="Confirm PIN"
               value={form.confirmPin}
-              onChangeText={val => setField('confirmPin', val.replace(/\D/g, '').slice(0, 6))}
-              placeholder="Re-enter PIN"
-              secureTextEntry
-              keyboardType="number-pad"
-              required
+              onChange={val => setField('confirmPin', val)}
+              length={6}
               error={errors.confirmPin}
             />
 

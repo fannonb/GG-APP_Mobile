@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, ActivityIndicator, Vibration } from 'react-native'
+import React, { useRef, useState } from 'react'
+import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
@@ -8,6 +8,9 @@ import { CheckIcon, LockIcon } from '@/icons'
 import { useAuthorizePaymentMutation, usePatientInvoice } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
+import { getCountryByCode } from '@gg/shared-config'
+import { hapticError, hapticSelection, hapticSuccess } from '@/lib/haptics'
+import { prefersReducedMotion } from '@/lib/motion'
 import type { InvoicesScreenProps, InvoicesStackParamList } from '@/navigation/types'
 import type { PatientInvoice } from '@gg/shared-types'
 import type { RouteProp } from '@react-navigation/native'
@@ -18,7 +21,7 @@ type PINAuthNav = NativeStackNavigationProp<InvoicesStackParamList, 'PINAuth'>
 
 const PIN_LENGTH = 4
 
-const STEP_LABELS = ['Step 1', 'Step 2', 'Step 3'] as const
+const STEP_LABELS = ['Enter', 'Repeat', 'Confirm'] as const
 
 const STEP_TITLES: Record<number, { title: string; sub: string }> = {
   1: { title: 'First Confirmation', sub: 'Enter your payment PIN' },
@@ -45,7 +48,7 @@ function StepCircle({
   }
   if (state === 'active') {
     return (
-      <View style={[stepStyles.circle, { backgroundColor: colors.blue }]}>
+      <View style={[stepStyles.circle, { backgroundColor: colors.navy }]}>
         <Text style={stepStyles.circleTextWhite}>{number}</Text>
       </View>
     )
@@ -151,9 +154,13 @@ const stepStyles = StyleSheet.create({
 
 /* ---------- PIN Dots ---------- */
 
-function PINDots({ filled, hasError }: { filled: number; hasError: boolean }) {
+function PINDots({ filled, hasError, shake }: { filled: number; hasError: boolean; shake: Animated.Value }) {
   return (
-    <View style={dotStyles.row}>
+    <Animated.View
+      style={[dotStyles.row, { transform: [{ translateX: shake }] }]}
+      accessible
+      accessibilityLabel={`${filled} of ${PIN_LENGTH} digits entered`}
+    >
       {Array.from({ length: PIN_LENGTH }).map((_, i) => (
         <View
           key={i}
@@ -171,7 +178,7 @@ function PINDots({ filled, hasError }: { filled: number; hasError: boolean }) {
           ]}
         />
       ))}
-    </View>
+    </Animated.View>
   )
 }
 
@@ -227,6 +234,19 @@ export function PINAuthScreen() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
 
   const stepInfo = STEP_TITLES[currentStep] ?? STEP_TITLES[1]
+  const currency = getCountryByCode(user?.countryCode ?? 'KE')?.currencySymbol ?? 'Ksh.'
+  const shake = useRef(new Animated.Value(0)).current
+
+  // A wrong PIN shakes the dots, the familiar "no" gesture of PIN pads.
+  const shakeDots = () => {
+    if (prefersReducedMotion()) return
+    shake.setValue(0)
+    Animated.sequence(
+      [10, -10, 8, -8, 4, 0].map(toValue =>
+        Animated.timing(shake, { toValue, duration: 45, useNativeDriver: true }),
+      ),
+    ).start()
+  }
 
   const handleConfirm = async () => {
     if (pin.length !== PIN_LENGTH) return
@@ -239,6 +259,7 @@ export function PINAuthScreen() {
       })
       if (result.success) {
         if (result.complete) {
+          hapticSuccess()
           navigation.replace('PaymentSuccess', {
             invoiceId,
             amount,
@@ -247,6 +268,7 @@ export function PINAuthScreen() {
             provider,
           })
         } else {
+          hapticSelection()
           setCompletedSteps((prev) => [...prev, currentStep])
           setCurrentStep((prev) => prev + 1)
           setPin('')
@@ -254,7 +276,8 @@ export function PINAuthScreen() {
       } else {
         setError(result.message || 'Incorrect PIN')
         setPin('')
-        Vibration.vibrate(200)
+        hapticError()
+        shakeDots()
         if (result.attemptsRemaining === 0) {
           setIsLocked(true)
         }
@@ -262,13 +285,14 @@ export function PINAuthScreen() {
     } catch {
       setError('Authorization failed')
       setPin('')
+      hapticError()
+      shakeDots()
     }
   }
 
   const handleKeyPress = (key: string) => {
     if (pin.length < PIN_LENGTH) {
       setPin((prev) => prev + key)
-      Vibration.vibrate(10)
     }
   }
 
@@ -330,17 +354,17 @@ export function PINAuthScreen() {
         {/* Amount Display */}
         <MCard style={s.amountCard}>
           <Text style={s.amountLabel}>
-            {isPartialPay ? 'AUTHORIZING IN-APP PORTION' : 'AUTHORIZING PAYMENT'}
+            {isPartialPay ? 'Authorizing in-app portion' : 'Authorizing payment'}
           </Text>
           <Text style={s.amountValue}>
-            {formatCurrency(walletPayAmount ?? amount ?? 0)}
+            {formatCurrency(walletPayAmount ?? amount ?? 0, currency)}
           </Text>
           <Text style={s.amountProvider}>
             to {provider ?? 'Service Provider'}
           </Text>
           {isPartialPay && (
             <Text style={s.amountPartial}>
-              Invoice {formatCurrency(amount ?? 0)} · Off-app remainder {formatCurrency(offAppDue ?? 0)}
+              Invoice {formatCurrency(amount ?? 0, currency)} · Off-app remainder {formatCurrency(offAppDue ?? 0, currency)}
             </Text>
           )}
         </MCard>
@@ -352,7 +376,7 @@ export function PINAuthScreen() {
         </View>
 
         {/* PIN Dots */}
-        <PINDots filled={pin.length} hasError={!!error} />
+        <PINDots filled={pin.length} hasError={!!error} shake={shake} />
 
         {/* Error Message */}
         {error ? <Text style={s.errorText}>{error}</Text> : null}
@@ -370,6 +394,7 @@ export function PINAuthScreen() {
           onKeyPress={handleKeyPress}
           onDelete={handleDelete}
           onConfirm={handleConfirm}
+          confirmEnabled={pin.length === PIN_LENGTH && !authorizePayment.isPending}
         />
       </ScrollArea>
     </Screen>
@@ -388,10 +413,8 @@ const s = StyleSheet.create({
   },
   amountLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSub,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   amountValue: {
@@ -452,7 +475,7 @@ const s = StyleSheet.create({
   loadingText: {
     fontFamily: fontWeights.medium,
     fontSize: 13,
-    color: colors.blue,
+    color: colors.blueInk,
   },
 
   /* Locked */

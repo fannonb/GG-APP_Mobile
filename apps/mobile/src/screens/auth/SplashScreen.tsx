@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { colors, fontWeights, radii } from '@/theme'
 import type { AuthScreenProps } from '@/navigation/types'
+import { markIntroSeen } from '@/lib/intro'
 
 const logo = require('../../../assets/gg-logo.png')
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -46,6 +47,8 @@ export function SplashScreen() {
   const navigation = useNavigation<AuthScreenProps<'Splash'>['navigation']>()
 
   const [activeStep, setActiveStep] = useState(0)
+  // The swipe handler is created once, so it reads the step from a ref.
+  const activeStepRef = useRef(0)
   const hasNavigated = useRef(false)
 
   // Animations
@@ -64,18 +67,22 @@ export function SplashScreen() {
     }
   }
 
-  const proceedToLogin = () => {
+  const leaveIntro = (destination: 'Login' | 'Register') => {
     if (hasNavigated.current) return
     hasNavigated.current = true
+    markIntroSeen()
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium)
     navigation.replace('Login')
+    // Login stays underneath Register so back from registration lands on sign-in.
+    if (destination === 'Register') navigation.navigate('Register')
   }
 
   const animateTo = (index: number) => {
-    if (index === activeStep) return
+    if (index === activeStepRef.current) return
     triggerHaptic()
-    
-    const dir = index > activeStep ? -1 : 1
+
+    const dir = index > activeStepRef.current ? -1 : 1
+    activeStepRef.current = index
     
     Animated.sequence([
       Animated.timing(fadeAnim, {
@@ -111,7 +118,7 @@ export function SplashScreen() {
     if (activeStep < STEPS.length - 1) {
       animateTo(activeStep + 1)
     } else {
-      proceedToLogin()
+      leaveIntro('Register')
     }
   }
 
@@ -119,10 +126,11 @@ export function SplashScreen() {
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, state) => Math.abs(state.dx) > 30,
       onPanResponderRelease: (_, state) => {
-        if (state.dx < -40 && activeStep < STEPS.length - 1) {
-          animateTo(activeStep + 1)
-        } else if (state.dx > 40 && activeStep > 0) {
-          animateTo(activeStep - 1)
+        const current = activeStepRef.current
+        if (state.dx < -40 && current < STEPS.length - 1) {
+          animateTo(current + 1)
+        } else if (state.dx > 40 && current > 0) {
+          animateTo(current - 1)
         }
       },
     }),
@@ -172,7 +180,7 @@ export function SplashScreen() {
           { opacity: logoOpacity, transform: [{ scale: logoScale }] },
         ]}
       >
-        <Image source={logo} style={styles.logo} resizeMode="contain" />
+        <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityLabel="GG'APP" />
       </Animated.View>
 
       {/* Middle section: Typography focused, large, breathing */}
@@ -200,6 +208,9 @@ export function SplashScreen() {
               key={i}
               onPress={() => animateTo(i)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Slide ${i + 1} of ${STEPS.length}`}
+              accessibilityState={{ selected: i === activeStep }}
             >
               <View style={[styles.dot, i === activeStep && styles.dotActive]} />
             </TouchableOpacity>
@@ -209,17 +220,21 @@ export function SplashScreen() {
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity
-            onPress={proceedToLogin}
+            onPress={() => leaveIntro('Login')}
             style={styles.skipBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
           >
-            <Text style={styles.skipText}>Skip</Text>
+            <Text style={styles.skipText}>
+              {activeStep === STEPS.length - 1 ? 'I have an account' : 'Skip'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleNext}
             style={styles.nextBtn}
             activeOpacity={0.8}
+            accessibilityRole="button"
           >
             <Text style={styles.nextText}>
               {activeStep === STEPS.length - 1 ? 'Get Started' : 'Next'}
@@ -309,7 +324,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: fontWeights.medium,
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   nextBtn: {
     backgroundColor: colors.blue,

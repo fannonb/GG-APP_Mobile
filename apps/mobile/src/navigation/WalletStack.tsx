@@ -6,6 +6,7 @@ import { CreditApplyScreen } from '@/screens/credit/CreditApplyScreen'
 import { CreditIncreaseScreen } from '@/screens/credit/CreditIncreaseScreen'
 import { CreditStatusScreen } from '@/screens/credit/CreditStatusScreen'
 import { TransactionHistoryScreen } from '@/screens/payments/TransactionHistoryScreen'
+import { TASK_SCREEN, RESULT_SCREEN } from './transitions'
 import type { WalletStackParamList } from '@/navigation/types'
 
 const Stack = createNativeStackNavigator<WalletStackParamList>()
@@ -16,10 +17,10 @@ export function WalletStack() {
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
       <Stack.Screen name="CreditWallet" component={CreditWalletScreen} />
-      <Stack.Screen name="CreditDisclaimer" component={CreditDisclaimerScreen} />
-      <Stack.Screen name="CreditInitialApply" component={CreditInitialApplyScreen} />
-      <Stack.Screen name="CreditApply" component={CreditApplyScreen} />
-      <Stack.Screen name="CreditIncrease" component={CreditIncreaseScreen} />
+      <Stack.Screen name="CreditDisclaimer" component={CreditDisclaimerScreen} options={TASK_SCREEN} />
+      <Stack.Screen name="CreditInitialApply" component={CreditInitialApplyScreen} options={TASK_SCREEN} />
+      <Stack.Screen name="CreditApply" component={CreditApplyScreen} options={TASK_SCREEN} />
+      <Stack.Screen name="CreditIncrease" component={CreditIncreaseScreen} options={TASK_SCREEN} />
       <Stack.Screen name="CreditStatus" component={CreditStatusScreen} />
       <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
     </Stack.Navigator>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, TextInput } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { View, Text, StyleSheet, TextInput, Animated, Easing } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -14,6 +14,7 @@ import { getCountryByCode } from '@gg/shared-config'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency, formatDate, getAppointmentDisplayStatus } from '@gg/shared-utils'
 import type { InvoicesStackParamList } from '@/navigation/types'
+import { prefersReducedMotion } from '@/lib/motion'
 import type { RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { Appointment, PatientInvoice } from '@gg/shared-types'
@@ -73,18 +74,54 @@ const receiptStyles = StyleSheet.create({
 
 /* ---------- Success Checkmark ---------- */
 
+/**
+ * The circle springs in, the tick follows, and a soft ring radiates once:
+ * a clear "done" moment for the most important action in the app.
+ */
 function SuccessCheck() {
+  const reduced = prefersReducedMotion()
+  const circle = useRef(new Animated.Value(reduced ? 1 : 0)).current
+  const tick = useRef(new Animated.Value(reduced ? 1 : 0)).current
+  const ring = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (reduced) return
+    Animated.sequence([
+      Animated.spring(circle, { toValue: 1, friction: 6, tension: 90, useNativeDriver: true }),
+      Animated.parallel([
+        Animated.timing(tick, { toValue: 1, duration: 220, easing: Easing.out(Easing.back(2)), useNativeDriver: true }),
+        Animated.timing(ring, { toValue: 1, duration: 700, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      ]),
+    ]).start()
+  }, [circle, tick, ring, reduced])
+
   return (
-    <View style={s.checkCircle}>
-      <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
-        <Path
-          d="M8 20l8 8 16-14"
-          stroke={colors.success}
-          strokeWidth={3.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <View style={s.checkWrap} accessible accessibilityLabel="Payment authorized">
+      {!reduced ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            s.checkRing,
+            {
+              opacity: ring.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] }),
+              transform: [{ scale: ring.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+            },
+          ]}
         />
-      </Svg>
+      ) : null}
+      <Animated.View style={[s.checkCircle, { transform: [{ scale: circle }] }]}>
+        <Animated.View style={{ opacity: tick, transform: [{ scale: tick }] }}>
+          <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
+            <Path
+              d="M8 20l8 8 16-14"
+              stroke={colors.success}
+              strokeWidth={3.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Animated.View>
+      </Animated.View>
     </View>
   )
 }
@@ -318,7 +355,7 @@ export function PaymentSuccessScreen() {
           variant="secondary"
           fullWidth
           onPress={() =>
-            navigation.getParent()?.navigate('WalletTab', { screen: 'TransactionHistory' })
+            navigation.getParent()?.navigate('WalletTab', { initial: false, screen: 'TransactionHistory' })
           }
         >
           View Transactions
@@ -335,6 +372,21 @@ const s = StyleSheet.create({
   },
 
   /* Check circle */
+  checkWrap: {
+    width: 88,
+    height: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  checkRing: {
+    position: 'absolute',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
+    borderColor: colors.success,
+  },
   checkCircle: {
     width: 88,
     height: 88,
@@ -344,7 +396,6 @@ const s = StyleSheet.create({
     borderColor: 'rgba(34,201,138,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
   },
 
   /* Typography */
@@ -368,16 +419,14 @@ const s = StyleSheet.create({
   /* Receipt card */
   receiptLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSub,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   receiptAmount: {
     fontFamily: fontWeights.extraBold,
     fontSize: 28,
-    color: colors.blue,
+    color: colors.blueInk,
     letterSpacing: -0.8,
     marginBottom: 6,
   },

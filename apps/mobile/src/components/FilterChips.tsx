@@ -1,5 +1,7 @@
-import React from 'react'
-import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native'
+import React, { useEffect, useRef } from 'react'
+import { ScrollView, Text, View, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { animateNextLayout } from '@/lib/motion'
 import { colors, fontWeights } from '@/theme'
 import { hapticSelection } from '@/lib/haptics'
 
@@ -15,15 +17,25 @@ interface FilterChipsProps {
 }
 
 export default function FilterChips({ items, activeIndex, onSelect }: FilterChipsProps) {
+  // Keep the selected chip in view: on a narrow phone the last filters sit off-screen.
+  const scrollRef = useRef<ScrollView>(null)
+  const chipX = useRef<number[]>([])
+  useEffect(() => {
+    const x = chipX.current[activeIndex]
+    if (x != null) scrollRef.current?.scrollTo({ x: Math.max(0, x - 24), animated: true })
+  }, [activeIndex])
+
   const handleSelect = (index: number) => {
     if (index !== activeIndex) {
       hapticSelection()
     }
+    animateNextLayout()
     onSelect(index)
   }
 
   return (
     <ScrollView
+      ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.scroll}
@@ -33,7 +45,11 @@ export default function FilterChips({ items, activeIndex, onSelect }: FilterChip
         return (
           <Pressable
             key={i}
+            onLayout={e => { chipX.current[i] = e.nativeEvent.layout.x }}
             onPress={() => handleSelect(i)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={item.count != null ? `${item.label}, ${item.count}` : item.label}
             style={({ pressed }) => [
               styles.chip,
               active ? styles.chipActive : styles.chipInactive,

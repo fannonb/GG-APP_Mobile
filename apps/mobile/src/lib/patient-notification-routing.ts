@@ -1,4 +1,5 @@
 import type { Notification } from '@gg/shared-types'
+import { TAB_ROOTS } from '@/navigation/tabRoots'
 
 type PatientNotificationNavigation = {
   navigate: (routeName: string, params?: unknown) => void
@@ -13,6 +14,17 @@ export function openPatientNotification(
   navigation: PatientNotificationNavigation,
   notification: Notification,
 ) {
+  // The Notifications screen sits above the tab navigator in the root stack, so a
+  // bare navigate('InvoicesTab') from there is "not handled by any navigator"
+  // (React Navigation 7 doesn't search sibling navigators). Routing through the
+  // root 'App' screen works from the tabs and from Notifications alike.
+  // Deeper screens keep the tab's root underneath them, so Back lands there.
+  const goToTab = (tab: string, params: { screen: string; params?: object; initial?: boolean }) =>
+    navigation.navigate('App', {
+      screen: tab,
+      params: params.screen === TAB_ROOTS[tab] ? params : { initial: false, ...params },
+    })
+
   const screen = notification.screen?.trim()
 
   if (screen) {
@@ -22,7 +34,7 @@ export function openPatientNotification(
 
     const rescheduleMatch = screenPath.match(/^\/app\/appointments\/([^/]+)\/reschedule$/i)
     if (rescheduleMatch?.[1]) {
-      navigation.navigate('HomeTab', {
+      goToTab('HomeTab', {
         screen: 'RescheduleReview',
         params: { appointmentId: rescheduleMatch[1] },
       })
@@ -31,7 +43,7 @@ export function openPatientNotification(
 
     const prescriptionMatch = screenPath.match(/^\/app\/prescriptions\/([^/]+)$/i)
     if (prescriptionMatch?.[1] && prescriptionMatch[1].toLowerCase() !== 'confirm') {
-      navigation.navigate('ServicesTab', {
+      goToTab('ServicesTab', {
         screen: 'PrescriptionDetail',
         params: { prescriptionId: decodeURIComponent(prescriptionMatch[1]) },
       })
@@ -40,7 +52,7 @@ export function openPatientNotification(
 
     const invoiceSuccessMatch = screenPath.match(/^\/app\/invoices\/([^/]+)\/success$/i)
     if (invoiceSuccessMatch?.[1]) {
-      navigation.navigate('InvoicesTab', {
+      goToTab('InvoicesTab', {
         screen: 'PaymentSuccess',
         params: { invoiceId: decodeURIComponent(invoiceSuccessMatch[1]) },
         initial: false,
@@ -50,7 +62,7 @@ export function openPatientNotification(
 
     const invoiceMatch = screenPath.match(/^\/app\/invoices\/([^/]+)/i)
     if (invoiceMatch?.[1]) {
-      navigation.navigate('InvoicesTab', {
+      goToTab('InvoicesTab', {
         screen: 'InvoiceReview',
         params: { invoiceId: decodeURIComponent(invoiceMatch[1]) },
         initial: false,
@@ -61,35 +73,35 @@ export function openPatientNotification(
     switch (normalizedScreen) {
       case 'appointments':
       case '/app/appointments':
-        navigation.navigate('HomeTab', { screen: 'Appointments' })
+        goToTab('HomeTab', { screen: 'Appointments' })
         return
       case 'credit-increase':
-        navigation.navigate('WalletTab', { screen: 'CreditIncrease' })
+        goToTab('WalletTab', { screen: 'CreditIncrease' })
         return
       case 'credit-status':
-        navigation.navigate('WalletTab', { screen: 'CreditStatus' })
+        goToTab('WalletTab', { screen: 'CreditStatus' })
         return
       case 'credit-wallet':
       case '/app/credit':
-        navigation.navigate('WalletTab', { screen: 'CreditWallet' })
+        goToTab('WalletTab', { screen: 'CreditWallet' })
         return
       case '/app/credit/disclaimer':
-        navigation.navigate('WalletTab', { screen: 'CreditDisclaimer' })
+        goToTab('WalletTab', { screen: 'CreditDisclaimer' })
         return
       case '/app/credit/status':
-        navigation.navigate('WalletTab', { screen: 'CreditStatus' })
+        goToTab('WalletTab', { screen: 'CreditStatus' })
         return
       case '/app/credit/increase':
-        navigation.navigate('WalletTab', { screen: 'CreditIncrease' })
+        goToTab('WalletTab', { screen: 'CreditIncrease' })
         return
       case 'find-service':
       case '/app/services':
-        navigation.navigate('ServicesTab', { screen: 'FindService' })
+        goToTab('ServicesTab', { screen: 'FindService' })
         return
       case 'invoice-list':
       case 'invoice-review':
       case '/app/invoices':
-        navigation.navigate('InvoicesTab', { screen: 'InvoiceList' })
+        goToTab('InvoicesTab', { screen: 'InvoiceList' })
         return
       case 'notifications':
       case '/app/notifications':
@@ -97,27 +109,27 @@ export function openPatientNotification(
         return
       case 'prescription-requests':
       case '/app/prescriptions':
-        navigation.navigate('ServicesTab', { screen: 'PrescriptionRequests' })
+        goToTab('ServicesTab', { screen: 'PrescriptionRequests' })
         return
       case 'profile':
       case '/app/profile':
-        navigation.navigate('ProfileTab', { screen: 'Profile' })
+        goToTab('ProfileTab', { screen: 'Profile' })
         return
       case 'ledger':
       case '/app/ledger':
-        navigation.navigate('ProfileTab', { screen: 'HealthLedger' })
+        goToTab('ProfileTab', { screen: 'HealthLedger' })
         return
       case 'ledger-access':
       case '/app/ledger/access':
-        navigation.navigate('ProfileTab', { screen: 'LedgerAccess' })
+        goToTab('ProfileTab', { screen: 'LedgerAccess' })
         return
       case 'ledger-pin':
       case '/app/ledger/pin':
-        navigation.navigate('ProfileTab', { screen: 'LedgerPinSetup' })
+        goToTab('ProfileTab', { screen: 'LedgerPinSetup' })
         return
       case 'transaction-history':
       case '/app/transactions':
-        navigation.navigate('WalletTab', { screen: 'TransactionHistory' })
+        goToTab('WalletTab', { screen: 'TransactionHistory' })
         return
       default:
         break
@@ -126,29 +138,29 @@ export function openPatientNotification(
 
   switch (notification.type) {
     case 'appointment':
-      navigation.navigate('HomeTab', { screen: 'Appointments' })
+      goToTab('HomeTab', { screen: 'Appointments' })
       return
     case 'invoice':
-      navigation.navigate('InvoicesTab', { screen: 'InvoiceList' })
+      goToTab('InvoicesTab', { screen: 'InvoiceList' })
       return
     case 'payment':
-      navigation.navigate('WalletTab', { screen: 'TransactionHistory' })
+      goToTab('WalletTab', { screen: 'TransactionHistory' })
       return
     case 'credit':
-      navigation.navigate('WalletTab', {
+      goToTab('WalletTab', {
         screen: shouldOpenCreditIncrease(notification) ? 'CreditIncrease' : 'CreditWallet',
       })
       return
     case 'prescription':
-      navigation.navigate('ServicesTab', { screen: 'PrescriptionRequests' })
+      goToTab('ServicesTab', { screen: 'PrescriptionRequests' })
       return
     case 'ledger':
-      navigation.navigate('ProfileTab', { screen: 'HealthLedger' })
+      goToTab('ProfileTab', { screen: 'HealthLedger' })
       return
     case 'system':
-      navigation.navigate('ProfileTab', { screen: 'Profile' })
+      goToTab('ProfileTab', { screen: 'Profile' })
       return
     default:
-      navigation.navigate('HomeTab', { screen: 'Dashboard' })
+      goToTab('HomeTab', { screen: 'Dashboard' })
   }
 }

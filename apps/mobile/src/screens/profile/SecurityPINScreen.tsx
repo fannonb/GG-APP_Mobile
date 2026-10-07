@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, Field } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, PinField } from '@/components'
 import { useSetupPaymentPinMutation, useChangePatientPasswordMutation } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
+import ChangeEmailCard from '@/components/ChangeEmailCard'
 
 /* ------------------------------------------------------------------ */
 /*  Shield icon (inline — not in shared icons)                         */
@@ -35,30 +36,9 @@ interface PinSectionProps {
 }
 
 function PinSection({ label, pin, onPinChange, helper }: PinSectionProps) {
-  const isSet = pin.length === 4
-
   return (
     <MCard padding={16}>
-      <View style={styles.pinHeaderRow}>
-        <Text style={styles.pinLabel}>{label}</Text>
-        <GGPill type={isSet ? 'success' : 'warning'}>
-          {isSet ? 'Set' : 'Not Set'}
-        </GGPill>
-      </View>
-
-      <View style={styles.pinFieldWrap}>
-        <Text style={styles.pinFieldLabel}>{helper}</Text>
-        <TextInput
-          style={styles.pinInput}
-          value={pin}
-          onChangeText={(val) => onPinChange(val.replace(/\D/g, '').slice(0, 4))}
-          placeholder="----"
-          placeholderTextColor={colors.textLight}
-          secureTextEntry
-          keyboardType="numeric"
-          maxLength={4}
-        />
-      </View>
+      <PinField label={label} value={pin} onChange={onPinChange} hint={helper} />
     </MCard>
   )
 }
@@ -71,6 +51,7 @@ export function SecurityPINScreen() {
   const setupPinMutation = useSetupPaymentPinMutation()
   const changePasswordMutation = useChangePatientPasswordMutation()
   const hasPaymentPin = useUserStore(s => s.user?.hasPaymentPin)
+  const email = useUserStore(s => s.user?.email ?? '')
 
   const [currentPin, setCurrentPin] = useState('')
   const [pin, setPin] = useState('')
@@ -158,7 +139,7 @@ export function SecurityPINScreen() {
     <Screen bg={colors.bg}>
       <AppBar
         title="Security"
-        subtitle={hasPaymentPin ? 'Payment PIN and account password' : 'Payment PIN and account password'}
+        subtitle="Payment PIN, email and password"
         dark
         back={() => navigation.goBack()}
       />
@@ -228,7 +209,6 @@ export function SecurityPINScreen() {
           </MBtn>
           <MBtn
             variant="primary"
-            fullWidth
             onPress={handleSubmit}
             disabled={loading}
             style={styles.buttonFlex}
@@ -242,6 +222,8 @@ export function SecurityPINScreen() {
                 : 'Create PIN'}
           </MBtn>
         </View>
+
+        {email ? <ChangeEmailCard currentEmail={email} /> : null}
 
         <MCard padding={18}>
           <Text style={styles.infoTitle}>Change Password</Text>
@@ -325,39 +307,6 @@ const styles = StyleSheet.create({
   },
 
   /* PIN section */
-  pinHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  pinLabel: {
-    fontSize: 14,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
-  },
-  pinFieldWrap: {
-    marginBottom: 10,
-  },
-  pinFieldLabel: {
-    fontSize: 11,
-    fontFamily: fontWeights.semiBold,
-    color: colors.textSub,
-    marginBottom: 5,
-  },
-  pinInput: {
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radii.default,
-    backgroundColor: colors.card,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    fontFamily: fontWeights.medium,
-    fontSize: 18,
-    color: colors.text,
-    textAlign: 'center',
-    letterSpacing: 8,
-  },
   /* Messages */
   errorText: {
     fontSize: 13,
@@ -389,8 +338,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  // Never let the label-sized Cancel shrink below its text.
   buttonHalf: {
-    flex: 0,
+    flexShrink: 0,
+    minWidth: 112,
     paddingHorizontal: 24,
   },
   buttonFlex: {

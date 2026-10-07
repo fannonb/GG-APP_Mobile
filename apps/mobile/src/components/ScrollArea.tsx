@@ -1,6 +1,10 @@
-import React from 'react'
-import { ScrollView, RefreshControl, StyleSheet } from 'react-native'
+import React, { useContext } from 'react'
+import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native'
 import { colors } from '@/theme'
+import { DarkCurveContext } from './Screen'
+
+/** Extra navy above the content so iOS overscroll bounce never shows a gap. */
+const OVERSCROLL_COVER = 800
 
 interface ScrollAreaProps {
   children: React.ReactNode
@@ -19,6 +23,8 @@ export default function ScrollArea({
   refreshing,
   onRefresh,
 }: ScrollAreaProps) {
+  const curveDepth = useContext(DarkCurveContext)
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -34,12 +40,15 @@ export default function ScrollArea({
           <RefreshControl
             refreshing={refreshing ?? false}
             onRefresh={onRefresh}
-            tintColor={colors.blue}
+            tintColor={curveDepth != null ? '#FFFFFF' : colors.blue}
             colors={[colors.blue]}
           />
         ) : undefined
       }
     >
+      {curveDepth != null ? (
+        <View pointerEvents="none" style={[styles.curve, { height: OVERSCROLL_COVER + curveDepth }]} />
+      ) : null}
       {children}
     </ScrollView>
   )
@@ -48,5 +57,15 @@ export default function ScrollArea({
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
+  },
+  // Absolute, so it takes no part in the content's gap or layout.
+  curve: {
+    position: 'absolute',
+    top: -OVERSCROLL_COVER,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.navy,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
 })

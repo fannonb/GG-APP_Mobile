@@ -8,7 +8,7 @@ import {
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, LoadError } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
 import { useCreditStatus } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
@@ -25,9 +25,12 @@ function buildTimeline(application: any, creditStatus?: string, isIncrease?: boo
   const isApproved =
     application?.status === 'approved' || creditStatus === 'approved'
 
+  // An approved account was necessarily submitted, even when the application
+  // record itself is missing (e.g. approved directly by an admin).
+  const submitted = !!application || isApproved
   const submittedDate = application?.submittedAt
     ? formatDate(application.submittedAt)
-    : 'Pending'
+    : submitted ? '' : 'Pending'
 
   const reviewedDate = application?.reviewedAt
     ? formatDate(application.reviewedAt)
@@ -35,7 +38,7 @@ function buildTimeline(application: any, creditStatus?: string, isIncrease?: boo
 
   if (isIncrease) {
     return [
-      { label: 'Increase Request Submitted', date: submittedDate, done: !!application },
+      { label: 'Increase Request Submitted', date: submittedDate, done: submitted },
       { label: 'Partner Review', date: isApproved ? reviewedDate : 'In progress...', done: isApproved },
       { label: 'Wallet Updated', date: isApproved ? reviewedDate : '', done: isApproved },
     ]
@@ -45,7 +48,7 @@ function buildTimeline(application: any, creditStatus?: string, isIncrease?: boo
     {
       label: 'Application Submitted',
       date: submittedDate,
-      done: !!application,
+      done: submitted,
     },
     {
       label: 'Partner Review',
@@ -88,7 +91,8 @@ function TimelineCheck() {
 export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>) {
   const navigation = useNavigation<any>()
   const u = useUserStore(s => s.user) as Patient | undefined
-  const { data: creditData, isLoading } = useCreditStatus()
+  const { data: creditData, isLoading, isError, isFetching, refetch } = useCreditStatus()
+  const currency = getCountryByCode(u?.countryCode ?? 'KE')?.currencySymbol ?? 'Ksh.'
 
   const isIncrease =
     route.params?.requestType === 'increase' ||
@@ -128,6 +132,24 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading application status...</Text>
+        </View>
+      </Screen>
+    )
+  }
+
+  /* fetch failed — never fall through to "you haven't applied", which would
+     invite a duplicate application */
+  if (isError && !creditData) {
+    return (
+      <Screen>
+        <AppBar title={isIncrease ? 'Increase Request Status' : 'Application Status'} back />
+        <View style={s.errorWrap}>
+          <LoadError
+            title="We couldn't load your application status."
+            body="Your application hasn't changed. Check your connection and try again before applying again."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
         </View>
       </Screen>
     )
@@ -179,13 +201,13 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
               <View style={s.bannerDetailItem}>
                 <Text style={s.bannerDetailLabel}>Requested</Text>
                 <Text style={s.bannerDetailValue}>
-                  {formatCurrency(requestedAmount)}
+                  {formatCurrency(requestedAmount, currency)}
                 </Text>
               </View>
               <View style={s.bannerDetailItem}>
                 <Text style={s.bannerDetailLabel}>Approved</Text>
                 <Text style={s.bannerDetailValue}>
-                  {isApproved ? formatCurrency(approvedAmount) : '--'}
+                  {isApproved ? formatCurrency(approvedAmount, currency) : '--'}
                 </Text>
               </View>
               <View style={s.bannerDetailItem}>
@@ -301,6 +323,11 @@ export default CreditStatusScreen
 /* ================================================================== */
 const s = StyleSheet.create({
   /* loading */
+  errorWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 16,
+  },
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
@@ -314,25 +341,6 @@ const s = StyleSheet.create({
   },
 
   /* empty state */
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
-    marginBottom: 8,
-  },
-  emptySub: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
 
   /* banner */
   banner: {
@@ -365,14 +373,6 @@ const s = StyleSheet.create({
     lineHeight: 19,
     marginBottom: 12,
   },
-  bannerPartnerLogo: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 12,
-  },
   bannerDetails: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -382,11 +382,9 @@ const s = StyleSheet.create({
     gap: 2,
   },
   bannerDetailLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   bannerDetailValue: {
     fontSize: 13,

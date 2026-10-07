@@ -7,12 +7,13 @@ import {
   ActivityIndicator,
   Modal,
   Image,
-  Pressable,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { ScrollView } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
+import { InvoiceIcon } from '@/icons'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, ActionBar } from '@/components'
 import { openRemoteOrDataAttachment } from '@/lib/open-attachment'
 import { usePatientInvoice, usePatientInvoiceAttachment, useRejectInvoiceMutation } from '@gg/shared-hooks'
 import { formatCurrency, formatDate, isCreditRunningLow, wouldBeLowAfterPayment } from '@gg/shared-utils'
@@ -25,7 +26,7 @@ import type { PatientInvoice, InvoiceLineItem } from '@gg/shared-types'
 /* ------------------------------------------------------------------ */
 function getStatusPill(status: string): { type: 'warning' | 'info' | 'success' | 'error' | 'default'; label: string } {
   switch (status) {
-    case 'pending_auth': return { type: 'warning', label: 'Awaiting Auth' }
+    case 'pending_auth': return { type: 'warning', label: 'Needs approval' }
     case 'authorized':   return { type: 'info', label: 'Authorized' }
     case 'paid':         return { type: 'success', label: 'Paid' }
     case 'rejected':     return { type: 'error', label: 'Rejected' }
@@ -223,7 +224,7 @@ export function InvoiceReviewScreen() {
           <Pressable onPress={() => void handleAttachmentPress()}>
             <MCard padding={14}>
               <View style={s.attachRow}>
-                <Text style={s.attachIcon}>📎</Text>
+                <InvoiceIcon size={22} color={colors.blueInk} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.attachTitle}>Invoice Attachment</Text>
                   <Text style={s.attachSub}>
@@ -293,40 +294,6 @@ export function InvoiceReviewScreen() {
           </MCard>
         )}
 
-        {/* === Authorize Button === */}
-        {isPending && (
-          <MBtn
-            variant="action"
-            fullWidth
-            disabled={!canAuthorize}
-            onPress={() =>
-              navigation.navigate('PINAuth', {
-                invoiceId: invoiceRef,
-                amount,
-                walletPayAmount,
-                offAppDue,
-                provider: providerName,
-              })
-            }
-          >
-            {isPartialPay
-              ? `Authorize ${formatCurrency(walletPayAmount, currency)} In-App`
-              : 'Authorize Payment'}
-          </MBtn>
-        )}
-
-        {/* === Reject Section === */}
-        {isPending && !showReject && (
-          <MBtn
-            variant="secondary"
-            fullWidth
-            onPress={() => setShowReject(true)}
-            style={s.rejectToggle}
-          >
-            Reject Invoice
-          </MBtn>
-        )}
-
         {isPending && showReject && (
           <MCard padding={16}>
             <Text style={s.rejectTitle}>Reject This Invoice</Text>
@@ -344,43 +311,72 @@ export function InvoiceReviewScreen() {
               numberOfLines={4}
               textAlignVertical="top"
             />
-            <View style={s.rejectBtnRow}>
-              <MBtn
-                variant="secondary"
-                style={{ flex: 1 }}
-                onPress={() => { setShowReject(false); setRejectReason('') }}
-              >
-                Cancel
-              </MBtn>
-              <MBtn
-                variant="primary"
-                style={[{ flex: 2 }, s.rejectBtn]}
-                disabled={!rejectReason.trim() || rejectMutation.isPending}
-                onPress={handleReject}
-              >
-                {rejectMutation.isPending ? 'Rejecting...' : 'Reject Invoice'}
-              </MBtn>
-            </View>
           </MCard>
         )}
 
-        {/* === Non-pending: Back button === */}
-        {!isPending && (
-          <MBtn variant="secondary" fullWidth onPress={() => navigation.goBack()}>
-            Back to Invoices
-          </MBtn>
-        )}
-
         {/* === Rejected reason display === */}
-        {invoiceStatus === 'rejected' && (inv as any).rejectionReason && (
+        {invoiceStatus === 'rejected' && Boolean((inv as any).rejectionReason) && (
           <MCard padding={14}>
             <Text style={s.rejectedLabel}>Rejection Reason</Text>
             <Text style={s.rejectedReason}>{(inv as any).rejectionReason}</Text>
           </MCard>
         )}
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 8 }} />
       </ScrollArea>
+
+      {/* === Pinned actions === */}
+      {isPending && !showReject ? (
+        <ActionBar>
+          <MBtn variant="dangerOutline" style={{ flex: 1 }} onPress={() => setShowReject(true)}>
+            Reject
+          </MBtn>
+          <MBtn
+            variant="primary"
+            style={{ flex: 2 }}
+            disabled={!canAuthorize}
+            onPress={() =>
+              navigation.navigate('PINAuth', {
+                invoiceId: invoiceRef,
+                amount,
+                walletPayAmount,
+                offAppDue,
+                provider: providerName,
+              })
+            }
+          >
+            {isPartialPay
+              ? `Authorize ${formatCurrency(walletPayAmount, currency)}`
+              : 'Authorize payment'}
+          </MBtn>
+        </ActionBar>
+      ) : null}
+      {isPending && showReject ? (
+        <ActionBar>
+          <MBtn
+            variant="secondary"
+            style={{ flex: 1 }}
+            onPress={() => { setShowReject(false); setRejectReason('') }}
+          >
+            Cancel
+          </MBtn>
+          <MBtn
+            variant="danger"
+            style={{ flex: 2 }}
+            disabled={!rejectReason.trim() || rejectMutation.isPending}
+            onPress={handleReject}
+          >
+            {rejectMutation.isPending ? 'Rejecting…' : 'Reject invoice'}
+          </MBtn>
+        </ActionBar>
+      ) : null}
+      {!isPending ? (
+        <ActionBar>
+          <MBtn variant="secondary" style={{ flex: 1 }} onPress={() => navigation.goBack()}>
+            Back to invoices
+          </MBtn>
+        </ActionBar>
+      ) : null}
 
       {/* === Attachment Modal === */}
       {showAttachment && attachmentUrl && (
@@ -429,7 +425,7 @@ const s = StyleSheet.create({
 
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 20 },
   cardHeaderLeft: { flex: 1, gap: 4 },
-  fromLabel: { fontSize: 10, fontFamily: fontWeights.bold, color: colors.textSub, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },
+  fromLabel: { fontSize: 12, fontFamily: fontWeights.bold, color: colors.textSub, marginBottom: 4 },
   providerName: { fontSize: 15, fontFamily: fontWeights.extraBold, color: colors.text, letterSpacing: -0.3 },
   providerAddress: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, marginTop: 2 },
 
@@ -443,7 +439,7 @@ const s = StyleSheet.create({
   detailValue: { fontSize: 13, fontFamily: fontWeights.bold, color: colors.text, maxWidth: '55%', textAlign: 'right' },
 
   lineItemSection: { paddingHorizontal: 20, paddingVertical: 10 },
-  lineItemHeader: { fontSize: 11, fontFamily: fontWeights.bold, color: colors.textSub, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 },
+  lineItemHeader: { fontSize: 12, fontFamily: fontWeights.bold, color: colors.textSub, marginBottom: 8 },
   lineItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
   lineItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   lineItemName: { fontSize: 13, fontFamily: fontWeights.medium, color: colors.text, flex: 1 },
@@ -457,7 +453,7 @@ const s = StyleSheet.create({
   attachIcon: { fontSize: 20 },
   attachTitle: { fontSize: 13, fontFamily: fontWeights.bold, color: colors.text },
   attachSub: { fontSize: 11, fontFamily: fontWeights.regular, color: colors.textSub, marginTop: 1 },
-  attachCta: { fontSize: 13, fontFamily: fontWeights.bold, color: colors.blue },
+  attachCta: { fontSize: 13, fontFamily: fontWeights.bold, color: colors.blueInk },
   attachmentError: { fontSize: 12, fontFamily: fontWeights.medium, color: colors.error, marginTop: -4 },
 
   summaryTitle: { fontSize: 15, fontFamily: fontWeights.extraBold, color: colors.text, marginBottom: 8 },
@@ -465,14 +461,11 @@ const s = StyleSheet.create({
   summaryWarning: { fontSize: 12, fontFamily: fontWeights.medium, color: colors.warning, lineHeight: 18, marginTop: 10, padding: 10, backgroundColor: colors.warningBg, borderRadius: radii.default },
   summaryError: { fontSize: 12, fontFamily: fontWeights.medium, color: colors.error, lineHeight: 18, marginTop: 10, padding: 10, backgroundColor: colors.errorBg, borderRadius: radii.default },
 
-  rejectToggle: { borderColor: colors.error },
   rejectTitle: { fontSize: 15, fontFamily: fontWeights.bold, color: colors.error, marginBottom: 6 },
   rejectDesc: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 18, marginBottom: 12 },
   rejectInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontWeights.regular, fontSize: 14, color: colors.text, backgroundColor: colors.bg, minHeight: 90 },
-  rejectBtnRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  rejectBtn: { backgroundColor: colors.error },
 
-  rejectedLabel: { fontSize: 11, fontFamily: fontWeights.bold, color: colors.error, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
+  rejectedLabel: { fontSize: 12, fontFamily: fontWeights.bold, color: colors.error, marginBottom: 6 },
   rejectedReason: { fontSize: 13, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 19 },
 
   attachModal: { flex: 1, backgroundColor: '#FFFFFF' },

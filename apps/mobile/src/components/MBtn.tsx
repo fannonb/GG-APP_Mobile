@@ -1,5 +1,6 @@
 import React from 'react'
-import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native'
+import { Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { colors, fontWeights, radii } from '@/theme'
 import { hapticLight } from '@/lib/haptics'
 
@@ -9,6 +10,7 @@ type Variant =
   | 'success'
   | 'warning'
   | 'danger'
+  | 'dangerOutline'
   | 'outline'
   | 'ghost'
   | 'secondary'
@@ -31,10 +33,12 @@ const variantStyles: Record<Variant, { container: ViewStyle; text: TextStyle }> 
     container: { backgroundColor: colors.navy },
     text: { color: '#FFFFFF' },
   },
-  // Bright Electric Blue for secondary "Pay Invoice"-style actions.
+  // Accent fill: ONLY on navy surfaces (dark cards, auth screens). On light
+  // screens the primary action is always `primary` (navy). Navy text, because
+  // white on the accent is only 2.3:1 (see the contrast rule in tokens.ts).
   action: {
     container: { backgroundColor: colors.blue },
-    text: { color: '#FFFFFF' },
+    text: { color: colors.navy900 },
   },
   success: {
     container: { backgroundColor: colors.success },
@@ -47,6 +51,11 @@ const variantStyles: Record<Variant, { container: ViewStyle; text: TextStyle }> 
   danger: {
     container: { backgroundColor: colors.error },
     text: { color: '#FFFFFF' },
+  },
+  // Destructive but not final, e.g. "Reject Invoice" that opens a confirmation.
+  dangerOutline: {
+    container: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.error },
+    text: { color: colors.error },
   },
   outline: {
     container: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.navy },
@@ -94,6 +103,8 @@ export default function MBtn({
     <Pressable
       onPress={handlePress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.base,
         scheme.container,

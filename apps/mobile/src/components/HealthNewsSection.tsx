@@ -2,13 +2,13 @@ import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   ScrollView,
   Modal,
   Linking,
   StyleSheet,
   useWindowDimensions,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { usePatientNews } from '@gg/shared-hooks'
 import { formatDate } from '@gg/shared-utils'
@@ -268,9 +268,7 @@ const styles = StyleSheet.create({
   liveFeed: {
     fontFamily: fontWeights.bold,
     fontSize: 12,
-    color: colors.blue,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
+    color: colors.blueInk,
   },
   carousel: {
     gap: 16,
@@ -312,9 +310,7 @@ const styles = StyleSheet.create({
   },
   sourceLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 9,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
+    fontSize: 12,
     marginBottom: 2,
   },
   sourceName: {
@@ -402,7 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalSourceIconGlyph: {
-    color: colors.blue,
+    color: colors.blueInk,
     fontSize: 14,
   },
   modalSourceLabel: {

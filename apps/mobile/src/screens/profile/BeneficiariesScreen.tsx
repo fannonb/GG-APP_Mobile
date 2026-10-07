@@ -2,11 +2,11 @@ import React, { useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
   Switch,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -346,7 +346,7 @@ export function BeneficiariesScreen() {
                   style={[
                     s.dropdownOptionText,
                     benForm.relation === opt.value && {
-                      color: colors.blue,
+                      color: colors.blueInk,
                       fontFamily: fontWeights.bold,
                     },
                   ]}
@@ -398,7 +398,7 @@ export function BeneficiariesScreen() {
                   style={[
                     s.dropdownOptionText,
                     benForm.countryCode === opt.value && {
-                      color: colors.blue,
+                      color: colors.blueInk,
                       fontFamily: fontWeights.bold,
                     },
                   ]}
@@ -742,7 +742,7 @@ const s = StyleSheet.create({
   benActionEdit: {
     fontSize: 12,
     fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   benActionDelete: {
     fontSize: 12,

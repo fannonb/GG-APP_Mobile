@@ -2,15 +2,16 @@ import React from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
-  ActivityIndicator,
-} from 'react-native'
+  } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import { colors, fontWeights, radii, shadows } from '@/theme'
+import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import {
   Screen,
   ScrollArea,
@@ -24,7 +25,8 @@ import {
   MProgress,
   NotifBanner,
 } from '@/components'
-import CheckIcon from '@/icons/CheckIcon'
+import InvoiceIcon from '@/icons/InvoiceIcon'
+import WalletIcon from '@/icons/WalletIcon'
 import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import { useCreditStatus, usePatientTransactions, usePatientInvoices } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
@@ -99,9 +101,10 @@ export function CreditWalletScreen() {
   const insets = useSafeAreaInsets()
   const u = useUserStore(s => s.user) as Patient | undefined
   const beneficiaries = useUserStore(s => (s as any).beneficiaries) ?? []
-  const { data: creditData, isLoading: creditLoading } = useCreditStatus()
-  const { data: transactions = [], isLoading: txLoading } = usePatientTransactions()
-  const { data: invoices = [] } = usePatientInvoices()
+  const { data: creditData, isLoading: creditLoading, refetch: refetchCredit } = useCreditStatus()
+  const { data: transactions = [], isLoading: txLoading, refetch: refetchTx } = usePatientTransactions()
+  const { data: invoices = [], refetch: refetchInvoices } = usePatientInvoices()
+  const pull = usePullToRefresh(refetchCredit, refetchTx, refetchInvoices)
 
   /* Show empty wallet if no credit applied */
   if (u?.creditStatus === 'not_applied') {
@@ -153,10 +156,11 @@ export function CreditWalletScreen() {
     return (
       <Screen headerPattern="dark-curve">
         <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} />
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={s.loadingText}>Loading wallet...</Text>
-        </View>
+        <SkeletonGroup style={s.skeleton}>
+          <SkeletonBalanceCard />
+          <SkeletonBlock width="45%" height={18} />
+          <SkeletonList rows={3} />
+        </SkeletonGroup>
       </Screen>
     )
   }
@@ -165,12 +169,12 @@ export function CreditWalletScreen() {
     <Screen headerPattern="dark-curve">
       <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} />
 
-      <ScrollArea gap={24} px={16} py={14}>
+      <ScrollArea gap={24} px={16} py={14} {...pull}>
         {firstPending && (
           <NotifBanner
-            icon={<CheckIcon size={18} color="#FFFFFF" />}
+            icon={<InvoiceIcon size={18} color="#FFFFFF" />}
             tone="warning"
-            title={`${pendingInvoices.length} invoice${pendingInvoices.length === 1 ? '' : 's'} waiting for Triple-PIN`}
+            title={pendingInvoices.length === 1 ? 'An invoice needs your approval' : `${pendingInvoices.length} invoices need your approval`}
             body={`${firstPending.provider.name} · authorize to pay from your healthcare credit.`}
             cta="Authorize now"
             onCta={() =>
@@ -184,7 +188,7 @@ export function CreditWalletScreen() {
         )}
         {showLowBalance && (
           <NotifBanner
-            icon={<CheckIcon size={18} color="#FFFFFF" />}
+            icon={<WalletIcon size={18} color="#FFFFFF" />}
             tone="navy"
             title="Your healthcare balance is running low"
             body={`Request a limit increase so you can keep paying providers without interruption.`}
@@ -206,7 +210,7 @@ export function CreditWalletScreen() {
             <View style={s.pillsRow}>
               <View style={s.activePill}>
                 <View style={s.greenDot} />
-                <Text style={s.activePillText}>ACTIVE BALANCE</Text>
+                <Text style={s.activePillText}>Active balance</Text>
               </View>
 
               {country && (
@@ -225,7 +229,7 @@ export function CreditWalletScreen() {
             </View>
 
             {/* Available balance */}
-            <Text style={s.balanceLabel}>AVAILABLE BALANCE</Text>
+            <Text style={s.balanceLabel}>Available balance</Text>
             <Text style={s.balanceAmount}>{formatCurrency(creditAvailable, currency)}</Text>
 
             {/* Limit / Progress inner card */}
@@ -326,8 +330,8 @@ export function CreditWalletScreen() {
           </Svg>
           <Text style={s.infoText}>
             {partner
-              ? `Funds can only be used with GG'APP-approved providers. Authorization uses Triple-PIN. Repayments are handled directly with ${partner.name}.`
-              : "Funds can only be used with GG'APP-approved providers through the invoice flow. Authorization uses Triple-PIN. Repayments are handled directly with your accredited finance partner."}
+              ? `Funds can only be used with GG'APP-approved providers. You approve each payment with your PIN. Repayments are handled directly with ${partner.name}.`
+              : "Funds can only be used with GG'APP-approved providers through the invoice flow. You approve each payment with your PIN. Repayments are handled directly with your accredited finance partner."}
           </Text>
         </View>
 
@@ -388,7 +392,7 @@ export function CreditWalletScreen() {
                 Registered beneficiaries on this balance
               </Text>
             </View>
-            <Pressable onPress={() => navigation.navigate('ProfileTab', { screen: 'Beneficiaries' })}>
+            <Pressable onPress={() => navigation.navigate('ProfileTab', { initial: false, screen: 'Beneficiaries' })}>
               <Text style={s.viewAll}>Manage →</Text>
             </Pressable>
           </View>
@@ -429,6 +433,10 @@ export default CreditWalletScreen
 /*  Styles                                                             */
 /* ================================================================== */
 const s = StyleSheet.create({
+  skeleton: {
+    padding: 16,
+    gap: 14,
+  },
   /* loading */
   loadingWrap: {
     flex: 1,
@@ -488,10 +496,9 @@ const s = StyleSheet.create({
     backgroundColor: colors.success,
   },
   activePillText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
-    letterSpacing: 0.4,
   },
   infoPill: {
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -507,11 +514,9 @@ const s = StyleSheet.create({
 
   /* balance */
   balanceLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.55)',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   balanceAmount: {
@@ -537,11 +542,9 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   limitLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.55)',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   limitValue: {
@@ -582,11 +585,9 @@ const s = StyleSheet.create({
     marginHorizontal: 14,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.55)',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   statValue: {
@@ -641,11 +642,9 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   partnerLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
     marginBottom: 2,
   },
   partnerName: {
@@ -705,7 +704,7 @@ const s = StyleSheet.create({
   viewAll: {
     fontSize: 12,
     fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
 
   /* empty */

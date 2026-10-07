@@ -1,9 +1,11 @@
-import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import React, { useContext } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights } from '@/theme'
+import { StatusStripContext } from './Screen'
 
 interface AppBarProps {
   title: string
@@ -38,6 +40,7 @@ export default function AppBar({
 }: AppBarProps) {
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
+  const screenPaintsStatusStrip = useContext(StatusStripContext)
 
   const bgColor = dark ? colors.navy : colors.card
   const titleColor = dark ? '#FFFFFF' : colors.text
@@ -56,7 +59,7 @@ export default function AppBar({
   const handleBack = typeof back === 'function' ? back : () => navigation.goBack()
 
   const isHero = variant === 'hero'
-  const paddingTop = insets.top + (isHero ? 14 : 10)
+  const paddingTop = (screenPaintsStatusStrip ? 0 : insets.top) + (isHero ? 14 : 10)
   const paddingBottom = isHero ? 20 : 14
 
   return (
@@ -72,7 +75,7 @@ export default function AppBar({
             {title}
           </Text>
           {subtitle ? (
-            <Text style={[styles.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
+            <Text style={[styles.subtitle, { color: subtitleColor }]} numberOfLines={1}>{subtitle}</Text>
           ) : null}
         </View>
       </View>

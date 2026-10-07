@@ -64,7 +64,7 @@ export function LedgerAccessScreen() {
     <Screen>
       <AppBar
         title="Ledger Access Log"
-        subtitle="Every provider who has unlocked or viewed your health ledger"
+        subtitle="Who has opened your health ledger"
         back
       />
       <ScrollArea gap={16} px={16} py={14}>

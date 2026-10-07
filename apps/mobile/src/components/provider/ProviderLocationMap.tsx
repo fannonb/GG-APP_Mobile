@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { WebView } from 'react-native-webview'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
@@ -167,7 +168,7 @@ const s = StyleSheet.create({
   coordsText: {
     fontSize: 10,
     fontFamily: fontWeights.medium,
-    color: colors.blue,
+    color: colors.blueInk,
     marginTop: 2,
   },
   directionsBtn: {
@@ -175,7 +176,7 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 9999,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.navy,
   },
   directionsBtnText: {
     fontSize: 12,

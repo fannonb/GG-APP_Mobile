@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, Linking, Image } from 'react-native'
+import { View, Text, StyleSheet, Linking, Image } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { getActiveAdBanner } from '@/lib/ads'
@@ -149,11 +150,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
   },
   sponsoredText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.72)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
   fallbackTitle: {
     fontSize: 18,

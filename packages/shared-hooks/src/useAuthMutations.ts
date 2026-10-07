@@ -1,9 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authService } from '@gg/shared-api'
 import { useAuthStore } from '@gg/shared-stores'
 import { useNotificationsStore } from '@gg/shared-stores'
 import { useUserStore } from '@gg/shared-stores'
 import type { LoginPayload, RegisterPatientPayload, RegisterSPPayload } from '@gg/shared-types'
+import { queryKeys } from './query-keys'
 
 export function useLoginMutation() {
   const setSession = useAuthStore(s => s.setSession)
@@ -60,5 +61,30 @@ export function useLogoutMutation() {
       useNotificationsStore.setState({ patientNotifs: [], panelOpen: false })
       queryClient.clear()
     },
+  })
+}
+
+/** The patient's latest sign-in email change request (null if none). */
+export function useEmailChangeRequest() {
+  return useQuery({
+    queryKey: queryKeys.auth.emailChange,
+    queryFn: () => authService.getEmailChange(),
+  })
+}
+
+export function useRequestEmailChangeMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { newEmail: string; password?: string; reason?: string }) =>
+      authService.requestEmailChange(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.emailChange }),
+  })
+}
+
+export function useCancelEmailChangeMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => authService.cancelEmailChange(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.emailChange }),
   })
 }

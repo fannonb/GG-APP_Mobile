@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -15,6 +17,7 @@ import {
   AppBar,
   MCard,
   FilterChips,
+  LoadError,
 } from '@/components'
 import BellIcon from '@/icons/BellIcon'
 import CheckIcon from '@/icons/CheckIcon'
@@ -121,8 +124,8 @@ const NOTIF_CONFIG: Record<
     bg: colors.warningBg,
   },
   appointment: {
-    icon: <AppointmentIcon size={18} color={colors.blue} />,
-    bg: colors.blue3,
+    icon: <AppointmentIcon size={18} color={colors.blueInk} />,
+    bg: colors.blue100,
   },
   credit: {
     icon: <CreditIcon size={18} color={colors.success} />,
@@ -134,11 +137,11 @@ const NOTIF_CONFIG: Record<
   },
   ledger: {
     icon: <SystemIcon size={18} color={colors.navy} />,
-    bg: colors.blue3,
+    bg: colors.blue100,
   },
   system: {
     icon: <SystemIcon size={18} color={colors.textSub} />,
-    bg: colors.bg,
+    bg: colors.surfaceMuted,
   },
 }
 
@@ -149,24 +152,44 @@ function getNotifConfig(type?: string) {
 /* ------------------------------------------------------------------ */
 /*  Filter chips                                                       */
 /* ------------------------------------------------------------------ */
-const FILTER_CHIPS = [
-  { label: 'All' },
-  { label: 'Unread' },
-  { label: 'Appointments' },
-  { label: 'Payments' },
-  { label: 'Invoices' },
-  { label: 'Credit' },
-  { label: 'Prescriptions' },
+const FILTERS: { label: string; match: (n: Notification) => boolean }[] = [
+  { label: 'All', match: () => true },
+  { label: 'Unread', match: n => !n.read },
+  { label: 'Appointments', match: n => n.type === 'appointment' },
+  // Payments, invoices and credit are all "money" to a patient.
+  { label: 'Payments', match: n => n.type === 'payment' || n.type === 'invoice' || n.type === 'credit' },
+  { label: 'Prescriptions', match: n => n.type === 'prescription' },
 ]
 
-const FILTER_MAP: Record<number, string | null> = {
-  0: null,
-  1: '__unread',
-  2: 'appointment',
-  3: 'payment',
-  4: 'invoice',
-  5: 'credit',
-  6: 'prescription',
+/* ------------------------------------------------------------------ */
+/*  Day grouping                                                       */
+/* ------------------------------------------------------------------ */
+function notifTimestamp(n: Notification): number {
+  const t = new Date(n.time ?? n.date ?? n.createdAt ?? '').getTime()
+  return Number.isNaN(t) ? 0 : t
+}
+
+function dayGroupLabel(ts: number, now = new Date()): string {
+  if (!ts) return 'Earlier'
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const day = 24 * 60 * 60 * 1000
+  if (ts >= startOfToday) return 'Today'
+  if (ts >= startOfToday - day) return 'Yesterday'
+  if (ts >= startOfToday - 6 * day) return 'This week'
+  return 'Earlier'
+}
+
+/** Newest first, in Today / Yesterday / This week / Earlier sections. */
+function groupByDay(list: Notification[]): { label: string; items: Notification[] }[] {
+  const sorted = [...list].sort((a, b) => notifTimestamp(b) - notifTimestamp(a))
+  const groups: { label: string; items: Notification[] }[] = []
+  for (const n of sorted) {
+    const label = dayGroupLabel(notifTimestamp(n))
+    const last = groups[groups.length - 1]
+    if (last && last.label === label) last.items.push(n)
+    else groups.push({ label, items: [n] })
+  }
+  return groups
 }
 
 /* ------------------------------------------------------------------ */
@@ -176,6 +199,7 @@ function timeAgo(dateStr?: string): string {
   if (!dateStr) return ''
   const now = Date.now()
   const then = new Date(dateStr).getTime()
+  if (Number.isNaN(then)) return ''
   const diff = now - then
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return 'Just now'
@@ -192,7 +216,9 @@ function timeAgo(dateStr?: string): string {
 /* ------------------------------------------------------------------ */
 export function NotificationsScreen() {
   const navigation = useNavigation<any>()
-  const { data: fetchedNotifs, isLoading } = usePatientNotifications()
+  const { data: fetchedNotifs, isLoading, isError, isFetching, refetch } = usePatientNotifications()
+  const loadFailed = isError && !fetchedNotifs
+  const pull = usePullToRefresh(refetch)
   const patientNotifs = useNotificationsStore(s => s.patientNotifs)
   const markNotificationRead = useMarkPatientNotificationReadMutation()
 
@@ -202,31 +228,30 @@ export function NotificationsScreen() {
   const [activeChip, setActiveChip] = useState(0)
 
   /* filtered notifications */
-  const filtered = useMemo(() => {
-    const filterKey = FILTER_MAP[activeChip]
-    if (!filterKey) return notifications
-    if (filterKey === '__unread') return notifications.filter(n => !n.read)
-    return notifications.filter(n => n.type === filterKey)
-  }, [activeChip, notifications])
+  const filtered = useMemo(
+    () => notifications.filter(FILTERS[activeChip]?.match ?? (() => true)),
+    [activeChip, notifications],
+  )
+  const groups = useMemo(() => groupByDay(filtered), [filtered])
 
   /* chips with counts */
   const chipsWithCounts = useMemo(
     () =>
-      FILTER_CHIPS.map((chip, i) => {
-        const fk = FILTER_MAP[i]
-        let count: number | undefined
-        if (fk === null) count = notifications.length
-        else if (fk === '__unread') count = unreadCount
-        else count = notifications.filter(n => n.type === fk).length
-        return { ...chip, count: count > 0 ? count : undefined }
+      FILTERS.map(f => {
+        const count = notifications.filter(f.match).length
+        return { label: f.label, count: count > 0 ? count : undefined }
       }),
-    [notifications, unreadCount],
+    [notifications],
   )
 
   /* mark all read handler */
   const handleMarkAllRead = async () => {
     const unreadIds = notifications.filter(n => !n.read).map(n => n.id)
-    await Promise.all(unreadIds.map(id => markNotificationRead.mutateAsync(id)))
+    try {
+      await Promise.all(unreadIds.map(id => markNotificationRead.mutateAsync(id)))
+    } catch {
+      Alert.alert('Not all marked as read', 'Check your connection and try again.')
+    }
   }
 
   /* loading */
@@ -252,14 +277,20 @@ export function NotificationsScreen() {
         subtitle={`${unreadCount} unread`}
         right={
           unreadCount > 0 ? (
-            <Pressable style={s.markAllBtn} onPress={handleMarkAllRead}>
+            <Pressable
+              style={s.markAllBtn}
+              onPress={handleMarkAllRead}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Mark all ${unreadCount} as read`}
+            >
               <Text style={s.markAllText}>Mark all read</Text>
             </Pressable>
           ) : undefined
         }
       />
 
-      <ScrollArea gap={12} px={16} py={14}>
+      <ScrollArea gap={12} px={16} py={14} {...pull}>
         {/* ============================================================ */}
         {/*  1. Filter Chips                                             */}
         {/* ============================================================ */}
@@ -272,7 +303,24 @@ export function NotificationsScreen() {
         {/* ============================================================ */}
         {/*  2. Notification Cards                                       */}
         {/* ============================================================ */}
-        {filtered.length === 0 && (
+        {loadFailed && (
+          <LoadError
+            title={
+              notifications.length > 0
+                ? "We couldn't refresh your notifications."
+                : "We couldn't load your notifications."
+            }
+            body={
+              notifications.length > 0
+                ? 'Showing the ones saved on this phone. Check your connection and try again.'
+                : undefined
+            }
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        )}
+
+        {filtered.length === 0 && !loadFailed && (
           <MCard padding={32}>
             <View style={s.emptyWrap}>
               <BellIcon size={28} color={colors.textLight} />
@@ -286,60 +334,60 @@ export function NotificationsScreen() {
           </MCard>
         )}
 
-        {filtered.map(notif => {
-          const config = getNotifConfig(notif.type)
-          const isUnread = !notif.read
+        {groups.map(group => (
+          <View key={group.label}>
+            <Text style={s.groupLabel} accessibilityRole="header">
+              {group.label}
+            </Text>
+            <View style={s.groupCard}>
+              {group.items.map((notif, i) => {
+                const config = getNotifConfig(notif.type)
+                const isUnread = !notif.read
+                const isLast = i === group.items.length - 1
 
-          const handleNotifPress = () => {
-            if (!notif.read) {
-              markNotificationRead.mutate(notif.id)
-            }
+                const handleNotifPress = () => {
+                  if (!notif.read) {
+                    markNotificationRead.mutate(notif.id)
+                  }
+                  openPatientNotification(navigation, notif)
+                }
 
-            openPatientNotification(navigation, notif)
-          }
-
-          return (
-            <Pressable
-              key={notif.id}
-              onPress={handleNotifPress}
-              style={[
-                s.notifCard,
-                isUnread ? s.notifCardUnread : s.notifCardRead,
-              ]}
-            >
-              {/* unread blue dot */}
-              {isUnread && <View style={s.unreadDot} />}
-
-              {/* type icon */}
-              <View style={[s.notifIconCircle, { backgroundColor: config.bg }]}>
-                {config.icon}
-              </View>
-
-              {/* content */}
-              <View style={s.notifContent}>
-                <View style={s.notifTopRow}>
-                  <Text
-                    style={[
-                      s.notifTitle,
-                      isUnread && s.notifTitleUnread,
-                    ]}
-                    numberOfLines={1}
+                return (
+                  <Pressable
+                    key={notif.id}
+                    onPress={handleNotifPress}
+                    style={({ pressed }) => [s.row, !isLast && s.rowDivider, pressed && s.rowPressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isUnread ? 'Unread. ' : ''}${notif.title ?? 'Notification'}. ${notif.body ?? notif.message ?? ''}`}
                   >
-                    {notif.title ?? 'Notification'}
-                  </Text>
-                  <Text style={s.notifTime}>
-                    {timeAgo(notif.date ?? notif.createdAt)}
-                  </Text>
-                </View>
-                {(notif.body || notif.message) ? (
-                  <Text style={s.notifBody} numberOfLines={2}>
-                    {notif.body ?? notif.message}
-                  </Text>
-                ) : null}
-              </View>
-            </Pressable>
-          )
-        })}
+                    {/* Unread = dot + bold title. No full-card tint, which hid the icon circles. */}
+                    <View style={[s.unreadDot, !isUnread && s.unreadDotHidden]} />
+
+                    <View style={[s.notifIconCircle, { backgroundColor: config.bg }]}>
+                      {config.icon}
+                    </View>
+
+                    <View style={s.notifContent}>
+                      <View style={s.notifTopRow}>
+                        <Text style={[s.notifTitle, isUnread && s.notifTitleUnread]} numberOfLines={2}>
+                          {notif.title ?? 'Notification'}
+                        </Text>
+                        <Text style={s.notifTime}>
+                          {timeAgo(notif.time ?? notif.date ?? notif.createdAt)}
+                        </Text>
+                      </View>
+                      {(notif.body || notif.message) ? (
+                        <Text style={s.notifBody} numberOfLines={3}>
+                          {notif.body ?? notif.message}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                )
+              })}
+            </View>
+          </View>
+        ))}
 
         {/* bottom spacer */}
         <View style={{ height: 24 }} />
@@ -370,12 +418,12 @@ const s = StyleSheet.create({
   /* mark-all-read button */
   markAllBtn: {
     backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 9999,
   },
   markAllText: {
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: fontWeights.bold,
     color: '#FFFFFF',
   },
@@ -397,34 +445,47 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* notification card */
-  notifCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 14,
+  /* grouped list */
+  groupLabel: {
+    fontSize: 13,
+    fontFamily: fontWeights.semiBold,
+    color: colors.textSub,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  groupCard: {
+    backgroundColor: colors.card,
     borderRadius: radii.large,
     borderWidth: 1,
     borderColor: colors.border,
-    position: 'relative',
     overflow: 'hidden',
   },
-  notifCardUnread: {
-    backgroundColor: colors.blue3,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 14,
+    paddingRight: 14,
+    paddingLeft: 8,
   },
-  notifCardRead: {
-    backgroundColor: colors.card,
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  rowPressed: {
+    backgroundColor: colors.surfaceMuted,
   },
 
-  /* unread dot */
+  /* unread dot: occupies a fixed gutter so read and unread rows align */
   unreadDot: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.blue,
+    marginTop: 15,
+    backgroundColor: colors.blueInk,
+  },
+  unreadDotHidden: {
+    backgroundColor: 'transparent',
   },
 
   /* icon circle */
@@ -444,13 +505,14 @@ const s = StyleSheet.create({
   },
   notifTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 8,
   },
   notifTitle: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 20,
     fontFamily: fontWeights.regular,
     color: colors.text,
   },
@@ -458,7 +520,7 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.bold,
   },
   notifTime: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: fontWeights.regular,
     color: colors.textLight,
     flexShrink: 0,

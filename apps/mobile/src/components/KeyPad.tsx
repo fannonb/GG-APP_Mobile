@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Pressable, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { colors, fontWeights } from '@/theme'
 import Svg, { Path } from 'react-native-svg'
 import { hapticLight } from '@/lib/haptics'
@@ -8,6 +9,8 @@ interface KeyPadProps {
   onKeyPress: (key: string) => void
   onDelete: () => void
   onConfirm?: () => void
+  /** False until the PIN is complete; the confirm key greys out. Defaults to true. */
+  confirmEnabled?: boolean
 }
 
 const ROWS = [
@@ -51,7 +54,8 @@ function CheckmarkIcon() {
   )
 }
 
-export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps) {
+export default function KeyPad({ onKeyPress, onDelete, onConfirm, confirmEnabled = true }: KeyPadProps) {
+  const canConfirm = Boolean(onConfirm) && confirmEnabled
   const handleDigit = (key: string) => {
     hapticLight()
     onKeyPress(key)
@@ -63,7 +67,7 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
   }
 
   const handleConfirm = () => {
-    if (!onConfirm) return
+    if (!onConfirm || !confirmEnabled) return
     hapticLight()
     onConfirm()
   }
@@ -78,6 +82,8 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
                 <Pressable
                   key={key}
                   onPress={handleDelete}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete last digit"
                   style={({ pressed }) => [
                     styles.key,
                     styles.keySpecial,
@@ -93,12 +99,16 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
                 <Pressable
                   key={key}
                   onPress={handleConfirm}
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirm PIN"
+                  accessibilityState={{ disabled: !canConfirm }}
                   style={({ pressed }) => [
                     styles.key,
                     styles.keyConfirm,
-                    pressed && !(!onConfirm) && styles.keyConfirmPressed,
+                    !canConfirm && styles.keyConfirmDisabled,
+                    pressed && canConfirm && styles.keyConfirmPressed,
                   ]}
-                  disabled={!onConfirm}
+                  disabled={!canConfirm}
                 >
                   <CheckmarkIcon />
                 </Pressable>
@@ -108,6 +118,8 @@ export default function KeyPad({ onKeyPress, onDelete, onConfirm }: KeyPadProps)
               <Pressable
                 key={key}
                 onPress={() => handleDigit(key)}
+                accessibilityRole="keyboardkey"
+                accessibilityLabel={key}
                 style={({ pressed }) => [
                   styles.key,
                   styles.keyNumber,
@@ -158,6 +170,9 @@ const styles = StyleSheet.create({
   },
   keyConfirm: {
     backgroundColor: colors.success,
+  },
+  keyConfirmDisabled: {
+    backgroundColor: colors.borderStrong,
   },
   keyConfirmPressed: {
     opacity: 0.88,

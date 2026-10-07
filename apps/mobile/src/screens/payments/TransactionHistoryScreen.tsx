@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import { colors, fontWeights, radii } from '@/theme'
+import { useCurrency } from '@/lib/useCurrency'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import { Screen, ScrollArea, AppBar, MCard, GGPill, FilterChips } from '@/components'
 import { usePatientTransactions } from '@gg/shared-hooks'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
@@ -33,10 +35,8 @@ const summaryStyles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.bold,
-    fontSize: 10,
+    fontSize: 12,
     color: colors.textSub,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
     marginBottom: 6,
   },
   amount: {
@@ -49,6 +49,7 @@ const summaryStyles = StyleSheet.create({
 /* ---------- Transaction Row ---------- */
 
 function TransactionRow({ txn }: { txn: Transaction }) {
+  const currency = useCurrency()
   const statusMap: Record<string, { label: string; type: 'success' | 'info' | 'pending' | 'error' }> = {
     completed:  { label: 'Paid', type: 'success' },
     authorized: { label: 'Authorized', type: 'info' },
@@ -60,19 +61,19 @@ function TransactionRow({ txn }: { txn: Transaction }) {
   return (
     <View style={rowStyles.container}>
       <View style={rowStyles.left}>
-        <Text style={rowStyles.refText} numberOfLines={1}>
-          {txn.id ?? '---'}
-        </Text>
         <Text style={rowStyles.providerText} numberOfLines={1}>
           {txn.provider ?? 'Unknown Provider'}
         </Text>
         <Text style={rowStyles.serviceText} numberOfLines={1}>
           {txn.service ?? 'Service'} {'·'} {formatDate(txn.date)}
         </Text>
+        <Text style={rowStyles.refText} numberOfLines={1}>
+          {txn.id ?? '---'}
+        </Text>
       </View>
       <View style={rowStyles.right}>
         <Text style={rowStyles.amountText}>
-          -{formatCurrency(txn.amount ?? 0)}
+          -{formatCurrency(txn.amount ?? 0, currency)}
         </Text>
         <GGPill type={meta.type}>{meta.label}</GGPill>
       </View>
@@ -95,10 +96,10 @@ const rowStyles = StyleSheet.create({
     marginRight: 12,
   },
   refText: {
-    fontFamily: fontWeights.semiBold,
-    fontSize: 13,
-    color: colors.blue,
-    marginBottom: 2,
+    fontFamily: fontWeights.regular,
+    fontSize: 12,
+    color: colors.textLight,
+    marginTop: 2,
   },
   providerText: {
     fontFamily: fontWeights.medium,
@@ -124,33 +125,7 @@ const rowStyles = StyleSheet.create({
 
 /* ---------- Table Header ---------- */
 
-function TableHeader() {
-  return (
-    <View style={tableStyles.header}>
-      <Text style={[tableStyles.headerCell, { flex: 1 }]}>REFERENCE</Text>
-      <Text style={[tableStyles.headerCell, { flex: 1 }]}>PROVIDER</Text>
-      <Text style={[tableStyles.headerCell, { textAlign: 'right' }]}>AMOUNT</Text>
-    </View>
-  )
-}
 
-const tableStyles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerCell: {
-    fontFamily: fontWeights.bold,
-    fontSize: 10,
-    color: colors.textSub,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-})
 
 /* ---------- Filter Options ---------- */
 
@@ -163,7 +138,9 @@ const FILTER_ITEMS = [
 /* ---------- Main Screen ---------- */
 
 export function TransactionHistoryScreen() {
-  const { data: transactions = [], isLoading } = usePatientTransactions()
+  const currency = useCurrency()
+  const { data: transactions = [], isLoading, refetch } = usePatientTransactions()
+  const pull = usePullToRefresh(refetch)
   const [filterIndex, setFilterIndex] = useState(0)
 
   const now = new Date()
@@ -200,20 +177,20 @@ export function TransactionHistoryScreen() {
     <Screen bg={colors.bg}>
       <AppBar
         title="Transaction History"
-        subtitle="All balance-funded healthcare payments"
+        subtitle="Payments made with your credit"
       />
-      <ScrollArea gap={16} px={16}>
+      <ScrollArea gap={16} px={16} {...pull}>
         {/* Summary */}
         <View style={s.summaryRow}>
           <SummaryCard
             label="Total Spent"
-            amount={formatCurrency(totalSpent)}
+            amount={formatCurrency(totalSpent, currency)}
             accentColor={colors.text}
           />
           <SummaryCard
             label="This Month"
-            amount={formatCurrency(thisMonthTotal)}
-            accentColor={colors.blue}
+            amount={formatCurrency(thisMonthTotal, currency)}
+            accentColor={colors.blueInk}
           />
         </View>
 
@@ -226,8 +203,6 @@ export function TransactionHistoryScreen() {
 
         {/* Transaction Table */}
         <MCard padding={0} style={s.tableCard}>
-          <TableHeader />
-
           {isLoading ? (
             <View style={s.loadingContainer}>
               <ActivityIndicator size="small" color={colors.blue} />

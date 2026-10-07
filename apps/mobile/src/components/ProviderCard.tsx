@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { colors, fontWeights } from '@/theme'
 import Stars from './Stars'
 import GGPill from './GGPill'
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   info: {
     flex: 1,

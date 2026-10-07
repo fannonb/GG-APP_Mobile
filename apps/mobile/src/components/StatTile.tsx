@@ -27,7 +27,7 @@ export default function StatTile({
   return (
     <View style={[styles.tile, { backgroundColor: bgColor }, style]}>
       <View style={styles.headerRow}>
-        <Text style={[styles.label, { color: labelColor }]}>{label.toUpperCase()}</Text>
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
         {icon ? <View style={styles.iconContainer}>{icon}</View> : null}
       </View>
       <View style={styles.valueRow}>
@@ -59,8 +59,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontSize: 12,
   },
   iconContainer: {
     marginLeft: 6,

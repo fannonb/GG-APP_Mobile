@@ -3,12 +3,12 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   Modal,
   FlatList,
   Image,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fontWeights, radii } from '@/theme'
 import {
@@ -83,7 +83,7 @@ export default function PhonePrefixInput({
   }, [search])
 
   const borderColor = error
-    ? colors.error
+    ? isDark ? colors.errorOnDark : colors.error
     : focused
       ? isDark
         ? colors.blue
@@ -129,7 +129,7 @@ export default function PhonePrefixInput({
         />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={[styles.error, isDark && { color: colors.errorOnDark }]}>{error}</Text> : null}
       {hint && !error ? (
         <Text style={[styles.hint, isDark && styles.hintDark]}>{hint}</Text>
       ) : null}
@@ -251,10 +251,8 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 11,
-    letterSpacing: 0.8,
+    fontSize: 12,
     color: colors.textLight,
-    textTransform: 'uppercase',
     marginTop: 10,
     marginBottom: 6,
   },

@@ -21,6 +21,51 @@ function nextOpenLabel(
   return null
 }
 
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+/**
+ * The booking slots a provider can actually take on `date`: inside that day's
+ * opening hours, and (for today) at least `leadMinutes` from now. Providers
+ * without structured hours get every candidate slot, as before.
+ */
+export function getBookableSlots(
+  provider: Pick<Provider, 'hours' | 'openingHours'> | undefined,
+  date: Date,
+  candidates: readonly string[],
+  now: Date = new Date(),
+  leadMinutes = 60,
+): { slots: string[]; closed: boolean } {
+  let slots = [...candidates]
+  const is247 = provider?.hours?.trim().toLowerCase() === '24/7'
+  const hours = provider?.openingHours
+
+  if (hours && !is247) {
+    const day = hours[DAY_KEYS[date.getDay()]]
+    if (!day?.open) return { slots: [], closed: true }
+    const from = toMinutes(day.from || '00:00')
+    // "00:00" or "23:59" as a closing time means open until midnight.
+    const to = !day.to || day.to === '00:00' || day.to === '23:59' ? 24 * 60 : toMinutes(day.to)
+    slots = slots.filter(slot => {
+      const m = toMinutes(slot)
+      return m >= from && m < to
+    })
+  }
+
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  if (sameDay) {
+    const earliest = now.getHours() * 60 + now.getMinutes() + leadMinutes
+    slots = slots.filter(slot => toMinutes(slot) >= earliest)
+  }
+
+  return { slots, closed: false }
+}
+
 /** Short browse label: “Open until 6:00 PM”, “Closed today”, or “Open 24 hours”. */
 export function getProviderHoursSummary(provider: Pick<Provider, 'status' | 'hours' | 'openingHours'>): string {
   const hoursStr = provider.hours?.trim()

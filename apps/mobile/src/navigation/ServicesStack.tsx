@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { TASK_SCREEN, RESULT_SCREEN } from './transitions'
 import type { ServicesStackParamList } from '@/navigation/types'
 import { FindServiceScreen } from '@/screens/services/FindServiceScreen'
 import { ProviderListScreen } from '@/screens/services/ProviderListScreen'
@@ -20,10 +21,10 @@ export function ServicesStack() {
       <Stack.Screen name="FindService" component={FindServiceScreen} />
       <Stack.Screen name="ProviderList" component={ProviderListScreen} />
       <Stack.Screen name="ProviderProfile" component={ProviderProfileScreen} />
-      <Stack.Screen name="BookingForm" component={BookingFormScreen} />
-      <Stack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
-      <Stack.Screen name="PrescriptionRequest" component={PrescriptionRequestScreen} />
-      <Stack.Screen name="PrescriptionConfirm" component={PrescriptionConfirmScreen} />
+      <Stack.Screen name="BookingForm" component={BookingFormScreen} options={TASK_SCREEN} />
+      <Stack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={RESULT_SCREEN} />
+      <Stack.Screen name="PrescriptionRequest" component={PrescriptionRequestScreen} options={TASK_SCREEN} />
+      <Stack.Screen name="PrescriptionConfirm" component={PrescriptionConfirmScreen} options={RESULT_SCREEN} />
       <Stack.Screen name="PrescriptionRequests" component={PrescriptionRequestsScreen} />
       <Stack.Screen name="PrescriptionDetail" component={PrescriptionDetailScreen} />
     </Stack.Navigator>

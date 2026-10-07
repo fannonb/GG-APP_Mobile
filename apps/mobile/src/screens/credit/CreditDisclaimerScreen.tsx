@@ -1,40 +1,42 @@
 import React, { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn } from '@/components'
+import { BankIcon, CheckIcon, HospitalIcon, InvoiceIcon, WalletIcon } from '@/icons'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, ActionBar } from '@/components'
 
 /* ------------------------------------------------------------------ */
 /*  Disclosure card data                                               */
 /* ------------------------------------------------------------------ */
 const DISCLOSURES = [
   {
-    emoji: '🏦',
+    Icon: BankIcon,
     title: 'Third-Party Finance Partner',
     description:
       'Your healthcare credit facility is provided by a licensed and accredited finance partner, not by GG\'APP. GG\'APP acts as a facilitator only.',
   },
   {
-    emoji: '📋',
+    Icon: InvoiceIcon,
     title: 'Credit Check Consent',
     description:
       'The finance partner may perform a credit bureau enquiry as part of the application. This may temporarily affect your credit score.',
   },
   {
-    emoji: '🏥',
+    Icon: HospitalIcon,
     title: 'Healthcare Use Only',
     description:
       'Funds can only be used to pay invoices from GG\'APP-verified healthcare providers. Credit cannot be transferred, cashed out, or used for non-medical purposes.',
   },
   {
-    emoji: '💳',
+    Icon: WalletIcon,
     title: 'Credit Obligation',
     description:
       'You are responsible for settling the credit according to the terms agreed with the finance partner, including any interest or fees.',
   },
   {
-    emoji: '✅',
+    Icon: CheckIcon,
     title: 'Eligibility',
     description:
       'Approval is subject to the finance partner\'s lending criteria. Submitting an application does not guarantee approval.',
@@ -50,8 +52,8 @@ function CheckSquare({ checked }: { checked: boolean }) {
       style={[
         s.checkBox,
         {
-          backgroundColor: checked ? colors.success : colors.card,
-          borderColor: checked ? colors.success : colors.border,
+          backgroundColor: checked ? colors.navy : colors.card,
+          borderColor: checked ? colors.navy : colors.border,
         },
       ]}
     >
@@ -93,7 +95,7 @@ export function CreditDisclaimerScreen() {
           <MCard key={idx} padding={16}>
             <View style={s.disclosureRow}>
               <View style={s.iconCircle}>
-                <Text style={s.iconEmoji}>{item.emoji}</Text>
+                <item.Icon size={22} color={colors.blueInk} />
               </View>
               <View style={s.disclosureContent}>
                 <Text style={s.disclosureTitle}>{item.title}</Text>
@@ -103,50 +105,49 @@ export function CreditDisclaimerScreen() {
           </MCard>
         ))}
 
-        {/* ============================================================ */}
-        {/*  Consent Checkbox                                            */}
-        {/* ============================================================ */}
-        <Pressable
-          style={[
-            s.consentRow,
-            {
-              backgroundColor: agreed ? colors.successBg : colors.bg,
-              borderColor: agreed ? colors.success : colors.border,
-            },
-          ]}
-          onPress={() => setAgreed(!agreed)}
-        >
-          <CheckSquare checked={agreed} />
-          <Text style={s.consentText}>
-            I have read and understood the above disclosures and wish to proceed
-            with my healthcare credit application.
-          </Text>
-        </Pressable>
-
-        {/* ============================================================ */}
-        {/*  Action Buttons                                              */}
-        {/* ============================================================ */}
-        <View style={s.btnRow}>
-          <MBtn
-            variant="secondary"
-            style={{ flex: 1 }}
-            onPress={() => navigation.goBack()}
-          >
-            Cancel
-          </MBtn>
-          <MBtn
-            variant="primary"
-            style={{ flex: 2 }}
-            disabled={!agreed}
-            onPress={() => navigation.navigate('CreditInitialApply')}
-          >
-            {'Proceed to Application →'}
-          </MBtn>
-        </View>
-
         {/* Bottom spacer */}
-        <View style={{ height: 24 }} />
+        <View style={{ height: 8 }} />
       </ScrollArea>
+
+      {/* The consent sits with the button it unlocks, so the reason "Continue"
+          is disabled is always on screen. */}
+      <ActionBar
+        top={
+          <Pressable
+            style={[
+              s.consentRow,
+              {
+                backgroundColor: agreed ? colors.blue100 : colors.bg,
+                borderColor: agreed ? colors.navy : colors.border,
+              },
+            ]}
+            onPress={() => setAgreed(!agreed)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: agreed }}
+          >
+            <CheckSquare checked={agreed} />
+            <Text style={s.consentText}>
+              I've read these disclosures and want to apply for healthcare credit.
+            </Text>
+          </Pressable>
+        }
+      >
+        <MBtn
+          variant="secondary"
+          style={{ flex: 1 }}
+          onPress={() => navigation.goBack()}
+        >
+          Cancel
+        </MBtn>
+        <MBtn
+          variant="primary"
+          style={{ flex: 2 }}
+          disabled={!agreed}
+          onPress={() => navigation.navigate('CreditInitialApply')}
+        >
+          Continue
+        </MBtn>
+      </ActionBar>
     </Screen>
   )
 }
@@ -171,9 +172,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  iconEmoji: {
-    fontSize: 18,
   },
   disclosureContent: {
     flex: 1,
@@ -218,8 +216,4 @@ const s = StyleSheet.create({
   },
 
   /* buttons */
-  btnRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
 })

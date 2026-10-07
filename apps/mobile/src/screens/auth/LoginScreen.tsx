@@ -1,13 +1,15 @@
-import React, { useState } from 'react'
-import { View, Text, Image, Pressable, StyleSheet, Dimensions, ScrollView } from 'react-native'
+import React, { useRef, useState } from 'react'
+import { View, Text, Image, StyleSheet, Dimensions, ScrollView, TextInput } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, Field, MBtn } from '@/components'
+import { Screen, Field } from '@/components'
 import { authService, getApiBaseUrl, getIsMockApi } from '@gg/shared-api'
 import { startGoogleSignIn } from '@/lib/google-auth'
 import { useAuthStore } from '@gg/shared-stores'
+import { isValidEmail, normalizeEmail } from '@/lib/validation'
 import type { AuthScreenProps } from '@/navigation/types'
 
 const logo = require('../../../assets/gg-logo.png')
@@ -50,6 +52,8 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [needsVerification, setNeedsVerification] = useState(false)
+  const passwordRef = useRef<TextInput>(null)
 
   const handleGoogleLogin = async () => {
     setError(null)
@@ -106,14 +110,20 @@ export function LoginScreen() {
   }
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    setNeedsVerification(false)
+    if (!email.trim() || !password) {
       setError('Please enter your email address and password.')
+      return
+    }
+    if (!isValidEmail(email)) {
+      setError('Enter a valid email address, like you@example.com.')
       return
     }
     setError(null)
     setLoading(true)
     try {
-      await authService.login({ email, password, role: 'patient' })
+      // Keyboards often append a space after autocomplete; never send it.
+      await authService.login({ email: normalizeEmail(email), password, role: 'patient' })
       useAuthStore.getState().setUserMode('existing')
       useAuthStore.getState().setSession('patient')
     } catch (err: unknown) {
@@ -122,6 +132,7 @@ export function LoginScreen() {
         console.warn('[Login] failed', { message, apiBaseUrl: getApiBaseUrl() })
       }
       setError(message)
+      setNeedsVerification(/verify your email/i.test(message))
     } finally {
       setLoading(false)
     }
@@ -133,7 +144,7 @@ export function LoginScreen() {
       
       <ScrollView 
         contentContainerStyle={{ 
-          paddingTop: insets.top + 20, 
+          paddingTop: 20, 
           paddingBottom: insets.bottom + 40,
           paddingHorizontal: 32,
         }}
@@ -164,12 +175,19 @@ export function LoginScreen() {
             required
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            textContentType="emailAddress"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => passwordRef.current?.focus()}
             variant="dark"
           />
 
           {/* Password Field */}
           <View>
             <Field
+              ref={passwordRef}
               label="Password"
               placeholder="••••••••"
               value={password}
@@ -177,8 +195,19 @@ export function LoginScreen() {
               secureTextEntry={!showPassword}
               required
               variant="dark"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
               right={
-                <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={12}>
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
                   <EyeIcon visible={showPassword} />
                 </Pressable>
               }
@@ -186,7 +215,7 @@ export function LoginScreen() {
 
             {/* Forgot Password Link */}
             <View style={styles.forgotRow}>
-              <Pressable onPress={() => navigation.navigate('ForgotPassword')} hitSlop={12}>
+              <Pressable onPress={() => navigation.navigate('ForgotPassword')} hitSlop={12} accessibilityRole="link">
                 <Text style={styles.forgotLink}>Forgot password?</Text>
               </Pressable>
             </View>
@@ -194,8 +223,17 @@ export function LoginScreen() {
 
           {/* Error Message */}
           {error ? (
-            <View style={styles.errorBanner}>
+            <View style={styles.errorBanner} accessibilityLiveRegion="polite">
               <Text style={styles.errorText}>{error}</Text>
+              {needsVerification ? (
+                <Pressable
+                  onPress={() => navigation.navigate('EmailVerify', { email: normalizeEmail(email) })}
+                  hitSlop={8}
+                  accessibilityRole="link"
+                >
+                  <Text style={styles.errorAction}>Resend verification email</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 
@@ -208,6 +246,8 @@ export function LoginScreen() {
             ]}
             onPress={handleLogin}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading, busy: loading }}
           >
             <Text style={styles.primaryBtnText}>
               {loading ? 'Signing In...' : 'Sign In'}
@@ -224,8 +264,10 @@ export function LoginScreen() {
           {/* Google SSO Button */}
           <Pressable 
             style={({ pressed }) => [styles.googleBtn, pressed && styles.googleBtnPressed]}
-            onPress={handleGoogleLogin} 
+            onPress={handleGoogleLogin}
             disabled={googleLoading}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: googleLoading, busy: googleLoading }}
           >
             <GoogleIcon />
             <Text style={styles.googleText}>
@@ -238,6 +280,7 @@ export function LoginScreen() {
             style={styles.registerRow}
             onPress={() => navigation.navigate('Register')}
             hitSlop={12}
+            accessibilityRole="link"
           >
             <Text style={styles.registerHint}>Don't have an account? </Text>
             <Text style={styles.registerLink}>Register</Text>
@@ -300,19 +343,26 @@ const styles = StyleSheet.create({
     color: colors.blue,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    gap: 8,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 138, 143, 0.12)',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(255, 138, 143, 0.35)',
     marginBottom: 16,
   },
   errorText: {
     fontSize: 14,
     fontFamily: fontWeights.medium,
-    color: colors.error,
+    color: colors.errorOnDark,
     textAlign: 'center',
+  },
+  errorAction: {
+    fontSize: 14,
+    fontFamily: fontWeights.bold,
+    color: colors.blue,
   },
   primaryBtn: {
     backgroundColor: colors.blue,

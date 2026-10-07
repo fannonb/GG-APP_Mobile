@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
 } from 'react-native'
-import Svg, { Path, Circle } from 'react-native-svg'
+import Pressable from '@/components/Pressable'
+import Svg, { Path } from 'react-native-svg'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -20,16 +20,16 @@ import {
   MAvatar,
   StatusPill,
   StatTile,
-  SegmentedTabs,
   Field,
   PhonePrefixInput,
   HelpSupportModal,
 } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
+import ChevronRightIcon from '@/icons/ChevronRightIcon'
 import { usePatientProfile, usePatientTransactions, useUpdatePatientProfileMutation } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
 import { authService } from '@gg/shared-api'
-import { formatPhone } from '@gg/shared-utils'
+import { formatCurrency, formatPhone } from '@gg/shared-utils'
 import {
   getCountryByCode,
   getWorldCountryByCode,
@@ -49,12 +49,6 @@ const FLAG_EMOJI: Record<string, string> = {
   ZW: '\u{1F1FF}\u{1F1FC}',
   ZM: '\u{1F1FF}\u{1F1F2}',
 }
-
-const TABS = [
-  { label: 'Personal Info' },
-  { label: 'Beneficiaries' },
-  { label: 'Security & PIN' },
-]
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -78,6 +72,34 @@ function displayValue(value?: string | null): string {
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
+function SettingsRow({
+  title,
+  subtitle,
+  onPress,
+  last,
+}: {
+  title: string
+  subtitle: string
+  onPress: () => void
+  last?: boolean
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [s.settingsRow, !last && s.settingsRowBorder, pressed && s.settingsRowPressed]}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={subtitle}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={s.settingsTitle}>{title}</Text>
+        <Text style={s.settingsSub}>{subtitle}</Text>
+      </View>
+      <ChevronRightIcon size={18} color={colors.textLight} />
+    </Pressable>
+  )
+}
+
 export function ProfileScreen() {
   const navigation = useNavigation<any>()
   const route = useRoute<any>()
@@ -87,7 +109,6 @@ export function ProfileScreen() {
   const { data: transactions = [] } = usePatientTransactions()
   const updateProfileMutation = useUpdatePatientProfileMutation()
 
-  const [activeTab, setActiveTab] = useState(0)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     name: '',
@@ -165,10 +186,7 @@ export function ProfileScreen() {
       { label: 'Member Since', val: memberSince },
       {
         label: 'Total Spent',
-        val: `${currency}${totalSpent.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`,
+        val: formatCurrency(totalSpent, currency),
       },
       { label: 'Transactions', val: String(transactions.length) },
       { label: 'Providers Used', val: String(providersUsed) },
@@ -201,7 +219,6 @@ export function ProfileScreen() {
     setEditError(null)
     setShowCountryPicker(false)
     setEditing(true)
-    setActiveTab(0)
   }
 
   /* loading */
@@ -260,9 +277,11 @@ export function ProfileScreen() {
                 {/* status pills */}
                 <View style={s.pillRow}>
                   <StatusPill label="Verified Patient" tone="success" size="sm" />
-                  <StatusPill label="Balance Active" tone="info" size="sm" />
+                  {u?.creditStatus === 'approved' ? (
+                    <StatusPill label="Credit active" tone="info" size="sm" />
+                  ) : null}
                   <StatusPill
-                    label={`${beneficiaries.length} Beneficiary${beneficiaries.length === 1 ? '' : 's'}`}
+                    label={`${beneficiaries.length} ${beneficiaries.length === 1 ? 'Beneficiary' : 'Beneficiaries'}`}
                     tone="teal"
                     size="sm"
                   />
@@ -290,7 +309,7 @@ export function ProfileScreen() {
             <Pressable
               key={stat.label}
               disabled={stat.label !== 'Transactions'}
-              onPress={() => navigation.getParent()?.navigate('WalletTab', { screen: 'TransactionHistory' })}
+              onPress={() => navigation.getParent()?.navigate('WalletTab', { initial: false, screen: 'TransactionHistory' })}
               style={s.statGridItem}
             >
               <StatTile
@@ -302,35 +321,11 @@ export function ProfileScreen() {
           ))}
         </View>
 
-        {/* Health Ledger entry — matches web patient nav */}
-        <View style={s.contentSection}>
-          <View style={s.sectionHead}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.sectionTitle}>Health Ledger</Text>
-              <Text style={s.placeholderBody}>
-                View your treatment history and manage which providers can unlock it with your
-                Ledger PIN.
-              </Text>
-            </View>
-          </View>
-          <MBtn variant="primary" sm onPress={() => navigation.navigate('HealthLedger')}>
-            Open Health Ledger
-          </MBtn>
-        </View>
-
-        {/* ============================================================ */}
-        {/*  4. Tab Bar                                                  */}
-        {/* ============================================================ */}
-        <SegmentedTabs
-          tabs={TABS}
-          activeIndex={activeTab}
-          onSelect={setActiveTab}
-        />
 
         {/* ============================================================ */}
         {/*  5. Tab Content                                              */}
         {/* ============================================================ */}
-        {activeTab === 0 && !editing && (
+        {!editing && (
           <View style={s.contentSection}>
             {/* header */}
             <View style={s.sectionHead}>
@@ -365,7 +360,7 @@ export function ProfileScreen() {
           </View>
         )}
 
-        {activeTab === 0 && editing && (
+        {editing && (
           <View style={s.contentSection}>
             <View style={s.sectionHead}>
               <Text style={s.sectionTitle}>Edit Personal Details</Text>
@@ -378,13 +373,12 @@ export function ProfileScreen() {
               onChangeText={(v: string) => setEditForm(prev => ({ ...prev, name: v }))}
               required
             />
+            {/* The sign-in email only changes through an admin-approved request. */}
             <Field
               label="Email Address"
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              value={editForm.email}
-              onChangeText={(v: string) => setEditForm(prev => ({ ...prev, email: v }))}
-              required
+              value={u?.email ?? editForm.email}
+              editable={false}
+              hint="To change your sign-in email, go to Security & PIN."
             />
             <PhonePrefixInput
               label="Phone Number"
@@ -430,7 +424,7 @@ export function ProfileScreen() {
                         style={[
                           s.dropdownOptionText,
                           editForm.residenceCountryCode === opt.code && {
-                            color: colors.blue,
+                            color: colors.blueInk,
                             fontFamily: fontWeights.bold,
                           },
                         ]}
@@ -493,10 +487,6 @@ export function ProfileScreen() {
                     setEditError('Name is required')
                     return
                   }
-                  if (!editForm.email.trim()) {
-                    setEditError('Email is required')
-                    return
-                  }
                   if (!phoneDigits.trim()) {
                     setEditError('Phone number is required')
                     return
@@ -511,7 +501,8 @@ export function ProfileScreen() {
                   try {
                     await updateProfileMutation.mutateAsync({
                       name: editForm.name.trim(),
-                      email: editForm.email.trim(),
+                      // Backend rejects any change here; always send the current address.
+                      email: u?.email ?? editForm.email.trim(),
                       phone: `${getCountryDial(phoneCountryCode)} ${phoneDigits}`.trim(),
                       residenceCountryCode: editForm.residenceCountryCode,
                       residenceCountryName: selected?.name ?? editForm.residenceCountryCode,
@@ -530,74 +521,56 @@ export function ProfileScreen() {
           </View>
         )}
 
-        {activeTab === 1 && (
-          <View style={s.contentSection}>
-            <Text style={s.placeholderTitle}>Beneficiaries</Text>
-            <Text style={s.placeholderBody}>
-              View and manage your covered family members. Beneficiaries must reside in Kenya, Zimbabwe, or Zambia.
-            </Text>
-            <MBtn
-              variant="primary"
-              sm
-              onPress={() => navigation.navigate('Beneficiaries')}
-            >
-              Go to Beneficiaries
-            </MBtn>
-          </View>
-        )}
-
-        {activeTab === 2 && (
-          <View style={s.contentSection}>
-            <Text style={s.placeholderTitle}>Security & PIN</Text>
-            <Text style={s.placeholderBody}>
-              Manage your payment PIN authorization and password settings on the
-              Security screen. Your Health Ledger PIN is separate and controls
-              provider access to your treatment history.
-            </Text>
-            <View style={{ gap: 10 }}>
-              <MBtn
-                variant="primary"
-                sm
-                onPress={() => navigation.navigate('SecurityPIN')}
-              >
-                Go to Security
-              </MBtn>
-              <MBtn
-                variant="outline"
-                sm
-                onPress={() => navigation.navigate('HealthLedger')}
-              >
-                Health Ledger PIN
-              </MBtn>
-            </View>
-          </View>
-        )}
-
-        <Pressable
-          style={s.helpBtn}
-          onPress={() => setHelpOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Open help and support"
-        >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <Circle cx={12} cy={12} r={9.25} stroke={colors.blueInk} strokeWidth={1.8} />
-            <Path
-              d="M9.1 9a3 3 0 015.82 1c0 2-3 3-3 3"
-              stroke={colors.blueInk}
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <Path d="M12 17.25h.01" stroke={colors.blueInk} strokeWidth={2.4} strokeLinecap="round" />
-          </Svg>
-          <Text style={s.helpBtnText}>Help & Support</Text>
-        </Pressable>
+        {/* Settings: every entry is one tap to the screen that does the work. */}
+        <View style={s.settingsList}>
+          <SettingsRow
+            title="Family & beneficiaries"
+            subtitle={
+              beneficiaries.length > 0
+                ? `${beneficiaries.length} covered family member${beneficiaries.length === 1 ? '' : 's'}`
+                : 'Add family members you pay for'
+            }
+            onPress={() => navigation.navigate('Beneficiaries')}
+          />
+          <SettingsRow
+            title="Security"
+            subtitle="Payment PIN, sign-in email and password"
+            onPress={() => navigation.navigate('SecurityPIN')}
+          />
+          <SettingsRow
+            title="Health Ledger"
+            subtitle="Treatment history and provider access"
+            onPress={() => navigation.navigate('HealthLedger')}
+          />
+          <SettingsRow
+            title="Notifications"
+            subtitle="Appointment, payment and credit updates"
+            onPress={() => navigation.navigate('Notifications')}
+          />
+          <SettingsRow
+            title="Help & support"
+            subtitle="Email or WhatsApp the GG'APP team"
+            onPress={() => setHelpOpen(true)}
+          />
+          <SettingsRow
+            title="Terms & conditions"
+            subtitle="How GG'APP works and your obligations"
+            onPress={() => navigation.navigate('Terms')}
+          />
+          <SettingsRow
+            title="Privacy policy"
+            subtitle="What we collect and how we protect it"
+            onPress={() => navigation.navigate('Privacy')}
+            last
+          />
+        </View>
 
         <HelpSupportModal visible={helpOpen} onClose={() => setHelpOpen(false)} />
 
         {/* Sign Out */}
         <Pressable
           style={s.signOutBtn}
+          accessibilityRole="button"
           onPress={async () => {
             await authService.logout()
             useAuthStore.getState().logout()
@@ -636,20 +609,6 @@ const s = StyleSheet.create({
   },
 
   /* appbar-style header */
-  appBarRow: {
-    paddingVertical: 4,
-  },
-  appBarTitle: {
-    fontSize: 18,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
-  },
-  appBarSub: {
-    fontSize: 12,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    marginTop: 2,
-  },
 
   /* hero card */
   heroCard: {
@@ -734,13 +693,6 @@ const s = StyleSheet.create({
     width: '48%' as any,
     flexGrow: 1,
   },
-  statCardInner: {
-    alignItems: 'center',
-  },
-  statLabelLink: {
-    color: colors.blue,
-    fontFamily: fontWeights.bold,
-  },
 
   /* container sections */
   contentSection: {
@@ -804,19 +756,6 @@ const s = StyleSheet.create({
   },
 
   /* tab placeholders */
-  placeholderTitle: {
-    fontSize: 15,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
-    marginBottom: 8,
-  },
-  placeholderBody: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -834,29 +773,43 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.semiBold,
     color: colors.error,
   },
-  helpBtn: {
+  settingsList: {
+    backgroundColor: colors.card,
+    borderRadius: radii.large,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 18,
+    marginHorizontal: 4,
+    ...shadows.card,
+  },
+  settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     paddingVertical: 14,
-    borderRadius: radii.large,
-    borderWidth: 1.5,
-    borderColor: 'rgba(11, 114, 187, 0.28)',
-    backgroundColor: colors.card,
-    marginTop: 8,
   },
-  helpBtnText: {
-    fontSize: 14,
-    fontFamily: fontWeights.semiBold,
-    color: colors.blueInk,
+  settingsRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  settingsRowPressed: {
+    opacity: 0.6,
+  },
+  settingsTitle: {
+    fontSize: 15,
+    fontFamily: fontWeights.bold,
+    color: colors.text,
+  },
+  settingsSub: {
+    fontSize: 12.5,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    marginTop: 2,
   },
   lockHint: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textLight,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   labelRow: { flexDirection: 'row', marginBottom: 6 },
   asterisk: { fontFamily: fontWeights.bold, fontSize: 12, color: colors.error },

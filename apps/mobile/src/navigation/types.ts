@@ -16,8 +16,7 @@ export type AuthStackParamList = {
   ForgotPassword: undefined
   ResetPassword: { token?: string }
   Register: { googleProfile?: GoogleProfileState } | undefined
-  EmailVerify: { token?: string }
-  Onboarding: undefined
+  EmailVerify: { token?: string; email?: string }
   Terms: undefined
   Privacy: undefined
 }
@@ -87,6 +86,8 @@ export type ProfileStackParamList = {
   HealthLedger: undefined
   LedgerPinSetup: undefined
   LedgerAccess: undefined
+  Terms: undefined
+  Privacy: undefined
 }
 
 export type AppTabsParamList = {

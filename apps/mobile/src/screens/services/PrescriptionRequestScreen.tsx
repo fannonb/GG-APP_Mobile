@@ -2,11 +2,11 @@ import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   TextInput,
   ActivityIndicator,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import * as DocumentPicker from 'expo-document-picker'
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -18,6 +18,7 @@ import {
   MBtn,
   MAvatar,
   GGPill,
+  ActionBar,
 } from '@/components'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { buildUploadAttachment, isSupportedPatientAttachment } from '@/lib/attachments'
@@ -405,16 +406,10 @@ export function PrescriptionRequestScreen({
           </View>
         </MCard>
 
-        {error ? (
-          <View style={s.errorBox}>
-            <Text style={s.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        <View style={{ height: 110 }} />
+        <View style={{ height: 8 }} />
       </ScrollArea>
 
-      <View style={s.stickyCta}>
+      <ActionBar error={error}>
         <MBtn
           variant="secondary"
           style={s.secondaryCta}
@@ -430,7 +425,7 @@ export function PrescriptionRequestScreen({
         >
           {createPrescription.isPending ? 'Submitting...' : 'Submit Prescription'}
         </MBtn>
-      </View>
+      </ActionBar>
     </Screen>
   )
 }
@@ -660,7 +655,7 @@ const s = StyleSheet.create({
   uploadTitle: {
     fontSize: 13,
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   uploadTitleActive: {
     color: colors.success,
@@ -686,32 +681,6 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.medium,
     color: colors.navy,
     lineHeight: 18,
-  },
-  errorBox: {
-    backgroundColor: colors.errorBg,
-    borderRadius: radii.default,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  errorText: {
-    fontSize: 12,
-    fontFamily: fontWeights.semiBold,
-    color: colors.error,
-    lineHeight: 18,
-  },
-  stickyCta: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 28,
   },
   secondaryCta: {
     flex: 1,

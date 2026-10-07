@@ -1,14 +1,13 @@
 import React, { useMemo, useState } from 'react'
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native'
-import Svg, { Path, Circle } from 'react-native-svg'
+import { View, Text, StyleSheet, Image } from 'react-native'
+import Pressable from '@/components/Pressable'
+import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, GGPill, Stars, FilterChips } from '@/components'
+import { Screen, ScrollArea, AppBar, FilterChips } from '@/components'
+import { SkeletonGroup, SkeletonList } from '@/components/Skeleton'
+import ChevronRightIcon from '@/icons/ChevronRightIcon'
+import { CareCategoryIcon } from '@/icons/CareCategoryIcons'
+import { getProviderHoursSummary } from '@gg/shared-utils'
 import { useProvidersByCategory, useDrivingDistances } from '@gg/shared-hooks'
 import { useLocationStore } from '@gg/shared-stores'
 import { SERVICE_CATEGORIES } from '@gg/shared-config'
@@ -28,10 +27,13 @@ function TriangleAlertIcon({ size = 16, color = colors.warning }: { size?: numbe
   )
 }
 
-function LocationDotIcon({ size = 16, color = colors.success }: { size?: number; color?: string }) {
+function StarIcon() {
   return (
-    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-      <Circle cx={10} cy={10} r={4} fill={color} />
+    <Svg width={14} height={14} viewBox="0 0 24 24">
+      <Path
+        d="M12 2.8l2.8 5.7 6.3.9-4.5 4.4 1.1 6.3L12 17.1l-5.6 3 1.1-6.3L3 9.4l6.3-.9z"
+        fill={colors.blueInk}
+      />
     </Svg>
   )
 }
@@ -39,34 +41,11 @@ function LocationDotIcon({ size = 16, color = colors.success }: { size?: number;
 /* ------------------------------------------------------------------ */
 /*  Filter config                                                      */
 /* ------------------------------------------------------------------ */
-const FILTER_ITEMS = [
-  { label: 'All Providers' },
-  { label: 'Open Now' },
-  { label: 'Top Rated' },
-  { label: 'Nearest First' },
-]
+const FILTER_LABELS = ['All', 'Open now', 'Top rated', 'Nearest']
 
 /* ------------------------------------------------------------------ */
 /*  Location banners                                                   */
 /* ------------------------------------------------------------------ */
-function LocationActiveBanner({ onDismiss }: { onDismiss: () => void }) {
-  return (
-    <View style={styles.bannerWrap}>
-      <View style={[styles.banner, styles.bannerActive]}>
-        <LocationDotIcon size={14} color={colors.success} />
-        <Text style={styles.bannerActiveText}>
-          Location active · Showing driving distances
-        </Text>
-        <Pressable hitSlop={8} onPress={onDismiss}>
-          <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-            <Path d="M2 2l8 8M10 2L2 10" stroke={colors.success} strokeWidth={1.4} strokeLinecap="round" />
-          </Svg>
-        </Pressable>
-      </View>
-    </View>
-  )
-}
-
 function LocationDeniedBanner({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={styles.bannerWrap}>
@@ -93,7 +72,6 @@ export function ProviderListScreen({
   const { category } = route.params
   const { data: providers = [], isLoading } = useProvidersByCategory(category)
   const [activeFilter, setActiveFilter] = useState(0)
-  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   const position = useLocationStore(s => s.position)
   const locState = useLocationStore(s => s.locState)
@@ -136,20 +114,24 @@ export function ProviderListScreen({
     return list
   }, [enrichedProviders, activeFilter])
 
-  const getInitials = (name: string) =>
-    name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  const openCount = enrichedProviders.filter(p => p.status === 'open').length
+  const filterItems = FILTER_LABELS.map((label, i) => ({
+    label,
+    count: i === 0 ? enrichedProviders.length : i === 1 ? openCount : undefined,
+  }))
+  // "Laboratory" -> "Laboratories", "Doctor" -> "Doctors"
+  const categoryTitle = categoryLabel.endsWith('y') && !categoryLabel.endsWith('ay')
+    ? `${categoryLabel.slice(0, -1)}ies`
+    : categoryLabel.endsWith('s') ? categoryLabel : `${categoryLabel}s`
 
   return (
     <Screen>
       <AppBar
-        title={`${categoryLabel} Near You`}
-        subtitle={`${providers.length} verified provider${providers.length !== 1 ? 's' : ''} found`}
+        title={categoryTitle}
+        subtitle={isLoading ? 'Finding providers…' : `${providers.length} verified ${providers.length === 1 ? 'provider' : 'providers'}`}
       />
 
       {/* Location banner */}
-      {!bannerDismissed && locState === 'active' && (
-        <LocationActiveBanner onDismiss={() => setBannerDismissed(true)} />
-      )}
       {(locState === 'denied' || locState === 'skipped') && (
         <LocationDeniedBanner onRetry={requestLocationRetry} />
       )}
@@ -157,85 +139,96 @@ export function ProviderListScreen({
       {/* Filter chips */}
       <View style={styles.filterWrap}>
         <FilterChips
-          items={FILTER_ITEMS}
+          items={filterItems}
           activeIndex={activeFilter}
           onSelect={setActiveFilter}
         />
       </View>
 
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={styles.loadingText}>Finding providers...</Text>
-        </View>
+        <SkeletonGroup style={styles.skeleton}>
+          <SkeletonList rows={4} />
+        </SkeletonGroup>
       ) : filteredProviders.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={styles.emptyTitle}>No providers found</Text>
+          <View style={styles.emptyIcon}>
+            <CareCategoryIcon id={category} size={30} />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {activeFilter === 1 ? 'Nothing open right now' : 'No providers yet'}
+          </Text>
           <Text style={styles.emptyDesc}>
-            {activeFilter > 0
-              ? 'Try adjusting your filters to see more results.'
-              : `No ${categoryLabel.toLowerCase()} providers are available in your area yet.`}
+            {activeFilter === 1
+              ? 'Try "All" to see every provider and their opening hours.'
+              : `No ${categoryLabel.toLowerCase()} providers have joined in your area yet.`}
           </Text>
         </View>
       ) : (
-        <ScrollArea gap={12}>
-          {filteredProviders.map((provider) => (
-            <Pressable
-              key={provider.id}
-              onPress={() =>
-                navigation.navigate('ProviderProfile', { providerId: provider.id })
-              }
-            >
-              <MCard padding={14}>
+        <ScrollArea gap={12} py={4}>
+          {filteredProviders.map(provider => {
+            const open = provider.status === 'open'
+            const services = provider.services ?? []
+            return (
+              <Pressable
+                key={provider.id}
+                onPress={() => navigation.navigate('ProviderProfile', { providerId: provider.id })}
+                style={styles.card}
+                accessibilityRole="button"
+                accessibilityLabel={`${provider.name}, ${provider.address}. Rated ${provider.rating.toFixed(1)}. ${getProviderHoursSummary(provider)}${provider.distance ? `, ${provider.distance}` : ''}`}
+              >
                 <View style={styles.cardRow}>
                   <View style={styles.logoWrap}>
-                    <Text style={styles.logoText}>{getInitials(provider.name)}</Text>
+                    {provider.logoUrl ? (
+                      <Image source={{ uri: provider.logoUrl }} style={styles.logoImage} />
+                    ) : (
+                      <CareCategoryIcon id={category} size={28} />
+                    )}
                   </View>
 
                   <View style={styles.cardInfo}>
-                    <View style={styles.nameRow}>
-                      <Text style={styles.providerName} numberOfLines={1}>
-                        {provider.name}
-                      </Text>
-                      <GGPill type={provider.status === 'open' ? 'open' : 'closed'}>
-                        {provider.status === 'open' ? 'Open' : 'Closed'}
-                      </GGPill>
-                    </View>
-
+                    <Text style={styles.providerName} numberOfLines={2}>
+                      {provider.name}
+                    </Text>
                     <Text style={styles.address} numberOfLines={1}>
                       {provider.address}
                     </Text>
-
-                    <View style={styles.metaRow}>
-                      <Stars rating={provider.rating} count={provider.reviews} />
-                      {provider.distance ? (
-                        <Text style={styles.distanceText}>{provider.distance}</Text>
-                      ) : null}
+                    <View style={styles.ratingRow}>
+                      <StarIcon />
+                      <Text style={styles.ratingText}>{provider.rating.toFixed(1)}</Text>
+                      <Text style={styles.ratingCount}>
+                        ({provider.reviews} {provider.reviews === 1 ? 'review' : 'reviews'})
+                      </Text>
                     </View>
-
-                    <Text style={styles.hours} numberOfLines={1}>
-                      {provider.hours}
-                    </Text>
-
-                    {provider.services && provider.services.length > 0 && (
-                      <View style={styles.tagsRow}>
-                        {provider.services.slice(0, 3).map((svc, i) => (
-                          <View key={i} style={styles.tag}>
-                            <Text style={styles.tagText}>{svc}</Text>
-                          </View>
-                        ))}
-                        {provider.services.length > 3 && (
-                          <View style={styles.tag}>
-                            <Text style={styles.tagText}>+{provider.services.length - 3}</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
                   </View>
+
+                  <ChevronRightIcon size={18} color={colors.textLight} />
                 </View>
-              </MCard>
-            </Pressable>
-          ))}
+
+                <View style={styles.footer}>
+                  <View style={[styles.statusDot, open ? styles.statusDotOpen : styles.statusDotClosed]} />
+                  <Text style={[styles.statusText, open && styles.statusTextOpen]} numberOfLines={1}>
+                    {getProviderHoursSummary(provider)}
+                  </Text>
+                  {provider.distance ? <Text style={styles.distanceText}>{provider.distance}</Text> : null}
+                </View>
+
+                {services.length > 0 ? (
+                  <View style={styles.tagsRow}>
+                    {services.slice(0, 3).map(svc => (
+                      <View key={svc} style={styles.tag}>
+                        <Text style={styles.tagText} numberOfLines={1}>{svc}</Text>
+                      </View>
+                    ))}
+                    {services.length > 3 ? (
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>+{services.length - 3}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+              </Pressable>
+            )
+          })}
         </ScrollArea>
       )}
     </Screen>
@@ -246,27 +239,34 @@ export function ProviderListScreen({
 /*  Styles                                                             */
 /* ------------------------------------------------------------------ */
 const styles = StyleSheet.create({
+  skeleton: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    gap: 12,
+    gap: 8,
   },
-  loadingText: {
-    fontFamily: fontWeights.medium,
-    fontSize: 14,
-    color: colors.textSub,
-    marginTop: 8,
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: colors.blue100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.text,
   },
   emptyDesc: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSub,
     textAlign: 'center',
     lineHeight: 20,
@@ -285,21 +285,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  bannerActive: {
-    backgroundColor: colors.successBg,
-  },
   bannerText: {
     flex: 1,
     fontFamily: fontWeights.regular,
     fontSize: 12,
     color: colors.warning,
     lineHeight: 17,
-  },
-  bannerActiveText: {
-    flex: 1,
-    fontFamily: fontWeights.medium,
-    fontSize: 12,
-    color: colors.success,
   },
   bannerLink: {
     fontFamily: fontWeights.semiBold,
@@ -312,75 +303,112 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
 
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radii.large,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+  },
   cardRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
   },
   logoWrap: {
-    width: 54,
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: colors.blue3,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.blue100,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
-  logoText: {
-    fontFamily: fontWeights.bold,
-    fontSize: 16,
-    color: colors.blue,
+  logoImage: {
+    width: 56,
+    height: 56,
   },
   cardInfo: {
     flex: 1,
-    gap: 4,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 3,
   },
   providerName: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 21,
     color: colors.text,
-    flex: 1,
   },
   address: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSub,
   },
-  metaRow: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 2,
+    gap: 4,
+    marginTop: 1,
+  },
+  ratingText: {
+    fontFamily: fontWeights.bold,
+    fontSize: 13,
+    color: colors.text,
+  },
+  ratingCount: {
+    fontFamily: fontWeights.regular,
+    fontSize: 13,
+    color: colors.textLight,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusDotOpen: {
+    backgroundColor: colors.success,
+  },
+  statusDotClosed: {
+    backgroundColor: colors.textLight,
+  },
+  statusText: {
+    flex: 1,
+    fontFamily: fontWeights.semiBold,
+    fontSize: 13,
+    color: colors.textSub,
+  },
+  statusTextOpen: {
+    color: colors.success,
   },
   distanceText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
-    color: colors.blue,
-  },
-  hours: {
-    fontFamily: fontWeights.regular,
-    fontSize: 11,
-    color: colors.textLight,
+    fontSize: 13,
+    color: colors.blueInk,
   },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 6,
+    marginTop: 10,
   },
   tag: {
-    backgroundColor: colors.bg,
-    borderRadius: 9999,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.full,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
   tagText: {
     fontFamily: fontWeights.medium,
-    fontSize: 10,
+    fontSize: 12,
     color: colors.textSub,
   },
 })

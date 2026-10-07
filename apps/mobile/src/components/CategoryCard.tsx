@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
 import { colors, fontWeights } from '@/theme'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
 
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 12,
     fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   comingSoonPill: {
     backgroundColor: colors.warningBg,

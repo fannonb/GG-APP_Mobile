@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, StyleSheet, ActivityIndicator, Pressable } from 'react-native'
+import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'

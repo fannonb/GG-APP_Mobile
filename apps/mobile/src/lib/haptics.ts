@@ -23,3 +23,21 @@ export function hapticSelection(): void {
     // Graceful fallback
   }
 }
+
+/** A completed action: payment authorized, PIN saved. */
+export function hapticSuccess(): void {
+  try {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  } catch {
+    // Graceful fallback
+  }
+}
+
+/** A rejected action: wrong PIN, failed submit. */
+export function hapticError(): void {
+  try {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+  } catch {
+    // Graceful fallback
+  }
+}

@@ -11,8 +11,19 @@ function toDate(date: string | Date): Date {
   return isValid(d) ? d : new Date(date)
 }
 
+/**
+ * One display form for every currency symbol: "Ksh." -> "Ksh", always followed
+ * by a space ("Ksh 2,450.00", "ZK 450.00", "Z$ 450.00"). Config symbols keep
+ * their stored form; only the display is normalised.
+ */
+export function displayCurrencySymbol(currencySymbol: string): string {
+  return currencySymbol.trim().replace(/\.$/, '')
+}
+
 export function formatCurrency(amount: number, currencySymbol = ''): string {
-  return currencySymbol + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+  const number = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+  const symbol = displayCurrencySymbol(currencySymbol)
+  return symbol ? `${symbol} ${number}` : number
 }
 
 export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {

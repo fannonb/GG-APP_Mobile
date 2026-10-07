@@ -51,6 +51,7 @@ export const colors = {
   success:   '#0E7C58', successBg: '#E3F4EC', // 4.6:1  (was #1FBE86)
   warning:   '#8A5200', warningBg: '#FBF0DF', // 5.6:1  (was #F5A623 on #FFF6E5 — 2.0:1, failed)
   error:     '#C0333A', errorBg:   '#FBEAEB', // 4.8:1
+  errorOnDark: '#FF8A8F', // error text on navy surfaces (7.4:1 on navy); `error` is ~2.9:1 there
   info:      '#0B72BB', infoBg:    '#E6F5FF', // 4.6:1
 
   /* ---- Category accents ----------------------------------------------- *

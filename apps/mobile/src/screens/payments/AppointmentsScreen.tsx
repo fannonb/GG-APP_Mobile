@@ -2,15 +2,16 @@ import React, { useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
-  ActivityIndicator,
   Modal,
   TextInput,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
+import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, SegmentedTabs } from '@/components'
 import { CalendarIcon, CheckIcon } from '@/icons'
 import { usePatientAppointments, useCancelPatientAppointmentMutation } from '@gg/shared-hooks'
@@ -82,6 +83,7 @@ export function AppointmentsScreen() {
   const navigation = useNavigation<any>()
   const userName = useUserStore(s => s.user?.name ?? '')
   const { data, isLoading, refetch } = usePatientAppointments()
+  const pull = usePullToRefresh(refetch)
   const cancelMutation = useCancelPatientAppointmentMutation()
 
   const [tabIndex, setTabIndex] = useState(0)
@@ -99,6 +101,7 @@ export function AppointmentsScreen() {
     try {
       const context = await patientService.getRebookContext(apt.id, userMode)
       navigation.navigate('ServicesTab', {
+        initial: false,
         screen: 'BookingForm',
         params: {
           providerId: context.provider.id,
@@ -118,6 +121,7 @@ export function AppointmentsScreen() {
         return
       }
       navigation.navigate('ServicesTab', {
+        initial: false,
         screen: 'BookingForm',
         params: fallback,
       })
@@ -157,15 +161,19 @@ export function AppointmentsScreen() {
     ...((data as any)?.past ?? []),
   ]
 
-  const upcoming = allAppointments.filter(a => {
+  // An open appointment whose date has passed is no longer "upcoming", even if
+  // the provider never marked it completed; it belongs with past visits.
+  const isOpen = (a: Appointment) => {
     const s = getAppointmentDisplayStatus(a)
     return s !== 'completed' && s !== 'cancelled'
-  })
+  }
+  const isPastDate = (a: Appointment) => getDaysUntilAppointment(a.date) < 0
 
-  const past = allAppointments.filter(a => {
-    const s = getAppointmentDisplayStatus(a)
-    return s === 'completed' || s === 'cancelled'
-  })
+  const upcoming = allAppointments
+    .filter(a => isOpen(a) && !isPastDate(a))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+  const past = allAppointments.filter(a => !isOpen(a) || isPastDate(a))
 
   const completedCount = past.filter(
     a => getAppointmentDisplayStatus(a) === 'completed',
@@ -190,10 +198,10 @@ export function AppointmentsScreen() {
     return (
       <Screen>
         <AppBar title="Appointments" subtitle="Your healthcare schedule" />
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={s.loadingText}>Loading appointments...</Text>
-        </View>
+        <SkeletonGroup style={s.skeleton}>
+          <SkeletonBlock height={44} radius={22} />
+          <SkeletonList rows={4} />
+        </SkeletonGroup>
       </Screen>
     )
   }
@@ -202,13 +210,13 @@ export function AppointmentsScreen() {
     <Screen>
       <AppBar title="Appointments" subtitle="Your healthcare schedule" />
 
-      <ScrollArea gap={14} px={16} py={14}>
+      <ScrollArea gap={14} px={16} py={14} {...pull}>
         {/* === 1. Stats Row === */}
         <View style={s.statsRow}>
           {[
-            { label: 'UPCOMING', value: upcoming.length, color: colors.blue, icon: <UpcomingIcon /> },
-            { label: 'COMPLETED', value: completedCount, color: colors.success, icon: <CompletedIcon /> },
-            { label: 'TOTAL', value: allAppointments.length, color: colors.textSub, icon: <TotalIcon /> },
+            { label: 'Upcoming', value: upcoming.length, color: colors.blueInk, icon: <UpcomingIcon /> },
+            { label: 'Completed', value: completedCount, color: colors.success, icon: <CompletedIcon /> },
+            { label: 'Total', value: allAppointments.length, color: colors.textSub, icon: <TotalIcon /> },
           ].map(stat => (
             <MCard key={stat.label} padding={14} style={s.statCard}>
               <View style={s.statHeader}>
@@ -239,7 +247,7 @@ export function AppointmentsScreen() {
             {/* Info */}
             <View style={s.nextUpInfo}>
               <View style={s.nextUpPill}>
-                <Text style={s.nextUpPillText}>NEXT UP</Text>
+                <Text style={s.nextUpPillText}>Next up</Text>
               </View>
               <Text style={s.nextUpProvider} numberOfLines={1}>
                 {(nextApt as any).provider ?? 'Provider'}
@@ -276,7 +284,7 @@ export function AppointmentsScreen() {
                     : 'No appointments yet'}
               </Text>
               <Text style={s.emptySub}>
-                Find a service and request an engagement to get started.
+                Find a clinic, lab or specialist and book a visit.
               </Text>
             </View>
           </MCard>
@@ -335,7 +343,7 @@ export function AppointmentsScreen() {
                     {/* Service type pill */}
                     <View style={s.aptTypePill}>
                       <Text style={s.aptTypeText}>
-                        {(apt as any).category?.toUpperCase?.() ?? 'APPOINTMENT'}
+                        {(apt as any).category ? `${(apt as any).category.charAt(0).toUpperCase()}${(apt as any).category.slice(1)}` : 'Appointment'}
                       </Text>
                     </View>
 
@@ -376,7 +384,7 @@ export function AppointmentsScreen() {
                         style={s.cancelAptBtn}
                         onPress={() => openCancelModal(apt.id)}
                       >
-                        <Text style={s.cancelAptBtnText}>Cancel</Text>
+                        <Text style={s.cancelAptBtnText}>Cancel appointment</Text>
                       </Pressable>
                     )}
 
@@ -502,18 +510,11 @@ export default AppointmentsScreen
 /*  Styles                                                             */
 /* ================================================================== */
 const s = StyleSheet.create({
+  skeleton: {
+    padding: 16,
+    gap: 14,
+  },
   /* loading */
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    fontFamily: fontWeights.medium,
-    color: colors.textSub,
-  },
 
   /* stats */
   statsRow: {
@@ -530,11 +531,9 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   statLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
   },
   statValue: {
     fontSize: 28,
@@ -558,7 +557,7 @@ const s = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.blueInk,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -580,17 +579,16 @@ const s = StyleSheet.create({
   },
   nextUpPill: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.blue,
+    backgroundColor: colors.blueInk,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 9999,
     marginBottom: 2,
   },
   nextUpPillText: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
-    letterSpacing: 0.8,
   },
   nextUpProvider: {
     fontSize: 14,
@@ -615,11 +613,9 @@ const s = StyleSheet.create({
     lineHeight: 28,
   },
   nextUpDayLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
     marginTop: 1,
   },
 
@@ -728,7 +724,7 @@ const s = StyleSheet.create({
   beneficiaryText: {
     fontSize: 11,
     fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   selfBadge: {
     flexDirection: 'row',
@@ -744,16 +740,11 @@ const s = StyleSheet.create({
   /* cancel button on appointment card */
   cancelAptBtn: {
     alignSelf: 'flex-start',
-    marginTop: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 9999,
-    borderWidth: 1.5,
-    borderColor: colors.error,
-    backgroundColor: colors.errorBg,
+    marginTop: 6,
+    paddingVertical: 6,
   },
   cancelAptBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
   },
@@ -772,7 +763,7 @@ const s = StyleSheet.create({
   bookAgainBtnText: {
     fontSize: 12,
     fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   rebookBtn: {
     alignSelf: 'flex-start',
@@ -787,7 +778,7 @@ const s = StyleSheet.create({
   rebookBtnText: {
     fontSize: 12,
     fontFamily: fontWeights.semiBold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
 
   /* cancel modal */

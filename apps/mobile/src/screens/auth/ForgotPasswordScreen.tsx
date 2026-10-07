@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { colors, fontWeights } from '@/theme'
-import { Screen, ScrollArea, AppBar, Field, MBtn } from '@/components'
-import { LockIcon } from '@/icons'
+import { Field } from '@/components'
+import { AuthShell, AuthButton, AuthLink, AuthNotice } from '@/components/AuthShell'
 import { authService } from '@gg/shared-api'
+import { isValidEmail, normalizeEmail } from '@/lib/validation'
 import type { AuthScreenProps } from '@/navigation/types'
 
 export function ForgotPasswordScreen() {
@@ -12,144 +11,69 @@ export function ForgotPasswordScreen() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [sent, setSent] = useState(false)
 
   const handleSubmit = async () => {
-    if (!email.trim()) {
-      setError('Please enter your email address.')
+    if (!isValidEmail(email)) {
+      setError('Enter the email address you signed up with.')
       return
     }
     setError(null)
-    setSuccess(false)
     setLoading(true)
     try {
-      await authService.forgotPassword(email.trim())
-      setSuccess(true)
+      await authService.forgotPassword(normalizeEmail(email))
+      setSent(true)
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to send reset link. Please try again.'
-      setError(message)
+      setError(err instanceof Error ? err.message : 'We could not send the link. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Screen bg={colors.bg}>
-      <AppBar
-        title="Forgot Password"
-        subtitle="Reset your account password"
-        dark
-        back={() => navigation.navigate('Login')}
-      />
-
-      <ScrollArea gap={16} py={28} px={20}>
-        {/* Lock icon */}
-        <View style={styles.iconWrap}>
-          <View style={styles.iconCircle}>
-            <LockIcon size={30} color={colors.blue} />
-          </View>
-        </View>
-
-        {/* Heading */}
-        <Text style={styles.heading}>Forgot your password?</Text>
-
-        {/* Description */}
-        <Text style={styles.description}>
-          Enter your email address and we'll send you a link to reset your
-          password.
-        </Text>
-
-        {/* Email field */}
+    <AuthShell
+      title="Forgot your"
+      highlight="password?"
+      subtitle={
+        sent
+          ? 'If an account uses that email, a reset link is on its way. Open it on this phone to choose a new password.'
+          : "Enter your email and we'll send you a link to choose a new one."
+      }
+      onBack={() => navigation.navigate('Login')}
+    >
+      {sent ? (
+        <AuthNotice tone="success">Check your inbox, including spam, for the reset link.</AuthNotice>
+      ) : (
         <Field
           label="Email Address"
           placeholder="you@example.com"
           value={email}
-          onChangeText={setEmail}
-          required
+          onChangeText={v => { setEmail(v); setError(null) }}
+          error={error ?? undefined}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          returnKeyType="send"
+          onSubmitEditing={handleSubmit}
+          variant="dark"
         />
+      )}
 
-        {/* Error message */}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {sent ? (
+        <AuthButton onPress={() => navigation.navigate('Login')}>Back to sign in</AuthButton>
+      ) : (
+        <AuthButton onPress={handleSubmit} disabled={loading} busy={loading}>
+          {loading ? 'Sending…' : 'Send reset link'}
+        </AuthButton>
+      )}
 
-        {/* Success message */}
-        {success ? (
-          <View style={styles.successBox}>
-            <Text style={styles.successText}>
-              Reset link sent! Check your email.
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Submit button */}
-        <MBtn variant="primary" fullWidth onPress={handleSubmit} disabled={loading}>
-          {loading ? 'Sending...' : 'Send Reset Link'}
-        </MBtn>
-
-        {/* Back to sign in */}
-        <Pressable
-          style={styles.linkRow}
-          onPress={() => navigation.navigate('Login')}
-        >
-          <Text style={styles.linkText}>Back to Sign In</Text>
-        </Pressable>
-      </ScrollArea>
-    </Screen>
+      {sent ? (
+        <AuthLink onPress={() => { setSent(false); setEmail('') }}>Use a different email</AuthLink>
+      ) : (
+        <AuthLink onPress={() => navigation.navigate('Login')}>Back to sign in</AuthLink>
+      )}
+    </AuthShell>
   )
 }
-
-const styles = StyleSheet.create({
-  iconWrap: {
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.blue3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heading: {
-    fontSize: 22,
-    fontFamily: fontWeights.extraBold,
-    color: colors.text,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  description: {
-    fontSize: 13,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  errorText: {
-    fontSize: 13,
-    fontFamily: fontWeights.medium,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  successBox: {
-    backgroundColor: colors.successBg,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  successText: {
-    fontSize: 13,
-    fontFamily: fontWeights.semiBold,
-    color: colors.success,
-    textAlign: 'center',
-  },
-  linkRow: {
-    alignItems: 'center',
-  },
-  linkText: {
-    fontSize: 13,
-    fontFamily: fontWeights.bold,
-    color: colors.blue,
-  },
-})

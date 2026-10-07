@@ -16,6 +16,7 @@ import type {
   SPApplicationStatusResponse,
   VerifyEmailResponse,
   UserRole,
+  EmailChangeStatusResponse,
 } from '@gg/shared-types'
 
 function buildMockSession(role: UserRole): AuthSession {
@@ -79,6 +80,39 @@ export const authService = {
     }
 
     const { data } = await apiClient.post<VerifyEmailResponse>('/auth/verify-email', { token })
+    return data
+  },
+
+  /** Always resolves with a generic message; the backend never reveals whether the account exists. */
+  async resendVerification(email: string): Promise<{ message: string }> {
+    if (getIsMockApi()) {
+      await mockDelay(600)
+      return { message: 'If that account still needs verifying, we have sent a new verification email.' }
+    }
+
+    const { data } = await apiClient.post<{ message: string }>('/auth/resend-verification', { email })
+    return data
+  },
+
+  /** The latest sign-in email change request, or null if the patient never made one. */
+  async getEmailChange(): Promise<EmailChangeStatusResponse | null> {
+    if (getIsMockApi()) return null
+    const { data } = await apiClient.get<EmailChangeStatusResponse | null>('/auth/email-change')
+    return data || null
+  },
+
+  /** Email changes are approved by an admin. Google sign-ups omit the password. */
+  async requestEmailChange(payload: {
+    newEmail: string
+    password?: string
+    reason?: string
+  }): Promise<EmailChangeStatusResponse> {
+    const { data } = await apiClient.post<EmailChangeStatusResponse>('/auth/email-change', payload)
+    return data
+  },
+
+  async cancelEmailChange(): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>('/auth/email-change/cancel')
     return data
   },
 

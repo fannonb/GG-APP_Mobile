@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text, TextStyle, StyleSheet } from 'react-native'
 import { colors, fontWeights } from '@/theme'
+import { displayCurrencySymbol } from '@gg/shared-utils'
 
 interface MoneyTextProps {
   amount: number | string
@@ -20,7 +21,8 @@ export default function MoneyText({
   color = colors.navy,
 }: MoneyTextProps) {
   const numericVal = typeof amount === 'number' ? amount : parseFloat(amount) || 0
-  const formattedVal = numericVal.toLocaleString('en-KE', {
+  const symbol = displayCurrencySymbol(currency)
+  const formattedVal = numericVal.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
@@ -35,7 +37,7 @@ export default function MoneyText({
   return (
     <Text style={[styles.container, { color }, { fontSize: sizeStyles.fontSize }, style]}>
       <Text style={[styles.currencySymbol, { fontSize: sizeStyles.symbolSize }, symbolStyle]}>
-        {currency}{' '}
+        {symbol}{' '}
       </Text>
       {formattedVal}
     </Text>

@@ -1,6 +1,7 @@
 import React from 'react'
-import { View, Text, Modal, Pressable, StyleSheet, Linking } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, StyleSheet, Linking } from 'react-native'
+import Pressable from '@/components/Pressable'
+import BottomSheet from './BottomSheet'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import MBtn from './MBtn'
@@ -82,7 +83,6 @@ function ChevronIcon() {
 }
 
 export default function HelpSupportModal({ visible, onClose }: HelpSupportModalProps) {
-  const insets = useSafeAreaInsets()
 
   const openEmail = () => {
     void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)
@@ -93,98 +93,63 @@ export default function HelpSupportModal({ visible, onClose }: HelpSupportModalP
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable
-          style={styles.backdrop}
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="Close help and support"
-        />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onClose} closeLabel="Close help and support">
 
-          <View style={styles.header}>
-            <View style={styles.headerIcon}>
-              <HelpIcon />
-            </View>
-            <View style={styles.headerText}>
-              <Text style={styles.title}>Help & Support</Text>
-              <Text style={styles.subtitle}>Available 24/7</Text>
-            </View>
-          </View>
-
-          <Text style={styles.body}>
-            Need help with appointments, prescriptions, invoices, or your account? Reach the
-            Gateway Global team by email or WhatsApp.
-          </Text>
-
-          <Pressable
-            style={styles.contactRow}
-            onPress={openEmail}
-            accessibilityRole="link"
-            accessibilityLabel={`Email ${SUPPORT_EMAIL}`}
-          >
-            <View style={styles.contactIcon}>
-              <MailIcon />
-            </View>
-            <View style={styles.contactCopy}>
-              <Text style={styles.contactLabel}>Email</Text>
-              <Text style={styles.contactValue}>{SUPPORT_EMAIL}</Text>
-            </View>
-            <ChevronIcon />
-          </Pressable>
-
-          <Pressable
-            style={styles.contactRow}
-            onPress={openWhatsApp}
-            accessibilityRole="link"
-            accessibilityLabel={`WhatsApp ${WHATSAPP_DISPLAY}`}
-          >
-            <View style={styles.contactIcon}>
-              <WhatsAppIcon />
-            </View>
-            <View style={styles.contactCopy}>
-              <Text style={styles.contactLabel}>WhatsApp</Text>
-              <Text style={styles.contactValue}>{WHATSAPP_DISPLAY}</Text>
-            </View>
-            <ChevronIcon />
-          </Pressable>
-
-          <MBtn variant="primary" fullWidth onPress={onClose} style={styles.closeBtn}>
-            Close
-          </MBtn>
+      <View style={styles.header}>
+        <View style={styles.headerIcon}>
+          <HelpIcon />
+        </View>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Help & Support</Text>
+          <Text style={styles.subtitle}>Available 24/7</Text>
         </View>
       </View>
-    </Modal>
+
+      <Text style={styles.body}>
+        Need help with appointments, prescriptions, invoices, or your account? Reach the
+        Gateway Global team by email or WhatsApp.
+      </Text>
+
+      <Pressable
+        style={styles.contactRow}
+        onPress={openEmail}
+        accessibilityRole="link"
+        accessibilityLabel={`Email ${SUPPORT_EMAIL}`}
+      >
+        <View style={styles.contactIcon}>
+          <MailIcon />
+        </View>
+        <View style={styles.contactCopy}>
+          <Text style={styles.contactLabel}>Email</Text>
+          <Text style={styles.contactValue}>{SUPPORT_EMAIL}</Text>
+        </View>
+        <ChevronIcon />
+      </Pressable>
+
+      <Pressable
+        style={styles.contactRow}
+        onPress={openWhatsApp}
+        accessibilityRole="link"
+        accessibilityLabel={`WhatsApp ${WHATSAPP_DISPLAY}`}
+      >
+        <View style={styles.contactIcon}>
+          <WhatsAppIcon />
+        </View>
+        <View style={styles.contactCopy}>
+          <Text style={styles.contactLabel}>WhatsApp</Text>
+          <Text style={styles.contactValue}>{WHATSAPP_DISPLAY}</Text>
+        </View>
+        <ChevronIcon />
+      </Pressable>
+
+      <MBtn variant="primary" fullWidth onPress={onClose} style={styles.closeBtn}>
+        Close
+      </MBtn>
+</BottomSheet>
   )
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(13, 30, 66, 0.45)',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: radii.large,
-    borderTopRightRadius: radii.large,
-    paddingTop: 8,
-    paddingHorizontal: 20,
-    ...shadows.raised,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: 16,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,10 +213,8 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textLight,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
   },
   contactValue: {
     fontFamily: fontWeights.semiBold,

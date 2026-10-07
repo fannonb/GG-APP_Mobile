@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { animateNextLayout } from '@/lib/motion'
 import { colors, fontWeights, radii } from '@/theme'
 
 export type NotifTone = 'success' | 'info' | 'warning' | 'error' | 'purple' | 'brand' | 'navy'
@@ -55,32 +57,38 @@ export default function NotifBanner({
     onViewed()
   }, [onViewed])
 
+  // Text gets the full width; the action sits underneath it. With the button
+  // beside the text, bodies wrapped to five lines and two banners filled a screen.
   return (
     <View style={[styles.container, { backgroundColor: t.fill, borderColor: t.edge }]}>
       <View style={[styles.iconWrap, { backgroundColor: t.ink }]}>{icon}</View>
 
       <View style={styles.info}>
-        <Text style={[styles.title, { color: t.ink }]}>{title}</Text>
-        <Text style={[styles.body, { color: colors.textSub }]}>{body}</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: t.ink }]}>{title}</Text>
+          {onDismiss && (
+            <Pressable
+              onPress={() => {
+              animateNextLayout()
+              onDismiss()
+            }}
+              style={[styles.dismissBtn, { borderColor: t.edge }]}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={`Dismiss: ${title}`}
+            >
+              <Text style={[styles.dismissText, { color: t.ink }]}>✕</Text>
+            </Pressable>
+          )}
+        </View>
+        <Text style={[styles.body, { color: colors.textSub }]} numberOfLines={3}>
+          {body}
+        </Text>
         {sub ? <Text style={[styles.sub, { color: t.ink }]}>{sub}</Text> : null}
-      </View>
-
-      <View style={styles.right}>
-        {onDismiss && (
-          <Pressable
-            onPress={onDismiss}
-            style={[styles.dismissBtn, { borderColor: t.edge }]}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss notification"
-          >
-            <Text style={[styles.dismissText, { color: t.ink }]}>✕</Text>
-          </Pressable>
-        )}
         {cta && onCta && (
           <Pressable
             onPress={onCta}
-            style={[styles.ctaBtn, { backgroundColor: t.ink }]}
+            style={({ pressed }) => [styles.ctaBtn, { backgroundColor: t.ink }, pressed && styles.ctaPressed]}
             accessibilityRole="button"
           >
             <Text style={styles.ctaText}>{cta}</Text>
@@ -110,25 +118,28 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
-    gap: 2,
+    gap: 3,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
   },
   title: {
-    fontSize: 13,
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 19,
     fontFamily: fontWeights.bold,
   },
   body: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: fontWeights.regular,
-    lineHeight: 17,
+    lineHeight: 18,
   },
   sub: {
     fontSize: 12,
     fontFamily: fontWeights.bold,
     marginTop: 2,
-  },
-  right: {
-    alignItems: 'flex-end',
-    gap: 8,
   },
   dismissBtn: {
     width: 24,
@@ -143,12 +154,17 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.bold,
   },
   ctaBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: radii.full,
   },
+  ctaPressed: {
+    opacity: 0.85,
+  },
   ctaText: {
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: fontWeights.bold,
     color: '#FFFFFF',
   },

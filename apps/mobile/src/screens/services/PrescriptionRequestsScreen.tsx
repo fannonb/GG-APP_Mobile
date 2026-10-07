@@ -1,5 +1,8 @@
 import React from 'react'
-import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { useCurrency } from '@/lib/useCurrency'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import { AppBar, GGPill, MBtn, MCard, Screen, ScrollArea } from '@/components'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { colors, fontWeights, radii } from '@/theme'
@@ -31,7 +34,9 @@ function getStatusMeta(status: PrescriptionRequest['status']) {
 export function PrescriptionRequestsScreen({
   navigation,
 }: ServicesScreenProps<'PrescriptionRequests'>) {
-  const { data, isLoading } = usePatientPrescriptionRequests()
+  const currency = useCurrency()
+  const { data, isLoading, refetch } = usePatientPrescriptionRequests()
+  const pull = usePullToRefresh(refetch)
   const requests = (data ?? []) as PrescriptionRequest[]
 
   if (isLoading && requests.length === 0) {
@@ -50,10 +55,10 @@ export function PrescriptionRequestsScreen({
     <Screen>
       <AppBar
         title="Prescription Requests"
-        subtitle="Track uploads, pharmacy review, pickup, and delivery status"
+        subtitle="Your medication orders"
       />
 
-      <ScrollArea gap={14} px={16} py={16}>
+      <ScrollArea gap={14} px={16} py={16} {...pull}>
         {requests.length === 0 ? (
           <MCard padding={18}>
             <Text style={s.emptyTitle}>No prescription requests yet</Text>
@@ -134,7 +139,7 @@ export function PrescriptionRequestsScreen({
                   <View style={s.noteBlock}>
                     <Text style={s.noteLabel}>Quote Summary</Text>
                     {request.quotedAmount != null ? (
-                      <Text style={s.quoteAmount}>{formatCurrency(request.quotedAmount)}</Text>
+                      <Text style={s.quoteAmount}>{formatCurrency(request.quotedAmount, currency)}</Text>
                     ) : null}
                     {(request.quotedItems?.length ?? 0) > 0 ? (
                       <View style={s.quoteList}>
@@ -143,7 +148,7 @@ export function PrescriptionRequestsScreen({
                             <Text style={s.quoteItemName}>{item.name}</Text>
                             <Text style={s.quoteItemMeta}>
                               {item.quantity ?? '1 pack'}
-                              {item.unitPrice != null ? ` - ${formatCurrency(item.unitPrice)}` : ''}
+                              {item.unitPrice != null ? ` - ${formatCurrency(item.unitPrice, currency)}` : ''}
                             </Text>
                           </View>
                         ))}
@@ -271,11 +276,9 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   metaLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   metaValue: {
@@ -293,10 +296,9 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   noteLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   noteBody: {
@@ -384,6 +386,6 @@ const s = StyleSheet.create({
     marginTop: 12,
     fontSize: 13,
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
 })

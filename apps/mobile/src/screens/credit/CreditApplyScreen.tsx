@@ -2,15 +2,14 @@ import React, { useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   TextInput,
-  ActivityIndicator,
-} from 'react-native'
+  } from 'react-native'
+import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, ActionBar } from '@/components'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
@@ -172,7 +171,7 @@ export function CreditApplyScreen() {
           <View style={s.creditGrid}>
             {[
               { label: 'Approved Limit', value: formatCurrency(creditLimit, currency), color: colors.navy },
-              { label: 'Available', value: formatCurrency(creditAvailable, currency), color: colors.blue },
+              { label: 'Available', value: formatCurrency(creditAvailable, currency), color: colors.blueInk },
               { label: 'In Use', value: formatCurrency(inUse, currency), color: colors.textSub },
               { label: 'Account Ref', value: refNum, color: colors.text, mono: true },
             ].map(item => (
@@ -266,7 +265,7 @@ export function CreditApplyScreen() {
                     <Text
                       style={[
                         s.dropdownOptionText,
-                        reason === opt.value && { color: colors.blue, fontFamily: fontWeights.bold },
+                        reason === opt.value && { color: colors.blueInk, fontFamily: fontWeights.bold },
                       ]}
                     >
                       {opt.label}
@@ -321,32 +320,30 @@ export function CreditApplyScreen() {
             </Text>
           </View>
 
-          {/* Error */}
-          {error && <Text style={s.errorText}>{error}</Text>}
         </MCard>
 
-        {/* ====== 4. Action Buttons ====== */}
-        <View style={s.btnRow}>
-          <MBtn
-            variant="secondary"
-            style={{ flex: 1 }}
-            onPress={() => navigation.goBack()}
-          >
-            Cancel
-          </MBtn>
-          <MBtn
-            variant="primary"
-            style={{ flex: 2 }}
-            disabled={loading}
-            onPress={handleSubmit}
-          >
-            {loading ? 'Submitting...' : 'Submit Request'}
-          </MBtn>
-        </View>
 
         {/* Bottom spacer */}
-        <View style={{ height: 24 }} />
+        <View style={{ height: 8 }} />
       </ScrollArea>
+
+      <ActionBar error={error}>
+        <MBtn
+          variant="secondary"
+          style={{ flex: 1 }}
+          onPress={() => navigation.goBack()}
+        >
+          Cancel
+        </MBtn>
+        <MBtn
+          variant="primary"
+          style={{ flex: 2 }}
+          disabled={loading}
+          onPress={handleSubmit}
+        >
+          {loading ? 'Submitting...' : 'Submit Request'}
+        </MBtn>
+      </ActionBar>
     </Screen>
   )
 }
@@ -363,17 +360,6 @@ const s = StyleSheet.create({
     gap: 14,
     alignItems: 'flex-start',
   },
-  partnerLogoZone: {
-    width: 112,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
   partnerName: {
     fontSize: 14,
     fontFamily: fontWeights.extraBold,
@@ -386,18 +372,6 @@ const s = StyleSheet.create({
     color: colors.textSub,
     lineHeight: 17,
     marginBottom: 8,
-  },
-  linkedBadge: {
-    backgroundColor: colors.blue3,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-    alignSelf: 'flex-start',
-  },
-  linkedBadgeText: {
-    fontSize: 10,
-    fontFamily: fontWeights.bold,
-    color: colors.blue,
   },
 
   /* card title */
@@ -431,11 +405,9 @@ const s = StyleSheet.create({
     padding: 12,
   },
   creditCellLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textLight,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
     marginBottom: 6,
   },
   creditCellValue: {
@@ -559,16 +531,6 @@ const s = StyleSheet.create({
   },
 
   /* error */
-  errorText: {
-    fontSize: 12,
-    fontFamily: fontWeights.semiBold,
-    color: colors.error,
-    marginTop: 8,
-  },
 
   /* bottom buttons */
-  btnRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
 })

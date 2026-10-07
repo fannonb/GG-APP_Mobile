@@ -72,6 +72,16 @@ export interface VerifyEmailResponse {
   message: string
 }
 
+export interface EmailChangeStatusResponse {
+  id: string
+  currentEmail: string
+  newEmail: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  decisionNote: string | null
+  createdAt: string
+  decidedAt: string | null
+}
+
 export interface ForgotPasswordResponse {
   message: string
   resetUrl?: string

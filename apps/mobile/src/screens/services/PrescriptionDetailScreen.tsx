@@ -5,10 +5,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
-  Pressable,
   TextInput,
   Modal,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { useCurrency } from '@/lib/useCurrency'
 import { AppBar, GGPill, MBtn, MCard, Screen, ScrollArea } from '@/components'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { colors, fontWeights, radii } from '@/theme'
@@ -193,6 +194,7 @@ export function PrescriptionDetailScreen({
   navigation,
   route,
 }: ServicesScreenProps<'PrescriptionDetail'>) {
+  const currency = useCurrency()
   const { prescriptionId } = route.params
   const { data, isLoading } = usePatientPrescriptionRequests()
   const requests = (data ?? []) as PrescriptionRequest[]
@@ -352,14 +354,14 @@ export function PrescriptionDetailScreen({
                   {item.quantity ? ` × ${item.quantity}` : ''}
                 </Text>
                 <Text style={s.quotePrice}>
-                  {item.unitPrice != null ? formatCurrency(item.unitPrice) : '—'}
+                  {item.unitPrice != null ? formatCurrency(item.unitPrice, currency) : '—'}
                 </Text>
               </View>
             ))}
             {request.quotedAmount != null ? (
               <View style={s.quoteTotalRow}>
                 <Text style={s.quoteTotalLabel}>Total</Text>
-                <Text style={s.quoteTotalValue}>{formatCurrency(request.quotedAmount)}</Text>
+                <Text style={s.quoteTotalValue}>{formatCurrency(request.quotedAmount, currency)}</Text>
               </View>
             ) : null}
             {request.quotedAt ? (
@@ -415,7 +417,7 @@ export function PrescriptionDetailScreen({
       </ScrollArea>
 
       <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
-        <Pressable style={s.modalBackdrop} onPress={() => setPreviewOpen(false)}>
+        <Pressable style={s.modalBackdrop} onPress={() => setPreviewOpen(false)} feedback="none">
           <View style={s.modalCard}>
             {attachmentUrl ? (
               <Image source={{ uri: attachmentUrl }} style={s.modalImage} resizeMode="contain" />
@@ -499,7 +501,7 @@ const s = StyleSheet.create({
   linkText: {
     fontSize: 13,
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   previewThumb: {
     width: '100%',
@@ -644,11 +646,9 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   metaLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   invoiceRef: {
     fontSize: 13,

@@ -1,5 +1,7 @@
 import React from 'react'
-import { View, Pressable, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { animateNextLayout } from '@/lib/motion'
 import { colors, fontWeights } from '@/theme'
 import { hapticSelection } from '@/lib/haptics'
 
@@ -19,6 +21,7 @@ export default function SegmentedTabs({ tabs, activeIndex, onSelect }: Segmented
     if (index !== activeIndex) {
       hapticSelection()
     }
+    animateNextLayout()
     onSelect(index)
   }
 

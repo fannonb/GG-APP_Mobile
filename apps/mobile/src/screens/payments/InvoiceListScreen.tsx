@@ -2,15 +2,16 @@ import React, { useState } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
-  ActivityIndicator,
-} from 'react-native'
+  } from 'react-native'
+import Pressable from '@/components/Pressable'
+import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import Svg, { Rect, Line, Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii } from '@/theme'
+import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import { Screen, ScrollArea, AppBar, MCard, FilterChips, MoneyText, StatusPill, NotifBanner } from '@/components'
-import CheckIcon from '@/icons/CheckIcon'
+import InvoiceIcon from '@/icons/InvoiceIcon'
 import { usePatientInvoices } from '@gg/shared-hooks'
 import { formatDate, isActionablePendingInvoice } from '@gg/shared-utils'
 import type { PatientInvoice } from '@gg/shared-types'
@@ -22,7 +23,7 @@ const STATUS_MAP: Record<
   string,
   { tone: 'warning' | 'info' | 'success' | 'error' | 'navy'; label: string }
 > = {
-  pending_auth: { tone: 'warning', label: 'Awaiting Auth' },
+  pending_auth: { tone: 'warning', label: 'Needs approval' },
   authorized: { tone: 'info', label: 'Authorized' },
   paid: { tone: 'success', label: 'Paid' },
   rejected: { tone: 'error', label: 'Rejected' },
@@ -52,7 +53,8 @@ function InvoiceRowIcon({ isPending }: { isPending: boolean }) {
 /* ------------------------------------------------------------------ */
 export function InvoiceListScreen() {
   const navigation = useNavigation<any>()
-  const { data: invoiceData, isLoading } = usePatientInvoices()
+  const { data: invoiceData, isLoading, refetch } = usePatientInvoices()
+  const pull = usePullToRefresh(refetch)
 
   const [filterIndex, setFilterIndex] = useState(0)
 
@@ -99,10 +101,10 @@ export function InvoiceListScreen() {
     return (
       <Screen>
         <AppBar title="Invoices" subtitle="Review and authorize pending invoices" variant="hero" back={false} />
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={s.loadingText}>Loading invoices...</Text>
-        </View>
+        <SkeletonGroup style={s.skeleton}>
+          <SkeletonBlock width="50%" height={18} />
+          <SkeletonList rows={5} />
+        </SkeletonGroup>
       </Screen>
     )
   }
@@ -116,12 +118,12 @@ export function InvoiceListScreen() {
           back={false}
         />
 
-      <ScrollArea gap={14} px={16} py={14}>
+      <ScrollArea gap={14} px={16} py={14} {...pull}>
         {firstPending && (
           <NotifBanner
-            icon={<CheckIcon size={18} color="#FFFFFF" />}
+            icon={<InvoiceIcon size={18} color="#FFFFFF" />}
             tone="warning"
-            title={`${pendingInvoices.length} invoice${pendingInvoices.length === 1 ? '' : 's'} waiting for Triple-PIN`}
+            title={pendingInvoices.length === 1 ? 'An invoice needs your approval' : `${pendingInvoices.length} invoices need your approval`}
             body={`${firstPending.provider} — authorize to pay from your healthcare credit.`}
             cta="Authorize now"
             onCta={() => navigation.navigate('InvoiceReview', { invoiceId: firstPending.id })}
@@ -220,6 +222,10 @@ export default InvoiceListScreen
 /*  Styles                                                             */
 /* ================================================================== */
 const s = StyleSheet.create({
+  skeleton: {
+    padding: 16,
+    gap: 14,
+  },
   loadingWrap: {
     flex: 1,
     alignItems: 'center',

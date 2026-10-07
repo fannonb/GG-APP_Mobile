@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
   TextInput,
   ActivityIndicator,
   Platform,
 } from 'react-native'
+import Pressable from '@/components/Pressable'
 import * as DocumentPicker from 'expo-document-picker'
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn } from '@/components'
+import { Screen, ScrollArea, AppBar, MCard, MBtn, ActionBar } from '@/components'
 import CalendarIcon from '@/icons/CalendarIcon'
 import CheckIcon from '@/icons/CheckIcon'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { buildUploadAttachment, isSupportedPatientAttachment } from '@/lib/attachments'
 import { useProvider, useCreateAppointmentMutation, usePatientProfile } from '@gg/shared-hooks'
+import { getBookableSlots } from '@gg/shared-utils'
 import type {
   AppointmentAttachmentPayload,
   CreateAppointmentPayload,
@@ -96,6 +97,18 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
   const [selectedTime, setSelectedTime] = useState('10:00')
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Only offer times the provider is open, and nothing already past today.
+  const { slots: availableSlots, closed: providerClosed } = useMemo(
+    () => getBookableSlots(provider ?? undefined, selectedDate, TIME_SLOTS),
+    [provider, selectedDate],
+  )
+  useEffect(() => {
+    if (availableSlots.length > 0 && !availableSlots.includes(selectedTime)) {
+      setSelectedTime(availableSlots.includes('10:00') ? '10:00' : availableSlots[0])
+    }
+  }, [availableSlots, selectedTime])
+  const selectedDayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' })
 
   useEffect(() => {
     if (!rebook) return
@@ -251,6 +264,10 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
 
   const handleSubmit = async () => {
     setError(null)
+    if (!availableSlots.includes(selectedTime)) {
+      setError('Choose a date and time when this provider is open.')
+      return
+    }
     const forSelf = bookingFor === 'self'
     const normalizedServices =
       selectedServices.length > 0
@@ -406,7 +423,12 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
         {/* === 3. Date === */}
         <View>
           <Text style={s.fieldLabel}>Preferred Date</Text>
-          <Pressable style={s.dateField} onPress={() => setShowDatePicker(true)}>
+          <Pressable
+            style={s.dateField}
+            onPress={() => setShowDatePicker(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Preferred date, ${formatDisplayDate(selectedDate)}`}
+          >
             <CalendarIcon size={18} color={colors.textSub} />
             <Text style={s.dateFieldText}>{formatDisplayDate(selectedDate)}</Text>
           </Pressable>
@@ -425,14 +447,24 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
         {/* === 3b. Time Slot === */}
         <View>
           <Text style={s.fieldLabel}>Preferred Time</Text>
+          {availableSlots.length === 0 ? (
+            <Text style={s.noSlotsText}>
+              {providerClosed
+                ? `This provider is closed on ${selectedDayName}s. Pick another date.`
+                : 'No times left on this date. Pick another date.'}
+            </Text>
+          ) : null}
           <View style={s.timeSlotGrid}>
-            {TIME_SLOTS.map(slot => {
+            {availableSlots.map(slot => {
               const isSelected = selectedTime === slot
               return (
                 <Pressable
                   key={slot}
                   style={[s.timeSlot, isSelected && s.timeSlotSelected]}
                   onPress={() => setSelectedTime(slot)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={formatTime12h(slot)}
                 >
                   <Text style={[s.timeSlotText, isSelected && s.timeSlotTextSelected]}>
                     {formatTime12h(slot)}
@@ -499,8 +531,6 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
           ) : null}
         </View>
 
-        {error ? <Text style={s.errorText}>{error}</Text> : null}
-
         {/* === 5. Info Notice === */}
         <View style={s.infoBanner}>
           <InfoIcon size={18} color={colors.blue} />
@@ -509,28 +539,19 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
           </Text>
         </View>
 
-        {/* === 6. Buttons === */}
-        <View style={s.buttonRow}>
-          <MBtn
-            variant="secondary"
-            onPress={() => navigation.goBack()}
-            style={s.cancelBtn}
-          >
-            Cancel
-          </MBtn>
-          <MBtn
-            variant="primary"
-            disabled={isPending}
-            onPress={handleSubmit}
-            style={s.submitBtn}
-          >
-            {isPending ? 'Submitting...' : 'Submit Request ->'}
-          </MBtn>
-        </View>
-
         {/* bottom spacer */}
-        <View style={{ height: 24 }} />
+        <View style={{ height: 8 }} />
       </ScrollArea>
+
+      {/* === 6. Pinned actions === */}
+      <ActionBar error={error}>
+        <MBtn variant="secondary" onPress={() => navigation.goBack()} style={s.cancelBtn}>
+          Cancel
+        </MBtn>
+        <MBtn variant="primary" disabled={isPending} onPress={handleSubmit} style={s.submitBtn}>
+          {isPending ? 'Submitting…' : 'Send request'}
+        </MBtn>
+      </ActionBar>
     </Screen>
   )
 }
@@ -715,7 +736,7 @@ const s = StyleSheet.create({
   },
   timeSlotSelected: {
     borderColor: colors.blue,
-    backgroundColor: colors.blue3,
+    backgroundColor: colors.blue100,
   },
   timeSlotText: {
     fontSize: 13,
@@ -724,7 +745,16 @@ const s = StyleSheet.create({
   },
   timeSlotTextSelected: {
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
+  },
+  noSlotsText: {
+    fontSize: 13,
+    fontFamily: fontWeights.medium,
+    color: colors.warning,
+    backgroundColor: colors.warningBg,
+    borderRadius: radii.sm,
+    padding: 12,
+    marginBottom: 8,
   },
 
   /* notes */
@@ -780,7 +810,7 @@ const s = StyleSheet.create({
   uploadCta: {
     fontSize: 12,
     fontFamily: fontWeights.bold,
-    color: colors.blue,
+    color: colors.blueInk,
   },
   attachmentList: {
     gap: 8,
@@ -816,12 +846,6 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.bold,
     color: colors.error,
   },
-  errorText: {
-    fontSize: 13,
-    fontFamily: fontWeights.medium,
-    color: colors.error,
-    textAlign: 'center',
-  },
 
   /* info banner */
   infoBanner: {
@@ -841,11 +865,6 @@ const s = StyleSheet.create({
   },
 
   /* buttons */
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
-  },
   cancelBtn: {
     flex: 1,
   },

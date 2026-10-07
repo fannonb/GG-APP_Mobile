@@ -6,16 +6,19 @@ import { colors, fontWeights, radii, shadows } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
 import FinancePartnerLogo from '@/components/FinancePartnerLogo'
 import CreditIcon from '@/icons/CreditIcon'
-import { FINANCE_PARTNER_SUMMARIES } from '@gg/shared-config'
+import { HospitalIcon, LockIcon, ProfileIcon, WalletIcon } from '@/icons'
+import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
+import { useUserStore } from '@gg/shared-stores'
+import { formatCurrency } from '@gg/shared-utils'
 
 /* ------------------------------------------------------------------ */
 /*  Feature items for the apply card                                   */
 /* ------------------------------------------------------------------ */
 const FEATURES = [
-  { emoji: '⚡', label: 'Instant',            desc: 'Funds loaded on approval' },
-  { emoji: '🔒', label: 'Secure',             desc: 'Bank-grade encryption' },
-  { emoji: '🏥', label: 'Verified providers',  desc: 'Approved network only' },
-  { emoji: '👨‍👩‍👧', label: 'Family',   desc: 'Add beneficiaries' },
+  { Icon: WalletIcon, label: 'Instant',            desc: 'Funds loaded on approval' },
+  { Icon: LockIcon, label: 'Secure',             desc: 'Bank-grade encryption' },
+  { Icon: HospitalIcon, label: 'Verified providers',  desc: 'Approved network only' },
+  { Icon: ProfileIcon, label: 'Family',   desc: 'Add beneficiaries' },
 ]
 
 /* ------------------------------------------------------------------ */
@@ -30,7 +33,7 @@ const CREDIT_JOURNEY_STEPS = [
   {
     step: 2,
     title: 'Submit Application',
-    desc: "Choose a finance partner and send your request to GG'APP for review.",
+    desc: 'Tell us about your income and how much you need. Your finance partner reviews it.',
   },
   {
     step: 3,
@@ -44,6 +47,11 @@ const CREDIT_JOURNEY_STEPS = [
 /* ------------------------------------------------------------------ */
 export function EmptyWalletScreen() {
   const navigation = useNavigation<any>()
+  // Patients in Zimbabwe and Zambia must not see a Kenyan shilling balance.
+  const countryCode = useUserStore(s => s.user?.countryCode) ?? 'KE'
+  const currency = getCountryByCode(countryCode)?.currencySymbol ?? 'Ksh.'
+  // One partner per country: Equity Bank in Kenya, Moneymart Finance in Zimbabwe.
+  const partner = getFinancePartnerSummary(getFinancePartnerIdForCountry(countryCode))
 
   return (
     <Screen>
@@ -52,8 +60,8 @@ export function EmptyWalletScreen() {
       <ScrollArea gap={14} px={16} py={14}>
         {/* === 1. Placeholder Balance Card === */}
         <View style={s.balanceCard}>
-          <Text style={s.balanceLabel}>AVAILABLE BALANCE</Text>
-          <Text style={s.balanceAmount}>Ksh.0.00</Text>
+          <Text style={s.balanceLabel}>Available balance</Text>
+          <Text style={s.balanceAmount}>{formatCurrency(0, currency)}</Text>
 
           {/* Empty progress bar */}
           <View style={s.progressTrack}>
@@ -83,7 +91,7 @@ export function EmptyWalletScreen() {
           <View style={s.featureGrid}>
             {FEATURES.map(f => (
               <View key={f.label} style={s.featureItem}>
-                <Text style={s.featureEmoji}>{f.emoji}</Text>
+                <f.Icon size={22} color={colors.blueInk} />
                 <View>
                   <Text style={s.featureLabel}>{f.label}</Text>
                   <Text style={s.featureDesc}>{f.desc}</Text>
@@ -125,35 +133,25 @@ export function EmptyWalletScreen() {
 
         {/* === 4. Finance Partners === */}
         <MCard padding={18}>
-          <Text style={s.sectionTitle}>Choose your finance partner</Text>
+          <Text style={s.sectionTitle}>Your finance partner</Text>
           <Text style={s.sectionSub}>
-            GG'APP works with licensed partners — you'll pick one during your application
+            Healthcare credit in {getCountryByCode(countryCode)?.name ?? 'your country'} is provided by {partner?.name}.
           </Text>
 
-          {FINANCE_PARTNER_SUMMARIES.map(partner => (
-            <View
-              key={partner.id}
-              style={[s.partnerCard, { borderColor: partner.accentBorder }]}
-            >
+          {partner ? (
+            <View style={[s.partnerCard, { borderColor: colors.border }]}>
               <View style={s.partnerLogoZone}>
                 <FinancePartnerLogo partnerId={partner.id} height={28} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.partnerName}>{partner.name}</Text>
                 <Text style={s.partnerTagline}>{partner.tagline}</Text>
-                <View
-                  style={[
-                    s.partnerTimePill,
-                    { backgroundColor: partner.accentBg, borderColor: partner.accentBorder },
-                  ]}
-                >
-                  <Text style={[s.partnerTimeText, { color: partner.accent }]}>
-                    Approval in {partner.processingTime}
-                  </Text>
+                <View style={[s.partnerTimePill, { backgroundColor: colors.blue100, borderColor: colors.blue100 }]}>
+                  <Text style={[s.partnerTimeText, { color: colors.blueInk }]}>Decision in {partner.processingTime}</Text>
                 </View>
               </View>
             </View>
-          ))}
+          ) : null}
         </MCard>
 
         {/* === 5. Info Notice === */}
@@ -191,11 +189,9 @@ const s = StyleSheet.create({
     ...shadows.raised,
   },
   balanceLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.9)',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
   },
   balanceAmount: {
     fontSize: 34,
@@ -273,9 +269,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     width: '46%',
-  },
-  featureEmoji: {
-    fontSize: 18,
   },
   featureLabel: {
     fontSize: 12,
