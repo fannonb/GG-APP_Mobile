@@ -274,37 +274,37 @@ export default RescheduleReviewScreen
 
 const st = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  emptyText: { fontSize: 15, fontFamily: fontWeights.bold, color: colors.textSub },
+  emptyText: { fontSize: 16, fontFamily: fontWeights.bold, color: colors.textSub },
 
   infoBanner: { backgroundColor: colors.blue3, borderRadius: radii.default, padding: 14 },
-  infoBannerText: { fontSize: 13, fontFamily: fontWeights.medium, color: colors.navy, lineHeight: 20 },
+  infoBannerText: { fontSize: 14.5, fontFamily: fontWeights.medium, color: colors.navy, lineHeight: 22 },
 
-  cardTitle: { fontSize: 16, fontFamily: fontWeights.extraBold, color: colors.text, marginBottom: 14 },
+  cardTitle: { fontSize: 17, fontFamily: fontWeights.extraBold, color: colors.text, marginBottom: 14 },
 
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
-  detailLabel: { fontSize: 13, fontFamily: fontWeights.medium, color: colors.textSub },
-  detailValue: { fontSize: 13, fontFamily: fontWeights.bold, color: colors.text, maxWidth: '60%', textAlign: 'right' },
+  detailLabel: { fontSize: 14.5, fontFamily: fontWeights.medium, color: colors.textSub },
+  detailValue: { fontSize: 14.5, fontFamily: fontWeights.bold, color: colors.text, maxWidth: '60%', textAlign: 'right' },
   divider: { height: 1, backgroundColor: colors.border },
 
   dateTimeCard: { backgroundColor: colors.bg, borderRadius: radii.default, padding: 16, marginTop: 14, gap: 0 },
   dtRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
-  dtLabel: { fontSize: 11, fontFamily: fontWeights.regular, color: colors.textSub },
-  dtValue: { fontSize: 14, fontFamily: fontWeights.bold, color: colors.text },
+  dtLabel: { fontSize: 12.5, fontFamily: fontWeights.regular, color: colors.textSub },
+  dtValue: { fontSize: 15.5, fontFamily: fontWeights.bold, color: colors.text },
   dtDivider: { height: 1, backgroundColor: colors.border },
 
   originalRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  originalLabel: { fontSize: 12, fontFamily: fontWeights.medium, color: colors.textLight },
-  originalValue: { fontSize: 12, fontFamily: fontWeights.semiBold, color: colors.textSub },
+  originalLabel: { fontSize: 13.5, fontFamily: fontWeights.medium, color: colors.textLight },
+  originalValue: { fontSize: 13.5, fontFamily: fontWeights.semiBold, color: colors.textSub },
 
   btnRow: { flexDirection: 'row', gap: 10 },
 
   successCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
   successTitle: { fontSize: 20, fontFamily: fontWeights.extraBold, color: colors.text },
-  successSub: { fontSize: 13, fontFamily: fontWeights.regular, color: colors.textSub, textAlign: 'center', lineHeight: 20 },
+  successSub: { fontSize: 14.5, fontFamily: fontWeights.regular, color: colors.textSub, textAlign: 'center', lineHeight: 22 },
 
-  declineTitle: { fontSize: 15, fontFamily: fontWeights.bold, color: colors.error, marginBottom: 6 },
-  declineDesc: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 18, marginBottom: 12 },
-  declineInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontWeights.regular, fontSize: 14, color: colors.text, backgroundColor: colors.bg, minHeight: 70, marginBottom: 14 },
+  declineTitle: { fontSize: 16, fontFamily: fontWeights.bold, color: colors.error, marginBottom: 6 },
+  declineDesc: { fontSize: 13.5, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 20, marginBottom: 12 },
+  declineInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontWeights.regular, fontSize: 15.5, color: colors.text, backgroundColor: colors.bg, minHeight: 70, marginBottom: 14 },
   reasonChip: {
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -317,6 +317,6 @@ const st = StyleSheet.create({
     borderColor: colors.blueInk,
     backgroundColor: colors.blue100,
   },
-  reasonChipText: { fontSize: 13, fontFamily: fontWeights.medium, color: colors.text },
+  reasonChipText: { fontSize: 14.5, fontFamily: fontWeights.medium, color: colors.text },
   reasonChipTextActive: { color: colors.blueInk, fontFamily: fontWeights.bold },
 })

@@ -94,12 +94,12 @@ export function ProviderLocationMap({
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  title: { fontSize: 15, fontFamily: fontWeights.bold, color: colors.text },
+  title: { fontSize: 16, fontFamily: fontWeights.bold, color: colors.text },
   address: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   mapFrame: {
     height: 168,
@@ -129,7 +129,7 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   mapPinText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.bold,
     color: colors.navy,
     flexShrink: 1,
@@ -153,20 +153,20 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   pinFallbackTitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.navy,
     textAlign: 'center',
   },
   pinFallbackSub: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
   },
   coordsText: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.medium,
     color: colors.blueInk,
     marginTop: 2,
@@ -179,7 +179,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.navy,
   },
   directionsBtnText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: '#FFFFFF',
   },

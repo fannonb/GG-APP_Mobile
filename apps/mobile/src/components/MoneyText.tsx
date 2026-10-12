@@ -28,9 +28,9 @@ export default function MoneyText({
   })
 
   const sizeStyles = {
-    sm: { fontSize: 13, symbolSize: 11 },
-    md: { fontSize: 16, symbolSize: 13 },
-    lg: { fontSize: 20, symbolSize: 15 },
+    sm: { fontSize: 14.5, symbolSize: 12.5 },
+    md: { fontSize: 17, symbolSize: 14.5 },
+    lg: { fontSize: 20, symbolSize: 16 },
     hero: { fontSize: 28, symbolSize: 18 },
   }[size]
 

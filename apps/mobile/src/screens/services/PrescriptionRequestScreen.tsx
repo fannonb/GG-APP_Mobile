@@ -440,7 +440,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -455,12 +455,12 @@ const s = StyleSheet.create({
     gap: 4,
   },
   providerName: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: fontWeights.extraBold,
     color: colors.text,
   },
   providerMeta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
@@ -469,13 +469,13 @@ const s = StyleSheet.create({
     gap: 6,
   },
   introText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 12,
@@ -510,7 +510,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue,
   },
   choiceTitle: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
@@ -518,10 +518,10 @@ const s = StyleSheet.create({
     color: colors.navy,
   },
   choiceBody: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   choiceBodySelected: {
     color: colors.textSub,
@@ -567,7 +567,7 @@ const s = StyleSheet.create({
     flex: 1,
   },
   optionTitle: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.text,
   },
@@ -576,7 +576,7 @@ const s = StyleSheet.create({
     color: colors.navy,
   },
   optionMeta: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     marginTop: 2,
@@ -587,10 +587,10 @@ const s = StyleSheet.create({
     padding: 14,
   },
   warningText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.warning,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   textAreaWrap: {
     marginTop: 14,
@@ -610,7 +610,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.semiBold,
     color: colors.textSub,
     marginBottom: 6,
@@ -618,7 +618,7 @@ const s = StyleSheet.create({
   textArea: {
     minHeight: 86,
     padding: 0,
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
   },
@@ -653,7 +653,7 @@ const s = StyleSheet.create({
     gap: 3,
   },
   uploadTitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.blueInk,
   },
@@ -661,10 +661,10 @@ const s = StyleSheet.create({
     color: colors.success,
   },
   uploadBody: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   infoBanner: {
     flexDirection: 'row',
@@ -677,10 +677,10 @@ const s = StyleSheet.create({
   },
   infoBannerText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.navy,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   secondaryCta: {
     flex: 1,

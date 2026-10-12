@@ -197,7 +197,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                     <Text style={[styles.categoryName, soon && styles.categoryNameSoon]} numberOfLines={1}>
                       {cat.label}
                     </Text>
-                    <Text style={styles.categoryDesc} numberOfLines={1}>
+                    <Text style={styles.categoryDesc} numberOfLines={2}>
                       {cat.desc}
                     </Text>
                   </View>
@@ -236,10 +236,10 @@ const styles = StyleSheet.create({
   },
   emptyDesc: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 
   /* Section 1 — Search */
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     paddingVertical: 0,
   },
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     flex: 1,
   },
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   categoryNameSoon: {
@@ -326,12 +326,12 @@ const styles = StyleSheet.create({
   },
   categoryDesc: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   categoryCount: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
   },
   resultBadges: {
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   resultRating: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.text,
   },
 
@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
   },
   providerMeta: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   divider: {

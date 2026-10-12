@@ -335,7 +335,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -367,10 +367,10 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   bannerDesc: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
-    lineHeight: 19,
+    lineHeight: 21,
     marginBottom: 12,
   },
   bannerDetails: {
@@ -382,19 +382,19 @@ const s = StyleSheet.create({
     gap: 2,
   },
   bannerDetailLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
   },
   bannerDetailValue: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.navy,
   },
 
   /* timeline */
   timelineTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 18,
@@ -433,11 +433,11 @@ const s = StyleSheet.create({
     flex: 1,
   },
   timelineLabel: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15.5,
+    lineHeight: 22,
   },
   timelineDate: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     marginTop: 2,

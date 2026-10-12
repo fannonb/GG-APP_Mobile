@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
   },
   stepSub: {
     fontFamily: fontWeights.regular,
-    fontSize: 16,
+    fontSize: 17,
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 12,
   },
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   labelDark: {
     color: 'rgba(255,255,255,0.9)',
     fontFamily: fontWeights.medium,
-    fontSize: 14,
+    fontSize: 15.5,
   },
   selectBox: {
     flexDirection: 'row',
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontFamily: fontWeights.regular,
-    fontSize: 15,
+    fontSize: 16,
     color: '#FFFFFF',
   },
   placeholder: {
@@ -778,12 +778,12 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     fontFamily: fontWeights.medium,
-    fontSize: 14,
+    fontSize: 15.5,
     color: '#FFFFFF',
   },
   inlineError: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.errorOnDark,
     marginTop: 6,
   },
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.errorOnDark,
     textAlign: 'center',
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.navy900,
   },
   linkRow: {
@@ -828,12 +828,12 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   linkHint: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.regular,
     color: 'rgba(255,255,255,0.6)',
   },
   linkAction: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.blue,
   },
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   strengthLabel: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
   },
   checkboxRow: {
@@ -880,10 +880,10 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: 'rgba(255,255,255,0.7)',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   genderRow: {
     flexDirection: 'row',
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   },
   genderChipText: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: 'rgba(255,255,255,0.7)',
   },
   genderChipTextActive: {
@@ -924,9 +924,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   googleNoticeText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: '#FFFFFF',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 })

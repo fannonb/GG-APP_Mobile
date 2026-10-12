@@ -35,7 +35,7 @@ const summaryStyles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginBottom: 6,
   },
@@ -97,19 +97,19 @@ const rowStyles = StyleSheet.create({
   },
   refText: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
     marginTop: 2,
   },
   providerText: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.text,
     marginBottom: 2,
   },
   serviceText: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   right: {
@@ -118,7 +118,7 @@ const rowStyles = StyleSheet.create({
   },
   amountText: {
     fontFamily: fontWeights.extraBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
   },
 })
@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   },
   loadingText: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
 
@@ -262,13 +262,13 @@ const s = StyleSheet.create({
   },
   emptyTitle: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
     marginBottom: 6,
   },
   emptySubtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
     textAlign: 'center',
   },

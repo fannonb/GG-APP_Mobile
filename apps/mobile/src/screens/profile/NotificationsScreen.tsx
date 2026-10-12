@@ -410,7 +410,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -423,7 +423,7 @@ const s = StyleSheet.create({
     borderRadius: 9999,
   },
   markAllText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: '#FFFFFF',
   },
@@ -434,12 +434,12 @@ const s = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   emptyBody: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',
@@ -447,7 +447,7 @@ const s = StyleSheet.create({
 
   /* grouped list */
   groupLabel: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.textSub,
     marginBottom: 8,
@@ -511,8 +511,8 @@ const s = StyleSheet.create({
   },
   notifTitle: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 21,
     fontFamily: fontWeights.regular,
     color: colors.text,
   },
@@ -520,16 +520,16 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.bold,
   },
   notifTime: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textLight,
     flexShrink: 0,
   },
   notifBody: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 })
 

@@ -445,7 +445,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -496,7 +496,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.success,
   },
   activePillText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
   },
@@ -507,14 +507,14 @@ const s = StyleSheet.create({
     borderRadius: 9999,
   },
   infoPillText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.85)',
   },
 
   /* balance */
   balanceLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.55)',
     marginBottom: 4,
@@ -542,7 +542,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   limitLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.55)',
     marginBottom: 4,
@@ -564,7 +564,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   progressLabelText: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.regular,
     color: 'rgba(255,255,255,0.5)',
   },
@@ -585,18 +585,18 @@ const s = StyleSheet.create({
     marginHorizontal: 14,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.55)',
     marginBottom: 4,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
   },
   statValueBlue: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: fontWeights.extraBold,
     color: '#38B6FF',
   },
@@ -642,22 +642,22 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   partnerLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
     marginBottom: 2,
   },
   partnerName: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.extraBold,
     color: colors.navy,
     marginBottom: 4,
   },
   partnerDesc: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textLight,
-    lineHeight: 16,
+    lineHeight: 18,
   },
 
   /* info notice */
@@ -674,10 +674,10 @@ const s = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.navy,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   /* section header (shared tx & ben) */
@@ -691,18 +691,18 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   sectionSub: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textLight,
     marginTop: 2,
   },
   viewAll: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
   },
@@ -713,7 +713,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
@@ -743,12 +743,12 @@ const s = StyleSheet.create({
     gap: 2,
   },
   txProvider: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
   },
   txMeta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
@@ -758,7 +758,7 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   txAmount: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.extraBold,
     color: colors.text,
     letterSpacing: -0.3,
@@ -777,12 +777,12 @@ const s = StyleSheet.create({
     gap: 2,
   },
   benName: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   benMeta: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },

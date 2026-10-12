@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.blueInk,
   },
@@ -97,12 +97,12 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   name: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   meta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },

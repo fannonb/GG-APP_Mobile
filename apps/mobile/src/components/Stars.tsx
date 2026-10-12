@@ -42,13 +42,13 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontFamily: fontWeights.medium,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textSub,
     marginLeft: 3,
   },
   count: {
     fontFamily: fontWeights.regular,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textSub,
   },
 })

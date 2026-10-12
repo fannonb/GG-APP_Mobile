@@ -226,7 +226,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -237,10 +237,10 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   emptyBody: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 16,
   },
   cardTopRow: {
@@ -255,12 +255,12 @@ const s = StyleSheet.create({
     gap: 4,
   },
   providerName: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.extraBold,
     color: colors.text,
   },
   requestRef: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.semiBold,
     color: colors.textSub,
   },
@@ -276,13 +276,13 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   metaLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
     marginBottom: 4,
   },
   metaValue: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
   },
@@ -296,16 +296,16 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   noteLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
     marginBottom: 4,
   },
   noteBody: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   quoteAmount: {
     fontSize: 18,
@@ -325,19 +325,19 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   quoteItemName: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 2,
   },
   quoteItemMeta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
   quoteTimestamp: {
     marginTop: 10,
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.medium,
     color: colors.textLight,
   },
@@ -358,13 +358,13 @@ const s = StyleSheet.create({
     flex: 1,
   },
   invoiceRef: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.navy,
     marginTop: 2,
   },
   invoiceStatus: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
     marginTop: 4,
@@ -378,13 +378,13 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue3,
   },
   actionHintText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.navy,
   },
   viewDetailLink: {
     marginTop: 12,
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.blueInk,
   },

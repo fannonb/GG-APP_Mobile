@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
   },
   iconContainer: {
     marginLeft: 6,
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     marginTop: 4,
   },
 })

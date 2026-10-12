@@ -120,7 +120,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   meta: {
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   metaStrong: {
@@ -128,31 +128,31 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
   intro: {
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 24,
   },
   section: {
     marginBottom: 22,
   },
   heading: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.text,
     marginBottom: 8,
   },
   subheading: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginTop: 12,
     marginBottom: 6,
   },
   paragraph: {
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
-    lineHeight: 21,
+    lineHeight: 23,
     marginBottom: 8,
   },
   block: {
@@ -164,16 +164,16 @@ const s = StyleSheet.create({
     paddingLeft: 4,
   },
   bulletDot: {
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
     marginRight: 8,
-    lineHeight: 21,
+    lineHeight: 23,
   },
   bulletText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
-    lineHeight: 21,
+    lineHeight: 23,
   },
   subsection: {
     marginTop: 4,

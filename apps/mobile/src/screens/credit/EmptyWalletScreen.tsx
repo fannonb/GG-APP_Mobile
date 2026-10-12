@@ -189,7 +189,7 @@ const s = StyleSheet.create({
     ...shadows.raised,
   },
   balanceLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.9)',
   },
@@ -219,7 +219,7 @@ const s = StyleSheet.create({
     borderRadius: 9999,
   },
   warningPillText: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.bold,
     color: colors.warning,
     letterSpacing: 0.3,
@@ -245,16 +245,16 @@ const s = StyleSheet.create({
     flex: 1,
   },
   applyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   applyDesc: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   /* feature grid */
@@ -271,28 +271,28 @@ const s = StyleSheet.create({
     width: '46%',
   },
   featureLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   featureDesc: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
 
   /* journey + partner sections */
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   sectionSub: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
     marginBottom: 16,
   },
   journeyStep: {
@@ -319,7 +319,7 @@ const s = StyleSheet.create({
     borderWidth: 0,
   },
   journeyBadgeText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.extraBold,
     color: colors.textSub,
   },
@@ -327,16 +327,16 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
   },
   journeyTitle: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 3,
   },
   journeyDesc: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   partnerCard: {
     flexDirection: 'row',
@@ -359,16 +359,16 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   partnerName: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.extraBold,
     color: colors.text,
     marginBottom: 2,
   },
   partnerTagline: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 16,
+    lineHeight: 18,
     marginBottom: 8,
   },
   partnerTimePill: {
@@ -379,7 +379,7 @@ const s = StyleSheet.create({
     paddingVertical: 3,
   },
   partnerTimeText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.bold,
   },
 
@@ -394,9 +394,9 @@ const s = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 })

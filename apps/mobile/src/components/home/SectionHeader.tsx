@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     letterSpacing: -0.3,
     color: colors.text,
   },
@@ -52,12 +52,12 @@ const styles = StyleSheet.create({
   },
   count: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textLight,
   },
   action: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.blueInk,
   },
   actionOnDark: {

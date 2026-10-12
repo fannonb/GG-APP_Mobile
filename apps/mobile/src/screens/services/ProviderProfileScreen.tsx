@@ -526,7 +526,7 @@ const st = StyleSheet.create({
   statusText: {
     flex: 1,
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
   },
   creditBadge: {
@@ -542,7 +542,7 @@ const st = StyleSheet.create({
   },
   creditBadgeText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.success,
   },
   quickActions: {
@@ -557,18 +557,18 @@ const st = StyleSheet.create({
   },
   hoursToggle: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
   },
   aboutFact: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.textSub,
     marginTop: 4,
   },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 14, fontFamily: fontWeights.medium, color: colors.textSub },
+  loadingText: { fontSize: 15.5, fontFamily: fontWeights.medium, color: colors.textSub },
 
   headerRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   providerLogo: { width: 60, height: 60, borderRadius: 12, backgroundColor: colors.bg },
@@ -597,44 +597,44 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  logoModalCloseText: { fontSize: 16, color: colors.textSub },
+  logoModalCloseText: { fontSize: 17, color: colors.textSub },
   logoModalImage: { width: '100%', height: 280 },
   headerInfo: { flex: 1, gap: 5 },
-  providerName: { fontSize: 16, fontFamily: fontWeights.extraBold, color: colors.text },
-  categoryAddress: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 17 },
+  providerName: { fontSize: 17, fontFamily: fontWeights.extraBold, color: colors.text },
+  categoryAddress: { fontSize: 13.5, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 19 },
   pillRow: { flexDirection: 'row', gap: 6 },
 
 
-  sectionTitle: { fontSize: 15, fontFamily: fontWeights.bold, color: colors.text, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: fontWeights.bold, color: colors.text, marginBottom: 12 },
 
-  aboutText: { fontSize: 13, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 20, marginBottom: 14 },
+  aboutText: { fontSize: 14.5, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 22, marginBottom: 14 },
 
   serviceTagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   serviceTag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg },
-  serviceTagText: { fontSize: 12, fontFamily: fontWeights.medium, color: colors.text },
+  serviceTagText: { fontSize: 13.5, fontFamily: fontWeights.medium, color: colors.text },
 
 
   hoursRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
   hoursRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  hoursDay: { fontSize: 13, fontFamily: fontWeights.medium, color: colors.text },
-  hoursValue: { fontSize: 13, fontFamily: fontWeights.semiBold, color: colors.textSub },
+  hoursDay: { fontSize: 14.5, fontFamily: fontWeights.medium, color: colors.text },
+  hoursValue: { fontSize: 14.5, fontFamily: fontWeights.semiBold, color: colors.textSub },
   hoursTodayDay: { color: colors.blueInk, fontFamily: fontWeights.bold },
   hoursTodayValue: { color: colors.blueInk, fontFamily: fontWeights.bold },
-  hoursClosed: { fontSize: 13, fontFamily: fontWeights.semiBold, color: colors.error },
+  hoursClosed: { fontSize: 14.5, fontFamily: fontWeights.semiBold, color: colors.error },
 
 
   reviewsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  reviewCount: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub },
+  reviewCount: { fontSize: 13.5, fontFamily: fontWeights.regular, color: colors.textSub },
   reviewItem: { paddingVertical: 12, gap: 8 },
   reviewBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   reviewTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   reviewInfo: { flex: 1, gap: 2 },
-  reviewName: { fontSize: 13, fontFamily: fontWeights.semiBold, color: colors.text },
-  reviewDate: { fontSize: 11, fontFamily: fontWeights.regular, color: colors.textLight },
-  reviewText: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 18, marginLeft: 46 },
-  emptyText: { fontSize: 13, fontFamily: fontWeights.regular, color: colors.textSub, textAlign: 'center', paddingVertical: 16 },
+  reviewName: { fontSize: 14.5, fontFamily: fontWeights.semiBold, color: colors.text },
+  reviewDate: { fontSize: 12.5, fontFamily: fontWeights.regular, color: colors.textLight },
+  reviewText: { fontSize: 13.5, fontFamily: fontWeights.regular, color: colors.textSub, lineHeight: 20, marginLeft: 46 },
+  emptyText: { fontSize: 14.5, fontFamily: fontWeights.regular, color: colors.textSub, textAlign: 'center', paddingVertical: 16 },
 
-  reviewFormSub: { fontSize: 12, fontFamily: fontWeights.regular, color: colors.textSub, marginBottom: 14 },
+  reviewFormSub: { fontSize: 13.5, fontFamily: fontWeights.regular, color: colors.textSub, marginBottom: 14 },
   reviewReminderBox: {
     backgroundColor: colors.blue3,
     borderRadius: radii.default,
@@ -643,25 +643,25 @@ const st = StyleSheet.create({
     marginBottom: 12,
   },
   reviewReminderTitle: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.navy,
   },
   reviewReminderDetail: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   reviewReminderFor: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
   starsInput: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   starBtn: { fontSize: 32, color: colors.border },
   starBtnActive: { color: colors.blueInk },
-  reviewInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontWeights.regular, fontSize: 14, color: colors.text, backgroundColor: colors.bg, minHeight: 70, marginBottom: 14 },
+  reviewInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontWeights.regular, fontSize: 15.5, color: colors.text, backgroundColor: colors.bg, minHeight: 70, marginBottom: 14 },
   reviewSuccessBanner: { backgroundColor: colors.successBg, borderRadius: radii.default, padding: 14, alignItems: 'center' },
-  reviewSuccessText: { fontSize: 14, fontFamily: fontWeights.bold, color: colors.success },
+  reviewSuccessText: { fontSize: 15.5, fontFamily: fontWeights.bold, color: colors.success },
 })

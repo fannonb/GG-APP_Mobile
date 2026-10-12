@@ -104,7 +104,8 @@ function ActiveCredit(props: CreditSummaryCardProps) {
       </Pressable>
       <View style={styles.actions}>
         <Button label={isLow ? 'Request increase' : 'Increase limit'} onPress={onRequestIncrease} flex />
-        <Button label="History" onPress={onHistory} variant="secondary" flex />
+        {/* Sized to its label so the main action keeps room for its full text. */}
+        <Button label="History" onPress={onHistory} variant="secondary" />
       </View>
     </Face>
   )
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   },
   partnerText: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
   },
   walletLink: {
@@ -247,12 +248,12 @@ const styles = StyleSheet.create({
   },
   walletLinkText: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: CYAN_DEEP,
   },
   amountLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: CYAN_DEEP,
   },
   amount: {
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
   },
   usage: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   usageStrong: {
@@ -297,8 +298,8 @@ const styles = StyleSheet.create({
   },
   body: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15.5,
+    lineHeight: 22,
     color: colors.textSub,
     marginTop: 6,
     marginBottom: 16,
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
   },
   buttonTextPrimary: {
     color: '#FFFFFF',
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
   },
   tagTextInfo: {
     color: CYAN_DEEP,

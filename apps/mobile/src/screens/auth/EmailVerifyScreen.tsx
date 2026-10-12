@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   resendText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',

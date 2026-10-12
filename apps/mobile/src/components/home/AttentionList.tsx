@@ -175,14 +175,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 21,
     color: colors.text,
   },
   detail: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14.5,
+    lineHeight: 20,
     color: colors.textSub,
   },
   button: {
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: '#FFFFFF',
   },
   dismiss: {
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dismissText: {
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textLight,
     fontFamily: fontWeights.bold,
   },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   moreText: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.blueInk,
   },
 })

@@ -177,16 +177,16 @@ const s = StyleSheet.create({
     flex: 1,
   },
   disclosureTitle: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   disclosureDesc: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 21,
+    lineHeight: 23,
   },
 
   /* consent */
@@ -209,10 +209,10 @@ const s = StyleSheet.create({
   },
   consentText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
-    lineHeight: 19,
+    lineHeight: 21,
   },
 
   /* buttons */

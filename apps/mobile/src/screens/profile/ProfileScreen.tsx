@@ -603,7 +603,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -672,7 +672,7 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
   },
   heroMeta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: 'rgba(255,255,255,0.5)',
   },
@@ -712,7 +712,7 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
@@ -729,13 +729,13 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.textSub,
     flex: 1,
   },
   fieldValue: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
     flex: 1.5,
@@ -749,7 +749,7 @@ const s = StyleSheet.create({
     marginTop: 16,
   },
   editError: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
     marginTop: 8,
@@ -769,7 +769,7 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   signOutText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
   },
@@ -796,23 +796,23 @@ const s = StyleSheet.create({
     opacity: 0.6,
   },
   settingsTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   settingsSub: {
-    fontSize: 12.5,
+    fontSize: 14,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     marginTop: 2,
   },
   lockHint: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textLight,
   },
   labelRow: { flexDirection: 'row', marginBottom: 6 },
-  asterisk: { fontFamily: fontWeights.bold, fontSize: 12, color: colors.error },
+  asterisk: { fontFamily: fontWeights.bold, fontSize: 13.5, color: colors.error },
   dropdownBtn: {
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -821,7 +821,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: colors.card,
   },
-  dropdownText: { fontSize: 14, fontFamily: fontWeights.regular, color: colors.text },
+  dropdownText: { fontSize: 15.5, fontFamily: fontWeights.regular, color: colors.text },
   dropdownList: {
     marginTop: 4,
     maxHeight: 220,
@@ -838,12 +838,12 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  dropdownOptionText: { fontSize: 13, fontFamily: fontWeights.regular, color: colors.text },
+  dropdownOptionText: { fontSize: 14.5, fontFamily: fontWeights.regular, color: colors.text },
   residenceHint: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 16,
+    lineHeight: 18,
     marginTop: 8,
   },
 })

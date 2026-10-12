@@ -168,11 +168,11 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
   },
   successDesc: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     paddingHorizontal: 8,
   },
   successProviderName: {
@@ -182,7 +182,7 @@ const s = StyleSheet.create({
 
   /* details card */
   detailsTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 14,
@@ -194,12 +194,12 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   detailLabel: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
   detailValue: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
     textAlign: 'right',

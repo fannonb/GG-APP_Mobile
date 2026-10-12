@@ -59,12 +59,12 @@ const receiptStyles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   value: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.text,
     flexShrink: 1,
     textAlign: 'right',
@@ -408,10 +408,10 @@ const s = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     maxWidth: 280,
     marginBottom: 8,
   },
@@ -419,7 +419,7 @@ const s = StyleSheet.create({
   /* Receipt card */
   receiptLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginBottom: 4,
   },
@@ -432,9 +432,9 @@ const s = StyleSheet.create({
   },
   receiptMeta: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
     marginBottom: 12,
   },
   divider: {
@@ -454,9 +454,9 @@ const s = StyleSheet.create({
 
   offAppNote: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.warning,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   offAppNoteStrong: {
     fontFamily: fontWeights.bold,
@@ -464,13 +464,13 @@ const s = StyleSheet.create({
   },
   reviewTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
     marginBottom: 4,
   },
   reviewSub: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginBottom: 10,
   },
@@ -491,14 +491,14 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     minHeight: 80,
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     backgroundColor: colors.bg,
     marginBottom: 10,
   },
   reviewError: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
     marginBottom: 8,
   },
@@ -508,7 +508,7 @@ const s = StyleSheet.create({
   },
   reviewThanks: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.success,
     textAlign: 'center',
   },

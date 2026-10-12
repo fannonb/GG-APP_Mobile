@@ -238,16 +238,16 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: '#1A5D8A',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   infoBold: {
     fontFamily: fontWeights.bold,
   },
   forgotLink: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
     marginTop: 8,
   },
@@ -262,16 +262,16 @@ const styles = StyleSheet.create({
   },
   resetText: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   form: {
     gap: 16,
   },
   expiryLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.navy,
     marginBottom: 8,
   },
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: fontWeights.bold,
-    fontSize: 12.5,
+    fontSize: 14,
   },
   chipTextActive: {
     color: '#fff',
@@ -306,13 +306,13 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
     marginTop: 8,
   },
   error: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
   },
   btnRow: {

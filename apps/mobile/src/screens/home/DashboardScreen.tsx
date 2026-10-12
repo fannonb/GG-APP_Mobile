@@ -576,7 +576,7 @@ const s = StyleSheet.create({
   },
   loadingText: {
     fontFamily: fontWeights.medium,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
   },
   header: {
@@ -601,7 +601,7 @@ const s = StyleSheet.create({
   },
   subGreeting: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: 'rgba(255,255,255,0.72)',
     marginTop: 2,
   },
@@ -629,7 +629,7 @@ const s = StyleSheet.create({
   },
   bellBadgeText: {
     fontFamily: fontWeights.bold,
-    fontSize: 10,
+    fontSize: 11.5,
     color: '#FFFFFF',
   },
 })

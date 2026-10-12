@@ -192,11 +192,11 @@ export function InvoiceListScreen() {
                     <Text style={s.invoiceProvider} numberOfLines={1}>
                       {inv.provider}
                     </Text>
-                    <View style={s.metaRow}>
+                    <Text style={s.invoiceMeta}>
                       <Text style={s.invoiceId}>{inv.id}</Text>
-                      <Text style={s.dotDot}>·</Text>
-                      <Text style={s.invoiceDate}>{formatDate(inv.date)}</Text>
-                    </View>
+                      {' · '}
+                      {formatDate(inv.date)}
+                    </Text>
                   </View>
 
                   <View style={s.invoiceRight}>
@@ -233,7 +233,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -248,12 +248,12 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   listHeaderText: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   countBadge: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
     backgroundColor: colors.blue100,
@@ -289,33 +289,25 @@ const s = StyleSheet.create({
     gap: 2,
   },
   invoiceService: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   invoiceProvider: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  invoiceMeta: {
     marginTop: 2,
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontFamily: fontWeights.regular,
+    color: colors.textLight,
   },
   invoiceId: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.medium,
-    color: colors.textLight,
-  },
-  dotDot: {
-    fontSize: 11,
-    color: colors.textLight,
-    marginHorizontal: 4,
-  },
-  invoiceDate: {
-    fontSize: 11,
-    fontFamily: fontWeights.regular,
     color: colors.textLight,
   },
   invoiceRight: {
@@ -341,18 +333,18 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 6,
   },
   emptySub: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',
     maxWidth: 280,
-    lineHeight: 19,
+    lineHeight: 21,
   },
 })
 

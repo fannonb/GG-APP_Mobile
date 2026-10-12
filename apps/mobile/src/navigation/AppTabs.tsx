@@ -103,7 +103,7 @@ export function AppTabs() {
         tabBarInactiveTintColor: colors.textLight,
         tabBarLabelStyle: {
           fontFamily: fontWeights.bold,
-          fontSize: 10,
+          fontSize: 11.5,
           marginTop: 2,
         },
         tabBarItemStyle: {

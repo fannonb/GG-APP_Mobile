@@ -76,9 +76,9 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.semiBold,
   },
   labelSm: {
-    fontSize: 11,
+    fontSize: 12.5,
   },
   labelMd: {
-    fontSize: 12,
+    fontSize: 13.5,
   },
 })

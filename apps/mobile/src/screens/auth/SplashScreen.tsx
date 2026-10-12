@@ -288,9 +288,9 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 16,
+    fontSize: 17,
     color: 'rgba(255, 255, 255, 0.6)',
-    lineHeight: 24,
+    lineHeight: 26,
     maxWidth: '90%',
   },
   controlSection: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontFamily: fontWeights.medium,
-    fontSize: 16,
+    fontSize: 17,
     color: 'rgba(255, 255, 255, 0.7)',
   },
   nextBtn: {
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   },
   nextText: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.navy900,
   },
 })

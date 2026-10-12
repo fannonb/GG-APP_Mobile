@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
   },
   error: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14.5,
+    lineHeight: 20,
     color: colors.error,
     marginBottom: 10,
   },

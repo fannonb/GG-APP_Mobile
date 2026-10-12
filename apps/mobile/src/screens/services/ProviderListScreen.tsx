@@ -261,15 +261,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.text,
   },
   emptyDesc: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 
   bannerWrap: {
@@ -288,13 +288,13 @@ const styles = StyleSheet.create({
   bannerText: {
     flex: 1,
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.warning,
-    lineHeight: 17,
+    lineHeight: 19,
   },
   bannerLink: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.warning,
   },
 
@@ -335,13 +335,13 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 17,
+    lineHeight: 22,
     color: colors.text,
   },
   address: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   ratingRow: {
@@ -352,12 +352,12 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.text,
   },
   ratingCount: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textLight,
   },
   footer: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   statusText: {
     flex: 1,
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   statusTextOpen: {
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
   },
   tagsRow: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
 })

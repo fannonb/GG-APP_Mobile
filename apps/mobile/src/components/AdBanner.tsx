@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
   },
   sponsoredText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.72)',
   },
@@ -162,10 +162,10 @@ const styles = StyleSheet.create({
     maxWidth: '72%',
   },
   fallbackBody: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: 'rgba(255,255,255,0.72)',
-    lineHeight: 18,
+    lineHeight: 20,
     maxWidth: '74%',
   },
   ctaRow: {
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   ctaText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: '#FFFFFF',
   },

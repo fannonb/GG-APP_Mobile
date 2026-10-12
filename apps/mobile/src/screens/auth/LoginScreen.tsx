@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   welcomeSub: {
     fontFamily: fontWeights.regular,
-    fontSize: 16,
+    fontSize: 17,
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 12,
   },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   forgotLink: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.blue,
   },
@@ -354,13 +354,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.errorOnDark,
     textAlign: 'center',
   },
   errorAction: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.blue,
   },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.navy900,
   },
   dividerRow: {
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dividerText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: 'rgba(255,255,255,0.4)',
   },
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   googleText: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.semiBold,
     color: '#FFFFFF',
   },
@@ -427,12 +427,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   registerHint: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.regular,
     color: 'rgba(255,255,255,0.6)',
   },
   registerLink: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.blue,
   },

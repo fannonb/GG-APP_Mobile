@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.navy,
     marginBottom: 8,
   },
@@ -119,13 +119,13 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
     marginTop: 6,
   },
   error: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
     marginTop: 6,
   },

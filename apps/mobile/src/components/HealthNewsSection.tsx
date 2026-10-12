@@ -211,7 +211,7 @@ export default function HealthNewsSection({ articles: articlesProp }: HealthNews
                     styles.cardTitle,
                     {
                       color: theme.titleColor,
-                      fontSize: isFirst ? 15 : 13,
+                      fontSize: isFirst ? 16 : 14.5,
                     },
                   ]}
                   numberOfLines={2}
@@ -261,13 +261,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.text,
     letterSpacing: -0.3,
   },
   liveFeed: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.blueInk,
   },
   carousel: {
@@ -294,8 +294,8 @@ const styles = StyleSheet.create({
   },
   cardSnippet: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
-    lineHeight: 19,
+    fontSize: 13.5,
+    lineHeight: 21,
     flex: 1,
     marginBottom: 16,
   },
@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
   },
   sourceLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     marginBottom: 2,
   },
   sourceName: {
     fontFamily: fontWeights.bold,
-    fontSize: 11,
+    fontSize: 12.5,
   },
   dateBadge: {
     borderRadius: 6,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontFamily: fontWeights.bold,
-    fontSize: 10,
+    fontSize: 11.5,
   },
   modalOverlay: {
     flex: 1,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   },
   modalCloseText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
   },
   modalHeaderTitle: {
@@ -399,22 +399,22 @@ const styles = StyleSheet.create({
   },
   modalSourceIconGlyph: {
     color: colors.blueInk,
-    fontSize: 14,
+    fontSize: 15.5,
   },
   modalSourceLabel: {
     fontFamily: fontWeights.regular,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textSub,
     marginBottom: 2,
   },
   modalSourceName: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.text,
   },
   modalSourceDate: {
     fontFamily: fontWeights.regular,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textSub,
     marginTop: 1,
   },
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   modalVisitText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: '#FFFFFF',
   },
   modalBody: {
@@ -436,9 +436,9 @@ const styles = StyleSheet.create({
   },
   modalParagraph: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
-    lineHeight: 24,
+    lineHeight: 27,
     marginBottom: 16,
   },
   modalFooter: {

@@ -156,11 +156,11 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
   },
   successDesc: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     paddingHorizontal: 8,
   },
   providerName: {
@@ -168,7 +168,7 @@ const s = StyleSheet.create({
     color: colors.navy,
   },
   detailsTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 14,
@@ -180,7 +180,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   detailLabel: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -188,7 +188,7 @@ const s = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
     textAlign: 'right',
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
   },
@@ -203,15 +203,15 @@ const s = StyleSheet.create({
     gap: 6,
   },
   infoBannerTitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.navy,
   },
   infoBannerBody: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   buttonRow: {
     flexDirection: 'row',

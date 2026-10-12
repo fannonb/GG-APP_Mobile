@@ -276,25 +276,25 @@ const st = StyleSheet.create({
   },
   partnerLabel: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
   },
   partnerName: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.text,
     marginTop: 1,
   },
   partnerMeta: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
     marginTop: 2,
   },
   partnerNote: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.textSub,
     marginTop: 14,
     paddingTop: 12,
@@ -303,13 +303,13 @@ const st = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.text,
     marginBottom: 14,
   },
   fieldLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.navy,
     marginBottom: 8,
   },
@@ -343,7 +343,7 @@ const st = StyleSheet.create({
   },
   chipText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
   },
   chipTextOn: {
@@ -351,13 +351,13 @@ const st = StyleSheet.create({
   },
   fieldError: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
     marginTop: 6,
   },
   unit: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textLight,
   },
   nextNote: {
@@ -370,8 +370,8 @@ const st = StyleSheet.create({
   nextText: {
     flex: 1,
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.textSub,
   },
   consentRow: {
@@ -406,8 +406,8 @@ const st = StyleSheet.create({
   consentText: {
     flex: 1,
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.text,
   },
 })

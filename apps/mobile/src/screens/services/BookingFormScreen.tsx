@@ -570,14 +570,14 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
 
   /* field label */
   fieldLabel: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 10,
@@ -623,7 +623,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue,
   },
   toggleText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.semiBold,
     color: colors.textSub,
   },
@@ -655,10 +655,10 @@ const s = StyleSheet.create({
   },
   serviceLockedHint: {
     marginTop: 4,
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   radioCircle: {
     width: 22,
@@ -675,7 +675,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue3,
   },
   serviceOptionText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.text,
   },
@@ -685,7 +685,7 @@ const s = StyleSheet.create({
   },
 
   benRelation: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     marginTop: 1,
@@ -696,10 +696,10 @@ const s = StyleSheet.create({
     padding: 14,
   },
   noBenText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.warning,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   /* date & time */
@@ -715,7 +715,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
   },
   dateFieldText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.text,
   },
@@ -739,7 +739,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue100,
   },
   timeSlotText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.medium,
     color: colors.text,
   },
@@ -748,7 +748,7 @@ const s = StyleSheet.create({
     color: colors.blueInk,
   },
   noSlotsText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.medium,
     color: colors.warning,
     backgroundColor: colors.warningBg,
@@ -767,7 +767,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   textArea: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
     minHeight: 90,
@@ -797,18 +797,18 @@ const s = StyleSheet.create({
     gap: 2,
   },
   uploadTitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   uploadSubtitle: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 17,
+    lineHeight: 19,
   },
   uploadCta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.blueInk,
   },
@@ -832,17 +832,17 @@ const s = StyleSheet.create({
     gap: 2,
   },
   attachmentName: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.text,
   },
   attachmentSize: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
   attachmentRemove: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.error,
   },
@@ -858,10 +858,10 @@ const s = StyleSheet.create({
   },
   infoBannerText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.navy,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   /* buttons */

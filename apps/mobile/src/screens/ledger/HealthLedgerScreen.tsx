@@ -249,18 +249,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.navy,
   },
   bodyText: {
     fontFamily: fontWeights.regular,
-    fontSize: 13.5,
+    fontSize: 15,
     color: colors.textSub,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   caption: {
     fontFamily: fontWeights.regular,
-    fontSize: 12.5,
+    fontSize: 14,
     color: colors.textSub,
     marginTop: 4,
     marginBottom: 12,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   grantName: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.navy,
   },
   historyHeader: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   link: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
   },
   chipRow: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: fontWeights.bold,
-    fontSize: 12.5,
+    fontSize: 14,
   },
   chipTextActive: {
     color: '#fff',
@@ -331,8 +331,8 @@ const styles = StyleSheet.create({
   },
   footerNote: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 })

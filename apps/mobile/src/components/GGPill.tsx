@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: fontWeights.bold,
-    fontSize: 10,
+    fontSize: 11.5,
     letterSpacing: 0.3,
   },
 })

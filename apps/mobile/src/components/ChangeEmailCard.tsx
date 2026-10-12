@@ -175,19 +175,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   email: {
     fontFamily: fontWeights.medium,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     marginTop: 4,
   },
   caption: {
     fontFamily: fontWeights.regular,
-    fontSize: 12.5,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.textSub,
     marginTop: 4,
   },
@@ -205,21 +205,21 @@ const styles = StyleSheet.create({
   },
   noticeText: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
   },
   bold: {
     fontFamily: fontWeights.bold,
   },
   cancelLink: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.warning,
   },
   approved: {
     marginTop: 12,
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.success,
   },
   form: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.error,
     marginBottom: 12,
   },

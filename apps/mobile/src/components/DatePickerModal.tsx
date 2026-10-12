@@ -335,13 +335,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.text,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginTop: 2,
   },
@@ -375,12 +375,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   wheelItemText: {
-    fontSize: 16,
+    fontSize: 17,
     textAlign: 'center',
   },
   wheelItemTextSelected: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.navy,
   },
   wheelItemTextIdle: {
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   columnLabel: {
     textAlign: 'center',
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   colDay: { flex: 0.7 },
@@ -415,12 +415,12 @@ const styles = StyleSheet.create({
   },
   previewLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   previewValue: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.navy,
     letterSpacing: -0.2,
   },

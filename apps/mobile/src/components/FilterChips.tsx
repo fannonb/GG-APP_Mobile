@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
   },
   textActive: {
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.bold,
   },
   badgeTextActive: {

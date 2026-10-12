@@ -127,17 +127,17 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 15.5,
+    lineHeight: 21,
     fontFamily: fontWeights.bold,
   },
   body: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   sub: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     marginTop: 2,
   },
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dismissText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.bold,
   },
   ctaBtn: {
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   ctaText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.bold,
     color: '#FFFFFF',
   },

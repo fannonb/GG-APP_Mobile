@@ -145,12 +145,12 @@ const styles = StyleSheet.create({
   },
   dateRelative: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
   },
   dateTime: {
     fontFamily: fontWeights.extraBold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
     marginTop: 2,
   },
@@ -160,18 +160,18 @@ const styles = StyleSheet.create({
   },
   kicker: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   title: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.text,
   },
   detail: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14.5,
+    lineHeight: 20,
     color: colors.textSub,
   },
   status: {
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
   },
   statusTextGood: {
     color: colors.success,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   bookText: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: '#FFFFFF',
   },
   rxCard: {

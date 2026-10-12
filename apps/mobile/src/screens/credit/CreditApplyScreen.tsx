@@ -181,7 +181,7 @@ export function CreditApplyScreen() {
                   style={[
                     s.creditCellValue,
                     { color: item.color },
-                    item.mono && { fontFamily: fontWeights.semiBold, fontSize: 13 },
+                    item.mono && { fontFamily: fontWeights.semiBold, fontSize: 14.5 },
                   ]}
                   numberOfLines={1}
                 >
@@ -361,31 +361,31 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
   partnerName: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.extraBold,
     color: colors.navy,
     marginBottom: 4,
   },
   partnerDesc: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 17,
+    lineHeight: 19,
     marginBottom: 8,
   },
 
   /* card title */
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 17,
+    lineHeight: 19,
     marginBottom: 16,
   },
 
@@ -405,13 +405,13 @@ const s = StyleSheet.create({
     padding: 12,
   },
   creditCellLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textLight,
     marginBottom: 6,
   },
   creditCellValue: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: fontWeights.extraBold,
     letterSpacing: -0.3,
   },
@@ -428,12 +428,12 @@ const s = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.text,
   },
   asterisk: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
   },
 
@@ -450,7 +450,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.card,
   },
   dropdownText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
     flex: 1,
@@ -471,7 +471,7 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   dropdownOptionText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
   },
@@ -485,7 +485,7 @@ const s = StyleSheet.create({
     paddingVertical: 13,
     backgroundColor: colors.card,
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     minHeight: 80,
   },
@@ -511,10 +511,10 @@ const s = StyleSheet.create({
   },
   consentText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
-    lineHeight: 19,
+    lineHeight: 21,
   },
 
   /* warning note */
@@ -524,10 +524,10 @@ const s = StyleSheet.create({
     padding: 14,
   },
   warningText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.warning,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   /* error */

@@ -152,9 +152,9 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.bold,
   },
   textSm: {
-    fontSize: 13,
+    fontSize: 14.5,
   },
   textMd: {
-    fontSize: 15,
+    fontSize: 16,
   },
 })

@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     backgroundColor: colors.card,
   },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     borderColor: colors.navy,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.textSub,
   },
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   clearFilters: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.blueInk,
   },
@@ -510,12 +510,12 @@ const styles = StyleSheet.create({
   },
   recordCount: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   toggleAll: {
     fontFamily: fontWeights.bold,
-    fontSize: 12.5,
+    fontSize: 14,
     color: colors.blueInk,
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -568,18 +568,18 @@ const styles = StyleSheet.create({
   },
   dateHeading: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.navy,
   },
   providerName: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
     marginTop: 2,
   },
   metaText: {
     fontFamily: fontWeights.regular,
-    fontSize: 12.5,
+    fontSize: 14,
     color: colors.textSub,
   },
   headerRight: {
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   summaryText: {
     flex: 1,
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   chevronBtn: {
@@ -637,12 +637,12 @@ const styles = StyleSheet.create({
   },
   vitalLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textSub,
   },
   vitalValue: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.navy,
     marginTop: 2,
   },
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   detailFieldHighlight: {},
   fieldLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginBottom: 4,
   },
@@ -663,13 +663,13 @@ const styles = StyleSheet.create({
   },
   fieldValue: {
     fontFamily: fontWeights.regular,
-    fontSize: 13.5,
+    fontSize: 15,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   fieldValueHighlight: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
   },
   pillRow: {
     flexDirection: 'row',
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   refText: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   refValue: {
@@ -718,23 +718,23 @@ const styles = StyleSheet.create({
   },
   medName: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13.5,
+    fontSize: 15,
     color: colors.text,
     flex: 1,
   },
   medQty: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   emptyText: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   emptyCenter: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
     textAlign: 'center',
   },

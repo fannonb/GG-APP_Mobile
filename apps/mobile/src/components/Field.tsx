@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.navy,
   },
   labelDark: {
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   asterisk: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.error,
   },
   inputContainer: {
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: fontWeights.regular,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
     padding: 0,
   },
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontFamily: fontWeights.medium,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
     marginTop: 4,
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
     marginTop: 4,
   },

@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
   },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.bold,
   },
   sublabel: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },

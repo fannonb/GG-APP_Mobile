@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   searchText: {
     flex: 1,
     fontFamily: fontWeights.medium,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textLight,
   },
   grid: {
@@ -113,12 +113,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.text,
   },
   short: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
     marginTop: 2,
   },

@@ -123,12 +123,12 @@ const stepStyles = StyleSheet.create({
   },
   circleTextWhite: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: '#FFFFFF',
   },
   circleTextLight: {
     fontFamily: fontWeights.bold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textLight,
   },
   line: {
@@ -145,7 +145,7 @@ const stepStyles = StyleSheet.create({
   },
   labelText: {
     fontFamily: fontWeights.medium,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textSub,
     textAlign: 'center',
     width: 48,
@@ -413,7 +413,7 @@ const s = StyleSheet.create({
   },
   amountLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginBottom: 4,
   },
@@ -425,13 +425,13 @@ const s = StyleSheet.create({
   },
   amountProvider: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
     marginTop: 2,
   },
   amountPartial: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.warning,
     marginTop: 8,
     textAlign: 'center',
@@ -445,20 +445,20 @@ const s = StyleSheet.create({
   },
   promptTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.text,
     marginBottom: 4,
   },
   promptSubtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
 
   /* Error */
   errorText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
     textAlign: 'center',
     marginBottom: 4,
@@ -474,7 +474,7 @@ const s = StyleSheet.create({
   },
   loadingText: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.blueInk,
   },
 
@@ -506,10 +506,10 @@ const s = StyleSheet.create({
   },
   lockedSubtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.textSub,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 28,
     maxWidth: 280,
   },

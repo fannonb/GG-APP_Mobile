@@ -37,14 +37,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
     textAlign: 'center',
   },
   body: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.textSub,
     textAlign: 'center',
     marginTop: 6,

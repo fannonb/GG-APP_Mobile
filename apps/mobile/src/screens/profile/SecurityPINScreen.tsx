@@ -294,22 +294,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   infoDesc: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   /* PIN section */
   /* Messages */
   errorText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.medium,
     color: colors.error,
     textAlign: 'center',
@@ -321,13 +321,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   successText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.success,
     textAlign: 'center',
   },
   successInline: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.success,
     marginBottom: 10,

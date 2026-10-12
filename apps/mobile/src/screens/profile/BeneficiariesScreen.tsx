@@ -644,7 +644,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   loadText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -660,10 +660,10 @@ const s = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.blueInk,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   toggleRow: {
@@ -672,29 +672,29 @@ const s = StyleSheet.create({
     gap: 12,
   },
   toggleTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 2,
   },
   toggleSub: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 17,
+    lineHeight: 19,
   },
   lockedTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 6,
     textAlign: 'center',
   },
   lockedBody: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 19,
+    lineHeight: 21,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -710,7 +710,7 @@ const s = StyleSheet.create({
     gap: 4,
   },
   benName: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
@@ -720,7 +720,7 @@ const s = StyleSheet.create({
     gap: 8,
   },
   benAge: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
@@ -740,12 +740,12 @@ const s = StyleSheet.create({
     gap: 6,
   },
   benActionEdit: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
   },
   benActionDelete: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
   },
@@ -756,31 +756,31 @@ const s = StyleSheet.create({
     borderColor: colors.error,
   },
   deleteTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.error,
     marginBottom: 6,
   },
   deleteDesc: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 19,
+    lineHeight: 21,
     marginBottom: 14,
   },
 
   /* form card */
   formTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   formSubtitle: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 17,
+    lineHeight: 19,
     marginBottom: 16,
   },
   formBtnRow: {
@@ -796,12 +796,12 @@ const s = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.text,
   },
   asterisk: {
     fontFamily: fontWeights.bold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.error,
   },
 
@@ -818,7 +818,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.card,
   },
   dropdownText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
     flex: 1,
@@ -839,14 +839,14 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   dropdownOptionText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
   },
 
   /* error */
   errorText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
     marginTop: 4,
@@ -873,12 +873,12 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   addTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
   },
   addSubtitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',

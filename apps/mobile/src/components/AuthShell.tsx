@@ -168,8 +168,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 23,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 12,
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: fontWeights.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.navy900,
   },
   linkRow: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.blue,
   },
   notice: {
@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
   },
   noticeText: {
     fontFamily: fontWeights.medium,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15.5,
+    lineHeight: 22,
     textAlign: 'center',
   },
 })

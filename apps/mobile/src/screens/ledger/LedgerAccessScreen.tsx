@@ -225,13 +225,13 @@ export default LedgerAccessScreen
 const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.navy,
     marginBottom: 14,
   },
   pinState: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.navy,
   },
   pinStateWarn: {
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
   },
   pinMeta: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.textSub,
     marginTop: 4,
   },
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     fontFamily: fontWeights.regular,
-    fontSize: 13.5,
+    fontSize: 15,
     color: colors.textSub,
     paddingVertical: 8,
   },
@@ -275,12 +275,12 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: colors.navy,
   },
   meta: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textSub,
   },
   eventRow: {
@@ -304,12 +304,12 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.text,
   },
   eventTime: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.textLight,
   },
 })

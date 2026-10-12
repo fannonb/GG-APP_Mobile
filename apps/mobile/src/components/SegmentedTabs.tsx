@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 14.5,
   },
   textActive: {
     color: '#FFFFFF',
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.bold,
   },
   badgeTextActive: {

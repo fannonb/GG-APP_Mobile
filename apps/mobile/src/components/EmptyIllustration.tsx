@@ -61,10 +61,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 24,
+    lineHeight: 27,
     marginBottom: 28,
     maxWidth: 260,
     textAlign: 'center',

@@ -118,12 +118,12 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontFamily: fontWeights.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   progressHint: {
     fontFamily: fontWeights.medium,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
   },
   track: {
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   doneText: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.blueInk,
   },
   next: {
@@ -175,19 +175,19 @@ const styles = StyleSheet.create({
   },
   nextLabel: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 12,
+    fontSize: 13.5,
     color: colors.blueInk,
   },
   nextTitle: {
     fontFamily: fontWeights.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.text,
     marginTop: 2,
   },
   nextDetail: {
     fontFamily: fontWeights.regular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15.5,
+    lineHeight: 22,
     color: colors.textSub,
     marginTop: 4,
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontFamily: fontWeights.bold,
-    fontSize: 14,
+    fontSize: 15.5,
     color: '#FFFFFF',
   },
   laterRow: {
@@ -230,12 +230,12 @@ const styles = StyleSheet.create({
   },
   laterTitle: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   laterDetail: {
     fontFamily: fontWeights.regular,
-    fontSize: 13,
+    fontSize: 14.5,
     color: colors.textSub,
     marginTop: 1,
   },

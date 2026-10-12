@@ -589,7 +589,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
   },
@@ -626,7 +626,7 @@ const s = StyleSheet.create({
     lineHeight: 22,
   },
   nextUpMonth: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: fontWeights.bold,
     color: 'rgba(255,255,255,0.7)',
     letterSpacing: 0.5,
@@ -644,18 +644,18 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   nextUpPillText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.extraBold,
     color: '#FFFFFF',
   },
   nextUpProvider: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.extraBold,
     color: colors.navy,
     letterSpacing: -0.3,
   },
   nextUpMeta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.textSub,
   },
@@ -671,7 +671,7 @@ const s = StyleSheet.create({
     lineHeight: 28,
   },
   nextUpDayLabel: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
     marginTop: 1,
@@ -695,18 +695,18 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 6,
   },
   emptySub: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     textAlign: 'center',
     maxWidth: 260,
-    lineHeight: 19,
+    lineHeight: 21,
   },
 
   /* appointment cards */
@@ -728,7 +728,7 @@ const s = StyleSheet.create({
     lineHeight: 20,
   },
   aptBadgeMonth: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: fontWeights.bold,
     letterSpacing: 0.4,
   },
@@ -746,19 +746,19 @@ const s = StyleSheet.create({
     paddingVertical: 2,
   },
   aptTypeText: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: fontWeights.bold,
     color: colors.textSub,
     letterSpacing: 0.6,
   },
   aptProvider: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
     letterSpacing: -0.2,
   },
   aptMeta: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
   },
@@ -780,7 +780,7 @@ const s = StyleSheet.create({
     paddingVertical: 3,
   },
   beneficiaryText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
   },
@@ -790,7 +790,7 @@ const s = StyleSheet.create({
     gap: 4,
   },
   selfText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontFamily: fontWeights.regular,
     color: colors.textLight,
   },
@@ -810,7 +810,7 @@ const s = StyleSheet.create({
     paddingVertical: 6,
   },
   cancelAptBtnText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.semiBold,
     color: colors.error,
   },
@@ -827,7 +827,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue3,
   },
   bookAgainBtnText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
   },
@@ -842,7 +842,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.blue3,
   },
   rebookBtnText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
   },
@@ -870,7 +870,7 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   modalSubtitle: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
     marginBottom: 16,
@@ -902,7 +902,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.error,
   },
   reasonText: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.medium,
     color: colors.text,
   },
@@ -919,7 +919,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.bg,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.regular,
     color: colors.text,
     minHeight: 70,

@@ -112,12 +112,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontWeights.semiBold,
-    fontSize: 16,
+    fontSize: 17,
     letterSpacing: -0.2,
   },
   subtitle: {
     fontFamily: fontWeights.regular,
-    fontSize: 12,
+    fontSize: 13.5,
     marginTop: 2,
   },
   right: {

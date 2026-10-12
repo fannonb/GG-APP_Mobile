@@ -80,16 +80,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 4,
   },
   desc: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.textSub,
-    lineHeight: 18,
+    lineHeight: 20,
     marginBottom: 12,
   },
   bottom: {
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   count: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontFamily: fontWeights.semiBold,
     color: colors.blueInk,
   },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     color: colors.textLight,
   },
   comingSoonText: {
-    fontSize: 10,
+    fontSize: 11.5,
     fontFamily: fontWeights.bold,
     color: colors.warning,
   },
