@@ -1,12 +1,19 @@
 import React from 'react'
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
 import {
   useLedgerAccessLog,
+  useLedgerStatus,
   useRevokeLedgerGrantMutation,
+  useRevokeLedgerPinMutation,
 } from '@gg/shared-hooks'
 import type { LedgerAccessEvent } from '@gg/shared-types'
 import { colors, fontWeights, radii } from '@/theme'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString('en-GB', {
@@ -39,8 +46,15 @@ const GRANT_STATUS: Record<string, { label: string; type: 'success' | 'error' | 
 }
 
 export function LedgerAccessScreen() {
+  const navigation = useNavigation<any>()
   const accessQuery = useLedgerAccessLog()
+  const statusQuery = useLedgerStatus()
   const revokeGrantMutation = useRevokeLedgerGrantMutation()
+  const revokePinMutation = useRevokeLedgerPinMutation()
+
+  const status = statusQuery.data
+  const hasPin = status?.hasPin ?? false
+  const pinExpired = status?.pinExpired ?? false
 
   const grants = accessQuery.data?.grants ?? []
   const events = accessQuery.data?.events ?? []
@@ -60,6 +74,33 @@ export function LedgerAccessScreen() {
     )
   }
 
+  const handleTurnOffPin = () => {
+    Alert.alert(
+      'Turn off your Ledger PIN?',
+      'Turning off your PIN ends all current access and stops new providers from opening your history.',
+      [
+        { text: 'Keep it on', style: 'cancel' },
+        {
+          text: 'Turn off',
+          style: 'destructive',
+          onPress: () =>
+            revokePinMutation.mutate(undefined, {
+              onError: () => Alert.alert('Could not turn off your PIN', 'Please try again.'),
+            }),
+        },
+      ],
+    )
+  }
+
+  const pinStatusText = pinExpired
+    ? 'Providers can’t open your history until you set a new PIN.'
+    : hasPin
+      ? [
+          status?.pinCreatedAt ? `Set on ${formatDate(status.pinCreatedAt)}` : null,
+          status?.pinExpiresAt ? `expires ${formatDate(status.pinExpiresAt)}` : 'no expiry date',
+        ].filter(Boolean).join(' · ')
+      : 'Without a PIN, no provider can open your history.'
+
   return (
     <Screen>
       <AppBar
@@ -74,6 +115,33 @@ export function LedgerAccessScreen() {
           </MCard>
         ) : (
           <>
+            <MCard padding={16}>
+              <Text style={styles.sectionTitle}>Your Ledger PIN</Text>
+              <Text style={[styles.pinState, (pinExpired || !hasPin) && styles.pinStateWarn]}>
+                {pinExpired ? 'Expired' : hasPin ? 'On' : 'Not set'}
+              </Text>
+              <Text style={styles.pinMeta}>{pinStatusText}</Text>
+              <View style={styles.pinActions}>
+                <MBtn
+                  variant={hasPin && !pinExpired ? 'outline' : 'primary'}
+                  sm
+                  onPress={() => navigation.navigate('LedgerPinSetup')}
+                >
+                  {hasPin && !pinExpired ? 'Change PIN' : pinExpired ? 'Set a new PIN' : 'Create PIN'}
+                </MBtn>
+                {hasPin && !pinExpired ? (
+                  <MBtn
+                    variant="danger"
+                    sm
+                    disabled={revokePinMutation.isPending}
+                    onPress={handleTurnOffPin}
+                  >
+                    {revokePinMutation.isPending ? 'Turning off…' : 'Turn off PIN'}
+                  </MBtn>
+                ) : null}
+              </View>
+            </MCard>
+
             <MCard padding={16}>
               <Text style={styles.sectionTitle}>Access grants</Text>
               {grants.length === 0 ? (
@@ -160,6 +228,27 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.navy,
     marginBottom: 14,
+  },
+  pinState: {
+    fontFamily: fontWeights.bold,
+    fontSize: 14,
+    color: colors.navy,
+  },
+  pinStateWarn: {
+    color: '#B45309',
+  },
+  pinMeta: {
+    fontFamily: fontWeights.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSub,
+    marginTop: 4,
+  },
+  pinActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 14,
   },
   empty: {
     fontFamily: fontWeights.regular,

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Linking,
-  Platform,
   Modal,
   Image,
 } from 'react-native'
@@ -26,6 +25,7 @@ import {
 } from '@gg/shared-hooks'
 import { useLocationStore } from '@gg/shared-stores'
 import { formatPhone, getAppointmentDisplayStatus, getProviderHoursSummary } from '@gg/shared-utils'
+import { openDirections } from '@/lib/maps'
 import { animateNextLayout } from '@/lib/motion'
 import type { Appointment, PatientInvoice, Provider, ProviderCategory, ProviderReview } from '@gg/shared-types'
 
@@ -78,29 +78,6 @@ function isPharmacyOnlyProvider(provider: Provider): boolean {
 function isPharmacyMultiCategoryProvider(provider: Provider): boolean {
   const categories = getProviderCategories(provider)
   return categories.includes('pharmacy') && categories.length > 1
-}
-
-/* ------------------------------------------------------------------ */
-/*  Maps helpers                                                       */
-/* ------------------------------------------------------------------ */
-function openDirections(p: Provider) {
-  const dest = p.lat != null && p.lng != null
-    ? `${p.lat},${p.lng}`
-    : encodeURIComponent(`${p.name}, ${p.address}`)
-
-  const url = Platform.select({
-    android: `google.navigation:q=${dest}`,
-    ios: `maps:?daddr=${dest}`,
-    default: `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
-  })
-
-  Linking.canOpenURL(url!).then(supported => {
-    if (supported) {
-      Linking.openURL(url!)
-    } else {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${dest}`)
-    }
-  })
 }
 
 function CheckSmIcon() {

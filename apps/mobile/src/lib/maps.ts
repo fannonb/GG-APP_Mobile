@@ -1,3 +1,5 @@
+import { Linking, Platform } from 'react-native'
+
 export interface MapLocationInput {
   name: string
   address?: string
@@ -61,3 +63,27 @@ export function buildOpenStreetMapEmbedUrl(lat: number, lng: number): string {
 
 export const MAP_PREVIEW_ZOOM = 15
 export const MAP_PREVIEW_GRID = 3
+
+/**
+ * Opens turn-by-turn directions to a provider in the device's maps app,
+ * falling back to Google Maps in the browser.
+ */
+export function openDirections(location: MapLocationInput) {
+  const dest = location.lat != null && location.lng != null
+    ? `${location.lat},${location.lng}`
+    : encodeURIComponent(`${location.name}, ${location.address ?? ''}`)
+
+  const url = Platform.select({
+    android: `google.navigation:q=${dest}`,
+    ios: `maps:?daddr=${dest}`,
+    default: `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
+  })
+
+  Linking.canOpenURL(url!).then(supported => {
+    if (supported) {
+      Linking.openURL(url!)
+    } else {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${dest}`)
+    }
+  })
+}

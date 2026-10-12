@@ -32,7 +32,11 @@
         "resizeMode": "contain",
         "backgroundColor": "#011F4A"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
+      ]
     },
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -62,7 +66,16 @@
       "expo-sharing",
       "expo-notifications",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-calendar",
+        {
+          "writeOnlyAccess": true,
+          "writeOnlyCalendarPermission": "Allow GG'APP to add your appointments to your calendar.",
+          "calendarPermission": "Allow GG'APP to add your appointments to your calendar.",
+          "remindersPermission": false
+        }
+      ]
     ]
   }
 }

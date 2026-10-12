@@ -5,6 +5,8 @@ import {
   StyleSheet,
   Modal,
   TextInput,
+  Linking,
+  Alert,
 } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
@@ -14,7 +16,7 @@ import { colors, fontWeights, radii, shadows } from '@/theme'
 import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, SegmentedTabs } from '@/components'
 import { CalendarIcon, CheckIcon } from '@/icons'
-import { usePatientAppointments, useCancelPatientAppointmentMutation } from '@gg/shared-hooks'
+import { usePatientAppointments, useCancelPatientAppointmentMutation, useProvider } from '@gg/shared-hooks'
 import { patientService } from '@gg/shared-api'
 import { useAuthStore, useUserStore } from '@gg/shared-stores'
 import {
@@ -22,7 +24,10 @@ import {
   getAppointmentDisplayStatus,
   getDaysUntilAppointment,
   buildAppointmentRebookParams,
+  formatPhone,
 } from '@gg/shared-utils'
+import { hasMappableLocation, openDirections } from '@/lib/maps'
+import { addAppointmentToCalendar } from '@/lib/calendar'
 import type { Appointment } from '@gg/shared-types'
 
 /* ------------------------------------------------------------------ */
@@ -79,6 +84,55 @@ const CANCEL_REASONS = [
 /* ------------------------------------------------------------------ */
 /*  Main Screen                                                        */
 /* ------------------------------------------------------------------ */
+/**
+ * Shortcuts on an upcoming appointment: directions and a call to the provider,
+ * plus adding a confirmed visit to the phone's calendar.
+ */
+function AppointmentQuickActions({ apt, canAddToCalendar }: { apt: Appointment; canAddToCalendar: boolean }) {
+  const { data: provider } = useProvider(apt.providerId)
+  const [opening, setOpening] = useState(false)
+
+  const tel = provider ? formatPhone(provider.phone ?? '', provider.country, provider.address).tel : ''
+  const canMap = provider ? hasMappableLocation(provider) : false
+  if (!tel && !canMap && !canAddToCalendar) return null
+
+  const handleAddToCalendar = async () => {
+    setOpening(true)
+    try {
+      const added = await addAppointmentToCalendar(apt, provider?.address)
+      if (!added) Alert.alert('Could not add this appointment', 'The appointment date looks invalid. Please contact support.')
+    } catch {
+      Alert.alert('Could not open your calendar', 'Please check that a calendar app is installed and try again.')
+    } finally {
+      setOpening(false)
+    }
+  }
+
+  return (
+    <View style={s.quickActions}>
+      {provider && (canMap || tel) ? (
+        <View style={s.contactRow}>
+          {canMap ? (
+            <MBtn variant="secondary" sm style={{ flex: 1 }} onPress={() => openDirections(provider)}>
+              Directions
+            </MBtn>
+          ) : null}
+          {tel ? (
+            <MBtn variant="secondary" sm style={{ flex: 1 }} onPress={() => Linking.openURL(`tel:${tel}`)}>
+              Call
+            </MBtn>
+          ) : null}
+        </View>
+      ) : null}
+      {canAddToCalendar ? (
+        <MBtn variant="outline" sm fullWidth disabled={opening} onPress={() => void handleAddToCalendar()}>
+          {opening ? 'Opening calendar…' : 'Add to calendar'}
+        </MBtn>
+      ) : null}
+    </View>
+  )
+}
+
 export function AppointmentsScreen() {
   const navigation = useNavigation<any>()
   const userName = useUserStore(s => s.user?.name ?? '')
@@ -377,6 +431,10 @@ export function AppointmentsScreen() {
 
                       <GGPill type={pillType}>{pillLabel}</GGPill>
                     </View>
+
+                    {!isPast && (
+                      <AppointmentQuickActions apt={apt} canAddToCalendar={displayStatus === 'confirmed'} />
+                    )}
 
                     {/* Action buttons for upcoming confirmed appointments */}
                     {!isPast && displayStatus === 'confirmed' && (
@@ -738,6 +796,14 @@ const s = StyleSheet.create({
   },
 
   /* cancel button on appointment card */
+  quickActions: {
+    gap: 8,
+    marginTop: 10,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   cancelAptBtn: {
     alignSelf: 'flex-start',
     marginTop: 6,
