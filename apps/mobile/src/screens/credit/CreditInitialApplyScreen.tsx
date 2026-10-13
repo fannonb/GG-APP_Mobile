@@ -1,3 +1,4 @@
+import { REPAYMENT_METHODS } from '@gg/shared-config'
 import React, { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import Pressable from '@/components/Pressable'
@@ -28,7 +29,7 @@ const MIN_AMOUNT = 1000
 const MAX_AMOUNT = 50000
 const QUICK_AMOUNTS = [5000, 10000, 20000, 50000]
 
-type FieldKey = 'employment' | 'income' | 'amount'
+type FieldKey = 'employment' | 'repayment' | 'income' | 'amount'
 
 function CheckSquare({ checked }: { checked: boolean }) {
   return (
@@ -70,6 +71,7 @@ export function CreditInitialApplyScreen() {
   const countryName = getWorldCountryByCode(countryCode)?.name
 
   const [employment, setEmployment] = useState('')
+  const [repaymentMethod, setRepaymentMethod] = useState('')
   const [monthlyIncome, setMonthlyIncome] = useState('')
   const [requestedAmount, setRequestedAmount] = useState('')
   const [consent, setConsent] = useState(false)
@@ -86,6 +88,7 @@ export function CreditInitialApplyScreen() {
     const amount = Number(requestedAmount)
     const next: Partial<Record<FieldKey, string>> = {}
     if (!employment) next.employment = 'Choose your employment status'
+    if (!repaymentMethod) next.repayment = 'Choose how you would prefer to repay'
     if (!monthlyIncome || income <= 0) next.income = 'Enter your monthly income'
     if (!requestedAmount || amount < MIN_AMOUNT || amount > MAX_AMOUNT) {
       next.amount = `Enter an amount between ${shortAmount(MIN_AMOUNT)} and ${shortAmount(MAX_AMOUNT)}`
@@ -99,6 +102,7 @@ export function CreditInitialApplyScreen() {
       await applyMutation.mutateAsync({
         financePartnerId: partnerId,
         employment,
+        repaymentMethod,
         monthlyIncome: income,
         requestedAmount: amount,
         consent,
@@ -163,6 +167,30 @@ export function CreditInitialApplyScreen() {
             })}
           </View>
           {errors.employment ? <Text style={st.fieldError}>{errors.employment}</Text> : null}
+
+          <View style={{ height: 16 }} />
+          <Text style={st.fieldLabel}>How would you prefer to repay?</Text>
+          <View style={st.chips} accessibilityRole="radiogroup">
+            {REPAYMENT_METHODS.map(opt => {
+              const selected = repaymentMethod === opt.code
+              return (
+                <Pressable
+                  key={opt.code}
+                  onPress={() => {
+                    setRepaymentMethod(opt.code)
+                    clearError('repayment')
+                  }}
+                  style={[st.chip, selected && st.chipOn]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={opt.label}
+                >
+                  <Text style={[st.chipText, selected && st.chipTextOn]}>{opt.short}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
+          {errors.repayment ? <Text style={st.fieldError}>{errors.repayment}</Text> : null}
 
           <View style={{ height: 16 }} />
           <Field

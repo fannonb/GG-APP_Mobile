@@ -1,3 +1,4 @@
+import { AppRatingCard } from '@/components/AppRatingCard'
 import React, { useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, TextInput, Animated, Easing } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
@@ -328,6 +329,9 @@ export function PaymentSuccessScreen() {
             <Text style={s.reviewThanks}>Thank you for your review!</Text>
           </MCard>
         )}
+
+        {/* Rate the app itself once the provider review is out of the way. */}
+        {!canReview && <AppRatingCard />}
 
         {/* Action Buttons */}
         <View style={s.btnRow}>

@@ -40,6 +40,8 @@ export interface ApplyCreditPayload {
   residenceCountryName?: string
   /** Who the credit covers. Defaults to 'self' when omitted. */
   coverageType?: 'self' | 'self_and_beneficiaries'
+  /** Code from REPAYMENT_METHODS (@gg/shared-config). */
+  repaymentMethod?: string
   beneficiaries?: {
     name: string
     relation: string

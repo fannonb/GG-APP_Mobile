@@ -1,3 +1,4 @@
+import { BENEFICIARY_GENDERS } from '@gg/shared-config'
 import React, { useState } from 'react'
 import {
   View,
@@ -133,6 +134,7 @@ const EMPTY_FORM = {
   dob: '',
   nationalId: '',
   countryCode: 'KE' as CountryCode,
+  gender: '',
 }
 
 /* ------------------------------------------------------------------ */
@@ -196,6 +198,7 @@ export function BeneficiariesScreen() {
       dob: ben.dob ? formatDobForDisplay(ben.dob) : '',
       nationalId: ben.nationalId ?? '',
       countryCode: (ben.countryCode ?? user?.countryCode ?? 'KE') as CountryCode,
+      gender: ben.gender ?? '',
     })
     setFormError(null)
     setEditingBen(ben)
@@ -234,6 +237,7 @@ export function BeneficiariesScreen() {
         dob: normalizedDob,
         nationalId: benForm.nationalId.trim() || undefined,
         countryCode: benForm.countryCode,
+        gender: (benForm.gender || undefined) as 'female' | 'male' | 'prefer_not_to_say' | undefined,
       }
 
       if (editingBen) {
@@ -409,6 +413,30 @@ export function BeneficiariesScreen() {
             ))}
           </View>
         )}
+      </View>
+
+      {/* Gender (optional) */}
+      <View style={{ marginBottom: 12 }}>
+        <View style={s.labelRow}>
+          <Text style={s.fieldLabel}>Gender</Text>
+          <Text style={[s.fieldLabel, { color: colors.textLight }]}> (optional)</Text>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
+          {BENEFICIARY_GENDERS.map(g => {
+            const selected = benForm.gender === g.code
+            return (
+              <Pressable
+                key={g.code}
+                onPress={() => setBenForm(prev => ({ ...prev, gender: selected ? '' : g.code }))}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: radii.full, borderWidth: 1, borderColor: selected ? colors.navy : colors.border, backgroundColor: selected ? colors.navy : colors.card }}
+              >
+                <Text style={{ fontFamily: fontWeights.semiBold, fontSize: 14.5, color: selected ? '#FFFFFF' : colors.text }}>{g.label}</Text>
+              </Pressable>
+            )
+          })}
+        </View>
       </View>
 
       {/* Date of Birth */}

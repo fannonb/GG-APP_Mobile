@@ -317,6 +317,7 @@ export interface UpsertBeneficiaryPayload {
   dob: string
   nationalId?: string
   countryCode?: import('@gg/shared-config').CountryCode
+  gender?: 'female' | 'male' | 'prefer_not_to_say'
 }
 
 export interface SubmitReviewPayload {

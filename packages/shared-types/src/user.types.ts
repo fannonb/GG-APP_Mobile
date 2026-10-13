@@ -36,6 +36,8 @@ export interface Beneficiary {
   countryCode?: CountryCode
   nationalId: string
   age: number
+  /** Optional: female, male or prefer_not_to_say. */
+  gender?: string | null
 }
 
 export interface NewsItem {
