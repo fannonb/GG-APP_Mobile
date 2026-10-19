@@ -44,12 +44,6 @@ import type { Patient, Beneficiary } from '@gg/shared-types'
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
-const FLAG_EMOJI: Record<string, string> = {
-  KE: '\u{1F1F0}\u{1F1EA}',
-  ZW: '\u{1F1FF}\u{1F1FC}',
-  ZM: '\u{1F1FF}\u{1F1F2}',
-}
-
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -154,7 +148,6 @@ export function ProfileScreen() {
   const currencyLabel = country
     ? `${country.currencyName} (${country.currencyCode})`
     : 'Not available'
-  const flag = FLAG_EMOJI[u?.countryCode ?? 'KE'] ?? ''
 
   const dateOfBirth = u?.dateOfBirth
     ? new Date(u.dateOfBirth).toLocaleDateString('en-US', {
@@ -267,7 +260,7 @@ export function ProfileScreen() {
 
               {/* name + info */}
               <View style={s.heroInfo}>
-                <Text style={s.heroName}>{u?.name ?? 'Patient'} {flag}</Text>
+                <Text style={s.heroName}>{u?.name ?? 'Patient'}</Text>
                 <Text style={s.heroMeta}>
                   {livesAbroad
                     ? `${residenceCountryName} (lives abroad) · ${marketCountryName} market · ${currencyCode}`

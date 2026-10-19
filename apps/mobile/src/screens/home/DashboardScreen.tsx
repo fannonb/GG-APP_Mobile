@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { View, Text, Image, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet, type LayoutChangeEvent } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -13,6 +13,7 @@ import GetStartedCard, { type GetStartedStep } from '@/components/home/GetStarte
 import CareSection, { type PrescriptionSummary, type VisitSummary } from '@/components/home/CareSection'
 import FindCare from '@/components/home/FindCare'
 import HealthNewsSection from '@/components/HealthNewsSection'
+import MarketFlag from '@/components/MarketFlag'
 import BellIcon from '@/icons/BellIcon'
 import CalendarIcon from '@/icons/CalendarIcon'
 import CheckIcon from '@/icons/CheckIcon'
@@ -56,6 +57,11 @@ import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSumma
 import type { Appointment, CreditStatus, PrescriptionRequest } from '@gg/shared-types'
 
 const wordmark = require('../../../assets/gg-wordmark.png')
+
+/** Navy depth before the credit card has been measured. */
+const DEFAULT_CURVE_DEPTH = 420
+/** Navy left showing below the credit card. */
+const CURVE_BELOW_CARD = 24
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -136,6 +142,14 @@ export function DashboardScreen() {
   }, [fetchedNotifs])
 
   const [refreshing, setRefreshing] = useState(false)
+  /* The navy header ends just below the credit card, whatever its height
+     (balance, pending, apply) or the user's font size. */
+  const [curveDepth, setCurveDepth] = useState(DEFAULT_CURVE_DEPTH)
+  const onCreditLayout = useCallback((e: LayoutChangeEvent) => {
+    const { y, height } = e.nativeEvent.layout
+    const next = Math.round(y + height + CURVE_BELOW_CARD)
+    setCurveDepth(prev => (prev === next ? prev : next))
+  }, [])
   const [showAllAlerts, setShowAllAlerts] = useState(false)
 
   /* Dismissed alert ids are persisted per account. Alerts are only ever
@@ -470,7 +484,7 @@ export function DashboardScreen() {
   /*  Render                                                          */
   /* ---------------------------------------------------------------- */
   return (
-    <Screen headerPattern="dark-curve" curveDepth={250}>
+    <Screen headerPattern="dark-curve" curveDepth={curveDepth}>
       {/* Status-bar strip stays navy while the header scrolls away under it. */}
       <View style={{ height: insets.top, backgroundColor: colors.navy }} />
 
@@ -478,7 +492,10 @@ export function DashboardScreen() {
         {/* === Header (scrolls away): brand bar, then the greeting === */}
         <View style={s.header}>
           <View style={s.brandRow}>
-            <Image source={wordmark} style={s.wordmark} resizeMode="contain" accessibilityLabel="GG'APP" />
+            <View style={s.brandLeft}>
+              <MarketFlag />
+              <Image source={wordmark} style={s.wordmark} resizeMode="contain" accessibilityLabel="GG'APP" />
+            </View>
             <Pressable
               style={({ pressed }) => [s.bell, pressed && { opacity: 0.8 }]}
               onPress={() => navigation.navigate('Notifications')}
@@ -503,7 +520,8 @@ export function DashboardScreen() {
           </Text>
         </View>
 
-        {/* === Credit === */}
+        {/* === Credit: the card and its actions sit inside the navy header === */}
+        <View onLayout={onCreditLayout} style={s.creditSlot}>
         <CreditSummaryCard
           status={creditStatus}
           available={creditAvailable}
@@ -518,6 +536,7 @@ export function DashboardScreen() {
           onOpenWallet={() => navigation.navigate('WalletTab', { screen: 'CreditWallet' })}
           onHistory={() => navigation.navigate('WalletTab', { initial: false, screen: 'TransactionHistory' })}
         />
+        </View>
 
         {/* === New accounts: setup first; everyone: what's waiting === */}
         <GetStartedCard steps={steps} />
@@ -535,7 +554,7 @@ export function DashboardScreen() {
           onViewAll={() => navigation.navigate('Appointments')}
         />
 
-        {/* === Find care === */}
+        {/* === Find care: the main way into care, so it sits above the news === */}
         <FindCare
           onSearch={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
           onCategory={category =>
@@ -544,7 +563,9 @@ export function DashboardScreen() {
           onSeeAll={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
         />
 
+        {/* === Health news === */}
         <HealthNewsSection />
+
         <AdBanner countryName={country?.name} />
 
         <View style={{ height: 24 }} />
@@ -583,11 +604,20 @@ const s = StyleSheet.create({
     paddingTop: 8,
     marginBottom: -4,
   },
+  // Space between the navy edge and the next section, so its heading is not on the curve.
+  creditSlot: {
+    marginBottom: 28,
+  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 18,
+  },
+  brandLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   wordmark: {
     width: 122,

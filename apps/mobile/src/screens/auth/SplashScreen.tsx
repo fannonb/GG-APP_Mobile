@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics'
 import { colors, fontWeights, radii } from '@/theme'
 import type { AuthScreenProps } from '@/navigation/types'
 import { markIntroSeen } from '@/lib/intro'
+import BrandTagline from '@/components/BrandTagline'
 
 const logo = require('../../../assets/gg-logo.png')
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -30,9 +31,9 @@ interface SplashStep {
 const STEPS: SplashStep[] = [
   {
     id: 'access',
-    title: 'Your health,\n',
-    highlight: 'funded today.',
-    subtitle: 'Access quality medical care across Africa without out-of-pocket financial barriers.',
+    title: 'Care When You Need It.\n',
+    highlight: 'Choice Where You Want It.',
+    subtitle: 'Access Healthcare on Your Terms - Choose the Care. We Help Fund It.',
   },
   {
     id: 'healing',
@@ -183,7 +184,7 @@ export function SplashScreen() {
         <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityLabel="GG'APP" />
       </Animated.View>
 
-      {/* Middle section: Typography focused, large, breathing */}
+      {/* Middle section: Typography focused, centred on the screen */}
       <View style={styles.textSection}>
         <Animated.View
           style={{
@@ -201,20 +202,23 @@ export function SplashScreen() {
 
       {/* Bottom section: Unified controls */}
       <View style={styles.controlSection}>
-        {/* Step Indicators */}
-        <View style={styles.indicators}>
-          {STEPS.map((_, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => animateTo(i)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityRole="button"
-              accessibilityLabel={`Slide ${i + 1} of ${STEPS.length}`}
-              accessibilityState={{ selected: i === activeStep }}
-            >
-              <View style={[styles.dot, i === activeStep && styles.dotActive]} />
-            </TouchableOpacity>
-          ))}
+        {/* Step Indicators, with the brand promise beside them */}
+        <View style={styles.indicatorRow}>
+          <View style={styles.indicators}>
+            {STEPS.map((_, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => animateTo(i)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Slide ${i + 1} of ${STEPS.length}`}
+                accessibilityState={{ selected: i === activeStep }}
+              >
+                <View style={[styles.dot, i === activeStep && styles.dotActive]} />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <BrandTagline style={styles.tagline} />
         </View>
 
         {/* Action Buttons */}
@@ -273,15 +277,16 @@ const styles = StyleSheet.create({
   textSection: {
     flex: 2,
     paddingHorizontal: 32,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
   },
   title: {
     fontFamily: fontWeights.extraBold,
-    fontSize: 40,
+    fontSize: 34,
     color: '#FFFFFF',
-    lineHeight: 48,
-    letterSpacing: -1,
+    lineHeight: 42,
+    letterSpacing: -0.8,
     marginBottom: 16,
+    textAlign: 'center',
   },
   highlight: {
     color: colors.blue,
@@ -292,15 +297,28 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     lineHeight: 26,
     maxWidth: '90%',
+    alignSelf: 'center',
+    textAlign: 'center',
   },
   controlSection: {
     paddingHorizontal: 32,
     paddingBottom: 24,
   },
+  indicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
   indicators: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 40,
+  },
+  tagline: {
+    flex: 1,
+    marginLeft: 16,
+    fontSize: 11.5,
+    lineHeight: 15,
+    textAlign: 'left',
   },
   dot: {
     width: 6,

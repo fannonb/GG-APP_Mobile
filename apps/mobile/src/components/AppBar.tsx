@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights } from '@/theme'
 import { StatusStripContext } from './Screen'
+import MarketFlag from './MarketFlag'
 
 interface AppBarProps {
   title: string
@@ -65,6 +66,10 @@ export default function AppBar({
   return (
     <View style={[styles.bar, { backgroundColor: bgColor, paddingTop, paddingBottom }]}>
       <View style={styles.left}>
+        {/* Market flag sits in the top-left corner on every screen. */}
+        <View style={styles.flag}>
+          <MarketFlag />
+        </View>
         {shouldShowBack ? (
           <Pressable onPress={handleBack} style={styles.backBtn} hitSlop={10}>
             <BackArrow color={arrowColor} />
@@ -97,6 +102,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  flag: {
+    marginRight: 12,
   },
   backBtn: {
     marginRight: 12,

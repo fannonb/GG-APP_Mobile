@@ -92,7 +92,7 @@ function CheckSmIcon() {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps<'ProviderProfile'>) {
-  const { providerId } = route.params
+  const { providerId, category: entryCategory } = route.params
   const { data: provider, isLoading } = useProvider(providerId)
   const { data: reviews = [] } = useProviderReviews(providerId)
   const { data: invoices = [] } = usePatientInvoices()
@@ -217,6 +217,8 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
     p.languages && p.languages.length > 0 ? `Speaks ${p.languages.join(', ')}` : null,
     p.license ? `Licence ${p.license}` : null,
   ].filter(Boolean) as string[]
+  // Reached through Pharmacy: prescription only, whatever else the provider offers.
+  const viaPharmacy = entryCategory === 'pharmacy'
   const pharmacyOnly = isPharmacyOnlyProvider(p)
   const pharmacyMultiCategory = isPharmacyMultiCategoryProvider(p)
 
@@ -477,7 +479,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
 
       {/* Main action pinned above the tab bar, never buried below the map and hours. */}
       <ActionBar aboveTabBar>
-        {pharmacyOnly ? (
+        {viaPharmacy || pharmacyOnly ? (
           <MBtn variant="primary" style={{ flex: 1 }} onPress={() => navigation.navigate('PrescriptionRequest', { providerId })}>
             Upload a prescription
           </MBtn>

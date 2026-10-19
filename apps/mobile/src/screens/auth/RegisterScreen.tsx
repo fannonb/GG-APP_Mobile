@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
 import { Screen, Field, DateField, PhonePrefixInput } from '@/components'
+import BrandTagline from '@/components/BrandTagline'
 import { CheckIcon } from '@/icons'
 import { authService, getGoogleClientId } from '@gg/shared-api'
 import { useAuthStore } from '@gg/shared-stores'
@@ -655,6 +656,8 @@ export function RegisterScreen() {
           )}
 
         </View>
+
+        <BrandTagline style={styles.tagline} />
       </ScrollView>
     </Screen>
   )
@@ -826,6 +829,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 24,
+  },
+  tagline: {
+    marginTop: 8,
   },
   linkHint: {
     fontSize: 16,

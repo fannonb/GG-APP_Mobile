@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
 import { Screen, Field } from '@/components'
+import BrandTagline from '@/components/BrandTagline'
 import { authService, getApiBaseUrl, getIsMockApi } from '@gg/shared-api'
 import { startGoogleSignIn } from '@/lib/google-auth'
 import { useAuthStore } from '@gg/shared-stores'
@@ -286,6 +287,8 @@ export function LoginScreen() {
             <Text style={styles.registerLink}>Register</Text>
           </Pressable>
         </View>
+
+        <BrandTagline style={styles.tagline} />
       </ScrollView>
     </Screen>
   )
@@ -435,5 +438,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fontWeights.bold,
     color: colors.blue,
+  },
+  tagline: {
+    marginTop: 32,
   },
 })

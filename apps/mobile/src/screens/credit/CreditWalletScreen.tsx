@@ -9,29 +9,26 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
-import { colors, fontWeights, radii, shadows } from '@/theme'
+import { colors, fontWeights, shadows } from '@/theme'
 import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import {
   Screen,
   ScrollArea,
   AppBar,
   MCard,
-  MBtn,
   MAvatar,
   StatusPill,
   MoneyText,
   StatTile,
-  MProgress,
   NotifBanner,
 } from '@/components'
 import InvoiceIcon from '@/icons/InvoiceIcon'
 import WalletIcon from '@/icons/WalletIcon'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
+import { CardAction, CreditBalanceCard } from '@/components/credit/CreditBalanceCard'
 import { useCreditStatus, usePatientTransactions, usePatientInvoices } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency, formatDate, isCreditRunningLow, isActionablePendingInvoice } from '@gg/shared-utils'
-import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
+import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
 import type { CreditStatusResponse, Transaction, Patient, PatientInvoice } from '@gg/shared-types'
 import { EmptyWalletScreen } from './EmptyWalletScreen'
 
@@ -119,10 +116,6 @@ export function CreditWalletScreen() {
   const creditAvailable = u?.creditAvailable ?? 0
   const creditLimit = u?.creditLimit ?? 0
   const outstanding = creditData?.creditUsed ?? u?.creditUsed ?? 0
-  const limitUsedPct =
-    creditLimit > 0
-      ? Math.round(((creditLimit - creditAvailable) / creditLimit) * 100)
-      : 0
 
   const spendable = transactions.filter(
     (t: any) => t.status === 'completed' || t.status === 'authorized',
@@ -147,15 +140,30 @@ export function CreditWalletScreen() {
   const pendingInvoices = (invoices as PatientInvoice[]).filter(isActionablePendingInvoice)
   const firstPending = pendingInvoices[0]
   const accountRef = u?.creditAccountRef ?? creditData?.creditAccountRef
+  const partnerId = u?.financePartnerId ?? getFinancePartnerIdForCountry(u?.countryCode)
   const showLowBalance =
     u?.creditStatus === 'approved' &&
     isCreditRunningLow(creditAvailable, u?.countryCode ?? 'KE')
 
+  /* Currency and account ID sit in the top-right corner of the header. */
+  const headerPills = (
+    <View style={s.headerPills}>
+      {country && (
+        <View style={s.headerPill}>
+          <Text style={s.headerPillText}>{country.currencyCode ?? 'KES'}</Text>
+        </View>
+      )}
+      <View style={s.headerPill}>
+        <Text style={s.headerPillText}>ID: {accountRef ?? 'Pending'}</Text>
+      </View>
+    </View>
+  )
+
   /* loading */
   if ((creditLoading || txLoading) && !creditData && transactions.length === 0) {
     return (
-      <Screen headerPattern="dark-curve">
-        <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} />
+      <Screen>
+        <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} right={headerPills} />
         <SkeletonGroup style={s.skeleton}>
           <SkeletonBalanceCard />
           <SkeletonBlock width="45%" height={18} />
@@ -166,8 +174,8 @@ export function CreditWalletScreen() {
   }
 
   return (
-    <Screen headerPattern="dark-curve">
-      <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} />
+    <Screen>
+      <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} right={headerPills} />
 
       <ScrollArea gap={24} px={16} py={14} {...pull}>
         {firstPending && (
@@ -196,128 +204,34 @@ export function CreditWalletScreen() {
             onCta={() => navigation.navigate('CreditIncrease')}
           />
         )}
-        {/* ====== 1. Main Balance Hero ====== */}
-        <View style={s.creditCardHero}>
-          <LinearGradient
-            colors={['#091C44', '#132854']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={s.creditCardGradient}
-          >
-            <View style={s.ccGlow} />
+        {/* ====== 1. Balance card: the same card as on home, financier at the top ====== */}
+        <CreditBalanceCard
+          partnerId={partnerId}
+          partnerName={partner?.name ?? 'Accredited Finance Partner'}
+          available={creditAvailable}
+          limit={creditLimit}
+          currency={currency}
+          isLow={showLowBalance}
+          footer={
+            <>
+              <CardAction label="Use Balance →" onPress={() => navigation.navigate('ServicesTab', { screen: 'FindService' })} />
+              <CardAction label="Request Increase" variant="secondary" onPress={() => navigation.navigate('CreditIncrease')} />
+            </>
+          }
+        />
 
-            {/* Status pills row */}
-            <View style={s.pillsRow}>
-              <View style={s.activePill}>
-                <View style={s.greenDot} />
-                <Text style={s.activePillText}>Active balance</Text>
-              </View>
+        {/* ====== 2. Figures sit outside the card ====== */}
 
-              {country && (
-                <View style={s.infoPill}>
-                  <Text style={s.infoPillText}>
-                    {country.flag ?? ''} {country.currencyCode ?? 'KES'}
-                  </Text>
-                </View>
-              )}
-
-              <View style={s.infoPill}>
-                <Text style={[s.infoPillText, { fontFamily: fontWeights.semiBold }]}>
-                  ID: {accountRef ?? 'Pending'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Available balance */}
-            <Text style={s.balanceLabel}>Available balance</Text>
-            <Text style={s.balanceAmount}>{formatCurrency(creditAvailable, currency)}</Text>
-
-            {/* Limit / Progress inner card */}
-            <View style={s.limitCard}>
-              <View style={s.limitRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.limitLabel}>Approved Limit</Text>
-                  <Text style={s.limitValue}>{formatCurrency(creditLimit, currency)}</Text>
-                </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={s.limitLabel}>Limit Used</Text>
-                  <Text style={s.limitValuePct}>{limitUsedPct}%</Text>
-                </View>
-              </View>
-
-              <MProgress
-                value={creditLimit - creditAvailable}
-                max={creditLimit}
-                height={6}
-                color={colors.blue}
-                bgColor="rgba(255,255,255,0.18)"
-              />
-
-              <View style={s.progressLabels}>
-                <Text style={s.progressLabelText}>
-                  {formatCurrency(creditAvailable, currency)} available
-                </Text>
-                <Text style={s.progressLabelText}>
-                  {formatCurrency(creditLimit, currency)} approved
-                </Text>
-              </View>
-            </View>
-
-            {/* Outstanding / This month 2-col */}
-            <View style={s.statsRow}>
-              <View style={s.statBlock}>
-                <Text style={s.statLabel}>Outstanding</Text>
-                <Text style={s.statValue}>{formatCurrency(outstanding, currency)}</Text>
-              </View>
-              <View style={s.statDivider} />
-              <View style={s.statBlock}>
-                <Text style={s.statLabel}>This Month</Text>
-                <Text style={s.statValueBlue}>
-                  {formatCurrency(thisMonthUsage, currency)}
-                </Text>
-                <Text style={s.statLabel}>{thisMonthCount} payment{thisMonthCount === 1 ? '' : 's'}</Text>
-              </View>
-            </View>
-
-            {/* Action buttons */}
-            <View style={s.actionRow}>
-              <MBtn
-                variant="ghost"
-                sm
-                style={s.btnRequest}
-                onPress={() => navigation.navigate('CreditIncrease')}
-              >
-                Request Increase
-              </MBtn>
-              <MBtn
-                variant="action"
-                sm
-                style={s.btnUse}
-                onPress={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
-              >
-                Use Balance →
-              </MBtn>
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* ====== 2. Finance Partner Card ====== */}
-        <View style={s.contentSection}>
-          <View style={s.partnerRow}>
-            {partner ? (
-              <View style={s.partnerIcon}>
-                <FinancePartnerLogo partnerId={partner.id} height={24} />
-              </View>
-            ) : null}
-            <View style={{ flex: 1 }}>
-              <Text style={s.partnerLabel}>Financing Partner</Text>
-              <Text style={s.partnerName}>{partner?.name ?? 'Accredited Finance Partner'}</Text>
-              <Text style={s.partnerDesc}>
-                {partner
-                  ? `Your credit account is compiled securely with ${partner.name}.`
-                  : 'Your credit account is compiled securely with accredited and verified finance partners.'}
-              </Text>
-            </View>
+        <View style={[s.contentSection, s.statsCard]}>
+          <View style={s.statBlock}>
+            <Text style={s.statLabel}>Outstanding</Text>
+            <Text style={s.statValue}>{formatCurrency(outstanding, currency)}</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statBlock}>
+            <Text style={s.statLabel}>This month</Text>
+            <Text style={s.statValueBlue}>{formatCurrency(thisMonthUsage, currency)}</Text>
+            <Text style={s.statLabel}>{thisMonthCount} payment{thisMonthCount === 1 ? '' : 's'}</Text>
           </View>
         </View>
 
@@ -450,169 +364,54 @@ const s = StyleSheet.create({
     color: colors.textSub,
   },
 
-  /* navy balance hero */
-  creditCardHero: {
-    marginHorizontal: 4,
-    marginBottom: 8,
-    ...shadows.raised,
-  },
-  creditCardGradient: {
-    borderRadius: 24,
-    padding: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  ccGlow: {
-    position: 'absolute',
-    top: '-40%',
-    right: '-10%',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(56, 182, 255, 0.06)',
-  },
-
-  /* pills row */
-  pillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  /* header pills, top-right corner */
+  headerPills: {
+    alignItems: 'flex-end',
     gap: 6,
-    marginBottom: 16,
   },
-  activePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(31,190,134,0.18)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-  },
-  greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.success,
-  },
-  activePillText: {
-    fontSize: 13.5,
-    fontFamily: fontWeights.extraBold,
-    color: '#FFFFFF',
-  },
-  infoPill: {
+  headerPill: {
     backgroundColor: 'rgba(255,255,255,0.12)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
   },
-  infoPillText: {
-    fontSize: 12.5,
-    fontFamily: fontWeights.bold,
-    color: 'rgba(255,255,255,0.85)',
-  },
-
-  /* balance */
-  balanceLabel: {
-    fontSize: 13.5,
-    fontFamily: fontWeights.bold,
-    color: 'rgba(255,255,255,0.55)',
-    marginBottom: 4,
-  },
-  balanceAmount: {
-    fontSize: 38,
-    fontFamily: fontWeights.extraBold,
-    color: '#FFFFFF',
-    letterSpacing: -1.2,
-    marginBottom: 18,
-  },
-
-  /* limit card */
-  limitCard: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: radii.default,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    padding: 14,
-    marginBottom: 14,
-    gap: 10,
-  },
-  limitRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  limitLabel: {
-    fontSize: 13.5,
-    fontFamily: fontWeights.bold,
-    color: 'rgba(255,255,255,0.55)',
-    marginBottom: 4,
-  },
-  limitValue: {
-    fontSize: 18,
-    fontFamily: fontWeights.extraBold,
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-  },
-  limitValuePct: {
-    fontSize: 18,
-    fontFamily: fontWeights.extraBold,
-    color: '#38B6FF',
-    letterSpacing: -0.3,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressLabelText: {
+  headerPillText: {
     fontSize: 11.5,
-    fontFamily: fontWeights.regular,
-    color: 'rgba(255,255,255,0.5)',
+    fontFamily: fontWeights.bold,
+    color: 'rgba(255,255,255,0.9)',
   },
 
-  /* stats 2-col */
-  statsRow: {
+  /* outstanding / this month, below the card */
+  statsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   statBlock: {
     flex: 1,
+    gap: 4,
   },
   statDivider: {
     width: 1,
     alignSelf: 'stretch',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    marginHorizontal: 14,
+    backgroundColor: colors.border,
+    marginHorizontal: 16,
   },
   statLabel: {
-    fontSize: 13.5,
-    fontFamily: fontWeights.bold,
-    color: 'rgba(255,255,255,0.55)',
-    marginBottom: 4,
+    fontSize: 13,
+    fontFamily: fontWeights.medium,
+    color: colors.textLight,
   },
   statValue: {
     fontSize: 17,
     fontFamily: fontWeights.extraBold,
-    color: '#FFFFFF',
+    color: colors.text,
   },
   statValueBlue: {
     fontSize: 17,
     fontFamily: fontWeights.extraBold,
-    color: '#38B6FF',
-  },
-
-  /* action buttons */
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  btnRequest: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  btnUse: {
-    flex: 1,
+    color: colors.blueInk,
   },
 
   /* container sections */
@@ -625,39 +424,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(9, 28, 68, 0.05)',
     ...shadows.card,
-  },
-
-  /* partner card */
-  partnerRow: {
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'center',
-  },
-  partnerIcon: {
-    width: 104,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  partnerLabel: {
-    fontSize: 13.5,
-    fontFamily: fontWeights.bold,
-    color: colors.textSub,
-    marginBottom: 2,
-  },
-  partnerName: {
-    fontSize: 15.5,
-    fontFamily: fontWeights.extraBold,
-    color: colors.navy,
-    marginBottom: 4,
-  },
-  partnerDesc: {
-    fontSize: 12.5,
-    fontFamily: fontWeights.regular,
-    color: colors.textLight,
-    lineHeight: 18,
   },
 
   /* info notice */

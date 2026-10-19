@@ -31,8 +31,10 @@ export const colors = {
   blue100: '#E6F5FF', // tint fills, icon chips
   blueInk: '#0B72BB', // links + small accent text on light (5.1:1 on white)
 
-  /* ---- Surfaces: warm alabaster, matching web ------------------------- */
-  bg:           '#FAF6F5', // Core Brand Background
+  /* ---- Surfaces ------------------------------------------------------- *
+   * App backdrop is a very light grey (design review), so white cards read
+   * as raised. Was the warm alabaster #FAF6F5 that the PWA still uses. */
+  bg:           '#F3F4F6',
   card:         '#FFFFFF',
   surfaceMuted: '#F4F1F0', // inset rows, muted wells
   border:       '#EAE6E5',

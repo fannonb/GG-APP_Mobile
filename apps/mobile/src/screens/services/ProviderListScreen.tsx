@@ -171,7 +171,7 @@ export function ProviderListScreen({
             return (
               <Pressable
                 key={provider.id}
-                onPress={() => navigation.navigate('ProviderProfile', { providerId: provider.id })}
+                onPress={() => navigation.navigate('ProviderProfile', { providerId: provider.id, category })}
                 style={styles.card}
                 accessibilityRole="button"
                 accessibilityLabel={`${provider.name}, ${provider.address}. Rated ${provider.rating.toFixed(1)}. ${getProviderHoursSummary(provider)}${provider.distance ? `, ${provider.distance}` : ''}`}

@@ -30,7 +30,8 @@ export type HomeStackParamList = {
 export type ServicesStackParamList = {
   FindService: undefined
   ProviderList: { category: string }
-  ProviderProfile: { providerId: string | number }
+  /** `category` is the category the patient came in through. Pharmacy entry = prescription only. */
+  ProviderProfile: { providerId: string | number; category?: string }
   BookingForm: {
     providerId: string | number
     rebook?: AppointmentRebookPrefill

@@ -135,6 +135,8 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                       onPress={() =>
                         navigation.navigate('ProviderProfile', {
                           providerId: String(provider.id),
+                          // The category the row is listed under.
+                          category: provider.category,
                         })
                       }
                     >
