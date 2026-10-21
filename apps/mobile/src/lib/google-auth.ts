@@ -73,9 +73,19 @@ async function createPkcePair(): Promise<{ verifier: string; challenge: string }
  */
 export async function startGoogleSignIn(): Promise<GoogleAuthCodeResult | null> {
   const clientId = getGoogleClientId()
+  if (!clientId) {
+    throw new Error('Google sign-in is not configured in this build (missing EXPO_PUBLIC_GOOGLE_CLIENT_ID).')
+  }
+
+  // Expo Go cannot host Google OAuth: Google rejects the exp:// redirect URI,
+  // and the reverse-DNS scheme below only exists in a native build.
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    throw new Error("Google sign-in needs the installed GG'APP app — it does not work in Expo Go.")
+  }
+
   const redirectUri = getGoogleRedirectUri()
   const baseUrl = getGoogleOAuthUrl(redirectUri)
-  if (!clientId || !baseUrl) return null
+  if (!baseUrl) return null
 
   const { verifier, challenge } = await createPkcePair()
   const sep = baseUrl.includes('?') ? '&' : '?'

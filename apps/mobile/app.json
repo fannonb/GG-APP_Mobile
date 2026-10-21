@@ -36,6 +36,12 @@
       "blockedPermissions": [
         "android.permission.READ_CALENDAR",
         "android.permission.WRITE_CALENDAR"
+      ],
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
       ]
     },
     "splash": {
@@ -75,7 +81,22 @@
           "calendarPermission": "Allow GG'APP to add your appointments to your calendar.",
           "remindersPermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "993ee4f3-5bba-47bc-bf7a-cfa0d08ea343"
+      }
+    },
+    "owner": "fannonb"
   }
 }
