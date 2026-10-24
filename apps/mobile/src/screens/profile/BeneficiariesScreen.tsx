@@ -133,7 +133,7 @@ const EMPTY_FORM = {
   relation: '',
   dob: '',
   nationalId: '',
-  countryCode: 'KE' as CountryCode,
+  countryCode: '' as CountryCode,
   gender: '',
 }
 
@@ -183,7 +183,7 @@ export function BeneficiariesScreen() {
     setDeletingBen(null)
     setBenForm({
       ...EMPTY_FORM,
-      countryCode: (user?.countryCode ?? 'KE') as CountryCode,
+      countryCode: (user?.countryCode ?? '') as CountryCode,
     })
     setFormError(null)
     setShowAddForm(true)
@@ -197,7 +197,7 @@ export function BeneficiariesScreen() {
       relation: ben.relation ?? '',
       dob: ben.dob ? formatDobForDisplay(ben.dob) : '',
       nationalId: ben.nationalId ?? '',
-      countryCode: (ben.countryCode ?? user?.countryCode ?? 'KE') as CountryCode,
+      countryCode: (ben.countryCode ?? user?.countryCode ?? '') as CountryCode,
       gender: ben.gender ?? '',
     })
     setFormError(null)

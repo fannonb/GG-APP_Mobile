@@ -111,8 +111,8 @@ export function CreditWalletScreen() {
 
   /* derived — resilient to null */
   const partner = u?.financePartnerId ? getFinancePartnerSummary(u.financePartnerId) : undefined
-  const country = getCountryByCode(u?.countryCode ?? 'KE')
-  const currency = country?.currencySymbol ?? 'Ksh.'
+  const country = getCountryByCode(u?.countryCode ?? '')
+  const currency = country?.currencySymbol ?? ''
   const creditAvailable = u?.creditAvailable ?? 0
   const creditLimit = u?.creditLimit ?? 0
   const outstanding = creditData?.creditUsed ?? u?.creditUsed ?? 0
@@ -143,14 +143,14 @@ export function CreditWalletScreen() {
   const partnerId = u?.financePartnerId ?? getFinancePartnerIdForCountry(u?.countryCode)
   const showLowBalance =
     u?.creditStatus === 'approved' &&
-    isCreditRunningLow(creditAvailable, u?.countryCode ?? 'KE')
+    isCreditRunningLow(creditAvailable, u?.countryCode ?? '')
 
   /* Currency and account ID sit in the top-right corner of the header. */
   const headerPills = (
     <View style={s.headerPills}>
       {country && (
         <View style={s.headerPill}>
-          <Text style={s.headerPillText}>{country.currencyCode ?? 'KES'}</Text>
+          <Text style={s.headerPillText}>{country.currencyCode ?? ''}</Text>
         </View>
       )}
       <View style={s.headerPill}>

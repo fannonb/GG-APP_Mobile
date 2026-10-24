@@ -48,10 +48,10 @@ const CREDIT_JOURNEY_STEPS = [
 export function EmptyWalletScreen() {
   const navigation = useNavigation<any>()
   // Patients in Zimbabwe and Zambia must not see a Kenyan shilling balance.
-  const countryCode = useUserStore(s => s.user?.countryCode) ?? 'KE'
-  const currency = getCountryByCode(countryCode)?.currencySymbol ?? 'Ksh.'
-  // One partner per country: Equity Bank in Kenya, Moneymart Finance in Zimbabwe.
-  const partner = getFinancePartnerSummary(getFinancePartnerIdForCountry(countryCode))
+  const countryCode = useUserStore(s => s.user?.countryCode)
+  const currency = getCountryByCode(countryCode)?.currencySymbol ?? ''
+  // One partner per country: Equity Bank in Kenya, Moneymart Finance in Zimbabwe. No partner until the country is known.
+  const partner = countryCode ? getFinancePartnerSummary(getFinancePartnerIdForCountry(countryCode)) : undefined
 
   return (
     <Screen>
@@ -135,7 +135,7 @@ export function EmptyWalletScreen() {
         <MCard padding={18}>
           <Text style={s.sectionTitle}>Your finance partner</Text>
           <Text style={s.sectionSub}>
-            Healthcare credit in {getCountryByCode(countryCode)?.name ?? 'your country'} is provided by {partner?.name}.
+            Healthcare credit in {getCountryByCode(countryCode)?.name ?? 'your country'} is provided by {partner?.name ?? 'your finance partner'}.
           </Text>
 
           {partner ? (

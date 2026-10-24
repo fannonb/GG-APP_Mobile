@@ -75,8 +75,8 @@ export function CreditIncreaseScreen() {
   const { data: creditData } = useCreditStatus()
   const increaseMutation = useIncreaseCreditMutation()
 
-  const country = getCountryByCode(u?.countryCode ?? 'KE')
-  const currency = country?.currencySymbol ?? 'Ksh.'
+  const country = getCountryByCode(u?.countryCode ?? '')
+  const currency = country?.currencySymbol ?? ''
   const creditLimit = u?.creditLimit ?? 0
   const creditAvailable = u?.creditAvailable ?? 0
   const inUse = creditLimit - creditAvailable

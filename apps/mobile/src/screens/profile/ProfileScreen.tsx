@@ -107,9 +107,9 @@ export function ProfileScreen() {
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
-    residenceCountryCode: 'KE',
+    residenceCountryCode: '',
   })
-  const [phoneCountryCode, setPhoneCountryCode] = useState('KE')
+  const [phoneCountryCode, setPhoneCountryCode] = useState('')
   const [phoneDigits, setPhoneDigits] = useState('')
   const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -135,10 +135,10 @@ export function ProfileScreen() {
   const u = profile?.user ?? storedUser
   const beneficiaries: Beneficiary[] =
     profile?.beneficiaries ?? storedBeneficiaries ?? []
-  const country = getCountryByCode(u?.countryCode ?? 'KE')
-  const currency = country?.currencySymbol ?? 'Ksh.'
-  const currencyCode = country?.currencyCode ?? 'KES'
-  const countryName = country?.name ?? u?.country ?? 'Kenya'
+  const country = getCountryByCode(u?.countryCode ?? '')
+  const currency = country?.currencySymbol ?? ''
+  const currencyCode = country?.currencyCode ?? ''
+  const countryName = country?.name ?? u?.country ?? ''
   const residenceCountryName =
     u?.residenceCountry ??
     getWorldCountryByCode(resolveResidenceSelectCode(u ?? {}))?.name ??
@@ -200,8 +200,9 @@ export function ProfileScreen() {
   ]
 
   const startEditing = () => {
-    const residenceCode = resolveResidenceSelectCode(u ?? {})
-    const parsed = splitPhonePrefix(u?.phone, residenceCode)
+    // Pre-fill only when the stored country is known; otherwise leave the residence blank for the user to choose.
+    const residenceCode = u?.countryCode ? resolveResidenceSelectCode(u) : ''
+    const parsed = splitPhonePrefix(u?.phone, residenceCode || undefined)
     setEditForm({
       name: u?.name ?? '',
       email: u?.email ?? '',
@@ -429,7 +430,7 @@ export function ProfileScreen() {
                   </ScrollView>
                 </View>
               )}
-              {!isOperatingCountryCode(editForm.residenceCountryCode) && (
+              {editForm.residenceCountryCode && !isOperatingCountryCode(editForm.residenceCountryCode) && (
                 <Text style={s.residenceHint}>
                   You are living abroad. Your wallet currency stays tied to your registered
                   market ({marketCountryName}). Beneficiaries must reside in Kenya, Zimbabwe, or Zambia.

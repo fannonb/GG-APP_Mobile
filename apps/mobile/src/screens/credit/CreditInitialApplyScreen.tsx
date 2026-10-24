@@ -65,10 +65,11 @@ export function CreditInitialApplyScreen() {
   const u = useUserStore(s => s.user)
   const applyMutation = useApplyCreditMutation()
 
-  const countryCode = u?.countryCode ?? 'KE'
-  const partnerId = getFinancePartnerIdForCountry(countryCode)
-  const partner = getFinancePartnerSummary(partnerId)
-  const countryName = getWorldCountryByCode(countryCode)?.name
+  // No default country: until the profile loads we don't know the lender, so the application can't be sent.
+  const countryCode = u?.countryCode
+  const partnerId = countryCode ? getFinancePartnerIdForCountry(countryCode) : undefined
+  const partner = partnerId ? getFinancePartnerSummary(partnerId) : undefined
+  const countryName = countryCode ? getWorldCountryByCode(countryCode)?.name : undefined
 
   const [employment, setEmployment] = useState('')
   const [repaymentMethod, setRepaymentMethod] = useState('')
@@ -84,6 +85,10 @@ export function CreditInitialApplyScreen() {
   const shortAmount = (n: number) => `${symbol} ${n.toLocaleString('en-US')}`
 
   const handleSubmit = async () => {
+    if (!countryCode || !partnerId) {
+      setSubmitError('We could not confirm your country yet, so the application cannot be sent. Please try again shortly.')
+      return
+    }
     const income = Number(monthlyIncome)
     const amount = Number(requestedAmount)
     const next: Partial<Record<FieldKey, string>> = {}
@@ -127,9 +132,11 @@ export function CreditInitialApplyScreen() {
         {/* 1. Who reviews it */}
         <MCard padding={16}>
           <View style={st.partnerRow}>
-            <View style={st.partnerChip}>
-              <FinancePartnerLogo partnerId={partnerId} height={partnerId === 'equity' ? 30 : 28} />
-            </View>
+            {partnerId ? (
+              <View style={st.partnerChip}>
+                <FinancePartnerLogo partnerId={partnerId} height={partnerId === 'equity' ? 30 : 28} />
+              </View>
+            ) : null}
             <View style={{ flex: 1 }}>
               <Text style={st.partnerLabel}>Your finance partner</Text>
               <Text style={st.partnerName}>{partner?.name}</Text>
@@ -275,7 +282,7 @@ export function CreditInitialApplyScreen() {
           </Pressable>
         }
       >
-        <MBtn variant="primary" fullWidth disabled={!consent || loading} onPress={handleSubmit}>
+        <MBtn variant="primary" fullWidth disabled={!consent || loading || !partnerId} onPress={handleSubmit}>
           {loading ? 'Submitting…' : 'Submit application'}
         </MBtn>
       </ActionBar>

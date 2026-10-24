@@ -233,7 +233,8 @@ export function resolveResidenceSelectCode(params: {
   if (!params.residesAbroad && params.countryCode && isOperatingCountryCode(params.countryCode)) {
     return params.countryCode
   }
+  // '' when no country is known: never default to Kenya.
   return params.countryCode && getWorldCountryByCode(params.countryCode)
     ? params.countryCode
-    : 'KE'
+    : ''
 }
