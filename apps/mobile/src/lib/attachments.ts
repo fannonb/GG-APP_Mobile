@@ -76,6 +76,28 @@ function bytesToBase64(bytes: Uint8Array): string {
  * `readAsStringAsync` only supports `file://` (and some SAF URIs), which is why
  * uploads were failing with "Unable to read the selected file".
  */
+const STALE_UPLOAD_MS = 60 * 60 * 1000
+
+async function deleteQuietly(file: File) {
+  try {
+    if (file.exists) file.delete()
+  } catch {
+    // best-effort cleanup only
+  }
+}
+
+/** Removes leftovers from earlier picks (e.g. the app was killed mid-read). */
+async function purgeStaleUploads(dir: Directory) {
+  try {
+    const cutoff = Date.now() - STALE_UPLOAD_MS
+    for (const entry of dir.list()) {
+      if (entry instanceof File && (entry.modificationTime ?? 0) < cutoff) await deleteQuietly(entry)
+    }
+  } catch {
+    // best-effort cleanup only
+  }
+}
+
 async function readPickedFileAsBase64(uri: string, fileName: string): Promise<string> {
   const errors: string[] = []
 
@@ -93,11 +115,19 @@ async function readPickedFileAsBase64(uri: string, fileName: string): Promise<st
     if (!uploads.exists) {
       uploads.create()
     }
+    await purgeStaleUploads(uploads)
     const destName = `upload-${Date.now()}-${sanitizeFileName(fileName)}`
     const dest = new File(uploads, destName)
     await new File(uri).copy(dest)
-    const base64 = await dest.base64()
-    if (base64) return base64
+    try {
+      const base64 = await dest.base64()
+      if (base64) return base64
+    } finally {
+      // The document has been read fully into the data URL; the cache copy
+      // is only needed for this read. Uploaded PHI should not linger in the
+      // (unencrypted) app cache directory.
+      await deleteQuietly(dest)
+    }
   } catch (err) {
     errors.push(`File.copy: ${err instanceof Error ? err.message : String(err)}`)
   }
@@ -108,8 +138,12 @@ async function readPickedFileAsBase64(uri: string, fileName: string): Promise<st
       throw new Error('cacheDirectory unavailable')
     }
     await FileSystem.copyAsync({ from: uri, to: dest })
-    const base64 = await FileSystem.readAsStringAsync(dest, { encoding: 'base64' })
-    if (base64) return base64
+    try {
+      const base64 = await FileSystem.readAsStringAsync(dest, { encoding: 'base64' })
+      if (base64) return base64
+    } finally {
+      await FileSystem.deleteAsync(dest, { idempotent: true }).catch(() => {})
+    }
   } catch (err) {
     errors.push(`legacy.copy+read: ${err instanceof Error ? err.message : String(err)}`)
   }

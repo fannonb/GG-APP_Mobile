@@ -3,6 +3,17 @@ import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 
 /**
+ * Opens a server-supplied link only when it is an https:// URL. Custom schemes
+ * (intent:, tel:, javascript:) and cleartext http:// from a compromised or
+ * misconfigured backend must never reach the OS link handler.
+ */
+export async function openSafeUrl(url: string | null | undefined): Promise<boolean> {
+  if (typeof url !== 'string' || !/^https:\/\/[^\s]+$/i.test(url.trim())) return false
+  await Linking.openURL(url.trim())
+  return true
+}
+
+/**
  * Android 7+ forbids exposing raw `file://` URIs to other apps via Intent
  * (FileUriExposedException). Use the system share sheet / content URI instead.
  */
@@ -37,8 +48,8 @@ export async function openRemoteOrDataAttachment(params: {
 }): Promise<void> {
   const { url, fileName, mimeType, cacheKey } = params
 
-  if (url.startsWith('https://') || url.startsWith('http://')) {
-    await Linking.openURL(url)
+  if (url.startsWith('https://')) {
+    await openSafeUrl(url)
     return
   }
 

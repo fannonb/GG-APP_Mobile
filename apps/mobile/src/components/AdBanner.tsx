@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, StyleSheet, Linking, Image } from 'react-native'
+import { openSafeUrl } from '../lib/open-attachment'
+import { View, Text, StyleSheet, Image } from 'react-native'
 import Pressable from '@/components/Pressable'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -70,7 +71,7 @@ export default function AdBannerStrip({ countryName }: AdBannerStripProps) {
     <View style={styles.wrap}>
       <Pressable
         style={styles.card}
-        onPress={() => void Linking.openURL(banner.ctaUrl)}
+        onPress={() => void openSafeUrl(banner.ctaUrl)}
       >
         {canRenderImage ? (
           <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />

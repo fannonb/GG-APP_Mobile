@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react'
+import { openSafeUrl } from '../lib/open-attachment'
 import {
   View,
   Text,
   ScrollView,
   Modal,
-  Linking,
   StyleSheet,
   useWindowDimensions,
 } from 'react-native'
@@ -120,7 +120,7 @@ function HealthNewsModal({ item, onClose }: { item: NewsItem; onClose: () => voi
               </Text>
             </View>
             {item.url ? (
-              <Pressable style={styles.modalVisitBtn} onPress={() => Linking.openURL(item.url!)}>
+              <Pressable style={styles.modalVisitBtn} onPress={() => openSafeUrl(item.url)}>
                 <Text style={styles.modalVisitText}>Visit Source</Text>
               </Pressable>
             ) : null}

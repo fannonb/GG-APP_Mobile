@@ -25,6 +25,8 @@
     "production": {
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.gatewayglobal.africa/api/v1",
+        "EXPO_PUBLIC_MOCK_API": "false",
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "335540055294-raieetpuh61lvu9ar6vm2i49bnfu5kjb.apps.googleusercontent.com"
       },
       "android": {

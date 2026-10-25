@@ -44,10 +44,15 @@ export const mobileTokenStorage: ITokenStorage = {
 
   setSession(session: StoredSession): void {
     cache = session
-    SecureStore.setItemAsync(KEYS.ACCESS, session.accessToken).catch(err =>
+    // THIS_DEVICE_ONLY keeps access/refresh tokens out of iCloud Keychain
+    // sync and device backups — a session restored onto another device would
+    // outlive its jti context anyway (the cache AES key is device-only too).
+    // Android Keystore-encrypted storage is unaffected by this option.
+    const secureOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY }
+    SecureStore.setItemAsync(KEYS.ACCESS, session.accessToken, secureOptions).catch(err =>
       console.warn('[token-storage] SecureStore write failed (access token)', err),
     )
-    SecureStore.setItemAsync(KEYS.REFRESH, session.refreshToken).catch(err =>
+    SecureStore.setItemAsync(KEYS.REFRESH, session.refreshToken, secureOptions).catch(err =>
       console.warn('[token-storage] SecureStore write failed (refresh token)', err),
     )
     SecureStore.setItemAsync(KEYS.ROLE, session.role).catch(err =>

@@ -102,6 +102,14 @@ function getMobileApiBaseUrl() {
           '(e.g. https://api-production-<service>.up.railway.app/api/v1) at build time.',
       )
     }
+    const envProtocol = new URL(envBaseUrl).protocol
+    if (envProtocol !== 'https:') {
+      throw new Error(
+        `[GG Mobile] Release builds must use an https:// API base URL (found "${envProtocol}//" ` +
+          'in EXPO_PUBLIC_API_BASE_URL). Access and refresh tokens travel as Bearer credentials ' +
+          'and would be transmitted in cleartext.',
+      )
+    }
     return envBaseUrl
   }
 
