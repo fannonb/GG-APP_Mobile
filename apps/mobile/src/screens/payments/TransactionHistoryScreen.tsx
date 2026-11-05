@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import { colors, fontWeights, radii } from '@/theme'
 import { useCurrency } from '@/lib/useCurrency'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
-import { Screen, ScrollArea, AppBar, MCard, GGPill, FilterChips } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, GGPill, FilterChips, Pager } from '@/components'
+import { usePaged } from '@/lib/usePaged'
 import { usePatientTransactions } from '@gg/shared-hooks'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
 import type { Transaction } from '@gg/shared-types'
@@ -53,7 +54,7 @@ function TransactionRow({ txn }: { txn: Transaction }) {
   const statusMap: Record<string, { label: string; type: 'success' | 'info' | 'pending' | 'error' }> = {
     completed:  { label: 'Paid', type: 'success' },
     authorized: { label: 'Authorized', type: 'info' },
-    pending:    { label: 'Pending', type: 'pending' },
+    pending:    { label: 'Processing', type: 'pending' },
     failed:     { label: 'Failed', type: 'error' },
   }
   const meta = statusMap[txn.status] ?? statusMap.failed
@@ -162,6 +163,7 @@ export function TransactionHistoryScreen() {
     }
     return transactions
   }, [filterIndex, transactions, now.getFullYear(), now.getMonth()])
+  const { pageItems: pagedTransactions, pager } = usePaged(filteredTransactions, filterIndex)
 
   /* Summary totals */
   const spendable = transactions.filter((t: Transaction) => t.status !== 'failed')
@@ -174,12 +176,9 @@ export function TransactionHistoryScreen() {
     .reduce((s: number, t: Transaction) => s + (t.amount ?? 0), 0)
 
   return (
-    <Screen bg={colors.bg}>
-      <AppBar
-        title="Transaction History"
-        subtitle="Payments made with your credit"
-      />
+    <Screen bg={colors.bg} header="detail">
       <ScrollArea gap={16} px={16} {...pull}>
+        <PageTitle title="Transaction History" subtitle="Payments made with your allocation" />
         {/* Summary */}
         <View style={s.summaryRow}>
           <SummaryCard
@@ -218,11 +217,12 @@ export function TransactionHistoryScreen() {
               </Text>
             </View>
           ) : (
-            filteredTransactions.map((txn: Transaction) => (
+            pagedTransactions.map((txn: Transaction) => (
               <TransactionRow key={txn.id} txn={txn} />
             ))
           )}
         </MCard>
+        <Pager {...pager} />
       </ScrollArea>
     </Screen>
   )

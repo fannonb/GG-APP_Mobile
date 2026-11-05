@@ -8,12 +8,22 @@
   "scripts": {
     "mobile": "npm run start --workspace=apps/mobile",
     "android": "npm run android --workspace=apps/mobile",
-    "typecheck": "tsc --noEmit -p apps/mobile"
+    "typecheck": "tsc --noEmit -p apps/mobile",
+    "test:patient": "node --test tests/patient-parity.test.cjs tests/patient-session.test.cjs tests/patient-screens.test.cjs"
   },
   "dependencies": {
-    "@expo/log-box": "^57.0.4",
+    "@expo/log-box": "^58.0.15",
     "babel-plugin-module-resolver": "^5.0.3",
-    "babel-preset-expo": "^57.0.14",
-    "expo-asset": "^57.0.19"
+    "babel-preset-expo": "~58.0.24",
+    "expo-asset": "~58.0.20",
+    "expo": "~58.0.23",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1"
+  },
+  "overrides": {
+    "@expo/ngrok": {
+      "uuid": "^11.1.1"
+    }
   }
 }

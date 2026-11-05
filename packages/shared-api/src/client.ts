@@ -5,6 +5,7 @@ import { ApiError } from './api-error'
 import type { AuthSession } from '@gg/shared-types'
 
 let refreshPromise: Promise<AuthSession | null> | null = null
+let refreshTokenInFlight: string | null = null
 
 export const apiClient = axios.create({
   timeout: 30_000,
@@ -21,7 +22,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
-async function refreshAccessToken(): Promise<AuthSession | null> {
+async function performRefresh(): Promise<AuthSession | null> {
   const storage = getTokenStorage()
   const refreshToken = storage.getRefreshToken()
   if (!refreshToken) return null
@@ -30,13 +31,30 @@ async function refreshAccessToken(): Promise<AuthSession | null> {
     const { data } = await axios.post<AuthSession>(
       `${getApiBaseUrl()}/auth/refresh`,
       { refreshToken },
+      { timeout: 10_000 },
     )
+    // A logout/account change during the request must not restore the old session.
+    if (storage.getRefreshToken() !== refreshToken) return null
     storage.setSession(data)
     return data
-  } catch {
-    storage.clear()
-    return null
+  } catch (error) {
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined
+    if ((status === 401 || status === 403) && storage.getRefreshToken() === refreshToken) storage.clear()
+    throw new ApiError(status === 401 || status === 403 ? 'Your session has expired. Please sign in again.' : 'Unable to reconnect. Your saved session is still available.', status ?? 0)
   }
+}
+
+/** Share token rotation between bootstrap, reconnect, and simultaneous 401s. */
+export function refreshAuthSession(): Promise<AuthSession | null> {
+  const token = getTokenStorage().getRefreshToken()
+  if (!refreshPromise || refreshTokenInFlight !== token) {
+    refreshTokenInFlight = token
+    const pending = performRefresh().finally(() => {
+      if (refreshPromise === pending) { refreshPromise = null; refreshTokenInFlight = null }
+    })
+    refreshPromise = pending
+  }
+  return refreshPromise
 }
 
 function isAuthPublicPath(url?: string) {
@@ -60,6 +78,8 @@ apiClient.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     const status = error.response?.status
     const requestUrl = `${original?.baseURL ?? getApiBaseUrl()}${original?.url ?? ''}`
+    const currentToken = getTokenStorage().getAccessToken()
+    const belongsToCurrentSession = !!currentToken && original?.headers?.Authorization === `Bearer ${currentToken}`
 
     // Never try token refresh on public auth calls (especially failed login → 401).
     if (
@@ -67,18 +87,18 @@ apiClient.interceptors.response.use(
       original &&
       !original._retry &&
       !getIsMockApi() &&
+      belongsToCurrentSession &&
       !isAuthPublicPath(original.url)
     ) {
       original._retry = true
-      refreshPromise ??= refreshAccessToken().finally(() => {
-        refreshPromise = null
-      })
-      const session = await refreshPromise
+      const session = await refreshAuthSession()
       if (session) {
         original.headers.Authorization = `Bearer ${session.accessToken}`
         return apiClient(original)
       }
     }
+    const latestToken = getTokenStorage().getAccessToken()
+    if (status === 401 && latestToken && original?.headers?.Authorization === `Bearer ${latestToken}` && !isAuthPublicPath(original?.url)) getTokenStorage().clear()
 
     const rawMessage = extractErrorMessage(
       error.response?.data,

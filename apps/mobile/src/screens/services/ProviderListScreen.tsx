@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Image } from 'react-native'
 import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, FilterChips } from '@/components'
+import { Screen, ScrollArea, PageTitle, FilterChips, LoadError, Pager } from '@/components'
+import { usePaged } from '@/lib/usePaged'
 import { SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
 import { CareCategoryIcon } from '@/icons/CareCategoryIcons'
@@ -70,7 +71,7 @@ export function ProviderListScreen({
   route,
 }: ServicesScreenProps<'ProviderList'>) {
   const { category } = route.params
-  const { data: providers = [], isLoading } = useProvidersByCategory(category)
+  const { data: providers = [], isLoading, isError, isFetching, refetch } = useProvidersByCategory(category)
   const [activeFilter, setActiveFilter] = useState(0)
 
   const position = useLocationStore(s => s.position)
@@ -123,13 +124,16 @@ export function ProviderListScreen({
   const categoryTitle = categoryLabel.endsWith('y') && !categoryLabel.endsWith('ay')
     ? `${categoryLabel.slice(0, -1)}ies`
     : categoryLabel.endsWith('s') ? categoryLabel : `${categoryLabel}s`
+  const { pageItems: pagedProviders, pager } = usePaged(filteredProviders, activeFilter)
 
   return (
-    <Screen>
-      <AppBar
-        title={categoryTitle}
-        subtitle={isLoading ? 'Finding providers…' : `${providers.length} verified ${providers.length === 1 ? 'provider' : 'providers'}`}
-      />
+    <Screen header="detail">
+      <View style={styles.fixedTitle}>
+        <PageTitle
+          title={categoryTitle}
+          subtitle={isLoading ? 'Finding providers…' : isError && providers.length === 0 ? 'Providers unavailable' : `${providers.length} verified ${providers.length === 1 ? 'provider' : 'providers'}`}
+        />
+      </View>
 
       {/* Location banner */}
       {(locState === 'denied' || locState === 'skipped') && (
@@ -145,10 +149,15 @@ export function ProviderListScreen({
         />
       </View>
 
+      {isError && providers.length > 0 && (
+        <LoadError title="We couldn't refresh providers." body="Showing your previous results. Try again for current availability." onRetry={() => void refetch()} retrying={isFetching} />
+      )}
       {isLoading ? (
         <SkeletonGroup style={styles.skeleton}>
           <SkeletonList rows={4} />
         </SkeletonGroup>
+      ) : isError && providers.length === 0 ? (
+        <LoadError title="We couldn't load providers." onRetry={() => void refetch()} retrying={isFetching} />
       ) : filteredProviders.length === 0 ? (
         <View style={styles.centered}>
           <View style={styles.emptyIcon}>
@@ -165,7 +174,7 @@ export function ProviderListScreen({
         </View>
       ) : (
         <ScrollArea gap={12} py={4}>
-          {filteredProviders.map(provider => {
+          {pagedProviders.map(provider => {
             const open = provider.status === 'open'
             const services = provider.services ?? []
             return (
@@ -229,6 +238,7 @@ export function ProviderListScreen({
               </Pressable>
             )
           })}
+          <Pager {...pager} />
         </ScrollArea>
       )}
     </Screen>
@@ -239,6 +249,10 @@ export function ProviderListScreen({
 /*  Styles                                                             */
 /* ------------------------------------------------------------------ */
 const styles = StyleSheet.create({
+  fixedTitle: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
   skeleton: {
     paddingHorizontal: 16,
     paddingTop: 4,

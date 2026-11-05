@@ -172,7 +172,7 @@ export function AppTabs() {
         name="WalletTab"
         component={WalletStack}
         options={{
-          tabBarLabel: 'Wallet',
+          tabBarLabel: 'Allocation',
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               <WalletIcon size={24} color={color} active={focused} />

@@ -13,7 +13,7 @@ import { colors, fontWeights, radii, shadows } from '@/theme'
 import {
   Screen,
   ScrollArea,
-  AppBar,
+  PageTitle,
   MCard,
   MBtn,
   MAvatar,
@@ -196,8 +196,7 @@ export function PrescriptionRequestScreen({
 
   if (!providerId) {
     return (
-      <Screen>
-        <AppBar title="Upload Prescription" subtitle="No pharmacy specified" />
+      <Screen header="modal">
         <View style={s.loadingWrap}>
           <Text style={s.loadingText}>
             This prescription link did not include a pharmacy. Browse services
@@ -213,8 +212,7 @@ export function PrescriptionRequestScreen({
 
   if (isLoading || !p) {
     return (
-      <Screen>
-        <AppBar title="Upload Prescription" subtitle="Loading provider..." />
+      <Screen header="modal">
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading provider...</Text>
@@ -224,10 +222,9 @@ export function PrescriptionRequestScreen({
   }
 
   return (
-    <Screen>
-      <AppBar title="Upload Prescription" subtitle={`Sending to ${p.name}`} />
-
+    <Screen header="modal">
       <ScrollArea gap={16} px={16} py={16}>
+        <PageTitle title="Upload Prescription" subtitle={`Sending to ${p.name}`} />
         <MCard padding={16}>
           <View style={s.providerHeader}>
             <MAvatar name={p.name} size={54} bg={colors.navy} />

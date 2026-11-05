@@ -78,17 +78,14 @@ export function getUnreadPrescriptionQuoteItems(notifications: Notification[]): 
 /**
  * Quote banners from unread notifications plus synthetic banners for quoted
  * prescriptions that never produced a notification. Synthetic ids use the
- * `rx-` prefix (see isSyntheticPrescriptionBannerId) and are dismissed via
- * the persisted dismissed-id set instead of marking a notification read.
+ * `rx-` prefix (see isSyntheticPrescriptionBannerId). Dismissing any of these
+ * is handled by the attention dismissals (useAttentionDismissals), not here.
  */
 export function buildPrescriptionQuoteBannerItems(
   notifications: Notification[],
   prescriptions: PrescriptionRequest[],
-  dismissedIds: Set<string>,
 ): NotifBannerItem[] {
-  const fromNotifications = getUnreadPrescriptionQuoteItems(notifications).filter(
-    item => !dismissedIds.has(item.id),
-  )
+  const fromNotifications = getUnreadPrescriptionQuoteItems(notifications)
 
   const coveredPrescriptionIds = new Set(
     fromNotifications
@@ -99,7 +96,6 @@ export function buildPrescriptionQuoteBannerItems(
   const fromPrescriptions: NotifBannerItem[] = prescriptions
     .filter(request => request.status === 'quoted')
     .filter(request => !coveredPrescriptionIds.has(request.id))
-    .filter(request => !dismissedIds.has(`rx-${request.id}`))
     .map(request => ({
       id: `rx-${request.id}`,
       headline: 'Quote Ready',

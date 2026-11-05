@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import Pressable from '@/components/Pressable'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
+import { PartnerLogo } from '@/components/PartnerLogo'
 import { colors, fontWeights, radii } from '@/theme'
 import { formatCurrency } from '@gg/shared-utils'
 
@@ -31,7 +31,7 @@ export function CreditCardFace({
   partnerId?: string
   partnerName: string
   tag?: CardTag
-  /** Shown top right when there is no tag, e.g. a "View wallet" link. */
+  /** Shown top right when there is no tag, e.g. a "View allocation" link. */
   topRight?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -43,13 +43,7 @@ export function CreditCardFace({
       style={styles.face}
     >
       <View style={styles.identityRow}>
-        <View style={styles.logoChip} accessible accessibilityLabel={`Financed by ${partnerName}`}>
-          {partnerId ? (
-            <FinancePartnerLogo partnerId={partnerId} height={partnerId === 'equity' ? 24 : 22} />
-          ) : (
-            <Text style={styles.logoText}>{partnerName}</Text>
-          )}
-        </View>
+        <PartnerLogo partnerId={partnerId} partnerName={partnerName} size="sm" />
         {tag ? (
           <View style={[styles.tag, tag.tone === 'warning' ? styles.tagWarning : styles.tagInfo]}>
             <Text style={[styles.tagText, tag.tone === 'warning' ? styles.tagTextWarning : styles.tagTextInfo]}>
@@ -180,19 +174,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-  },
-  logoChip: {
-    height: 36,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontFamily: fontWeights.bold,
-    fontSize: 14,
-    color: colors.text,
   },
   financedBy: {
     fontFamily: fontWeights.regular,

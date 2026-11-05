@@ -125,7 +125,7 @@ export interface RegisterSPPayload {
   password: string
   country: string
   serviceTypes: string[]
-  licenseNumber: string
+  licenseNumber?: string
   hours: ProviderOpeningHoursEntry[]
   location: ProviderLocationPayload
   payoutMethod: ProviderPayoutMethodPayload
@@ -283,6 +283,7 @@ export interface PrescriptionRequest {
   attachment: PrescriptionAttachmentPayload
   quotedItems?: PrescriptionQuotedItem[]
   quotedAmount?: number
+  deliveryFee?: number
   quotedAt?: string
   quoteReviewedAt?: string
   acceptedAt?: string

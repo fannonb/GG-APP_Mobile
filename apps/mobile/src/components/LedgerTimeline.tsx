@@ -6,6 +6,8 @@ import Svg, { Path, Circle } from 'react-native-svg'
 import type { LedgerEntry } from '@gg/shared-types'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { MCard, GGPill } from '@/components'
+import Pager from '@/components/Pager'
+import { usePaged } from '@/lib/usePaged'
 
 function entryKey(entry: LedgerEntry) {
   return `${entry.kind}-${entry.id}`
@@ -334,6 +336,7 @@ export function LedgerTimeline({
   }, [entries, query, kindFilter, dateFilter])
 
   const hasActiveFilters = Boolean(query.trim()) || kindFilter !== 'all' || dateFilter !== 'all'
+  const { pageItems: pagedEntries, pager } = usePaged(filtered, `${query}|${kindFilter}|${dateFilter}`)
 
   const allIds = useMemo(() => filtered.map(entryKey), [filtered])
   const entriesFingerprint = allIds.join('|')
@@ -440,7 +443,7 @@ export function LedgerTimeline({
           <Text style={styles.emptyCenter}>No records match these filters.</Text>
         </MCard>
       ) : (
-        filtered.map(entry => {
+        pagedEntries.map(entry => {
           const idKey = entryKey(entry)
           return (
             <CollapsibleEntryCard
@@ -452,6 +455,7 @@ export function LedgerTimeline({
           )
         })
       )}
+      <Pager {...pager} />
     </View>
   )
 }

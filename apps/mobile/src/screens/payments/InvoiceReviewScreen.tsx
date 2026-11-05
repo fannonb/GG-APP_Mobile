@@ -13,10 +13,11 @@ import { ScrollView } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { colors, fontWeights, radii } from '@/theme'
 import { InvoiceIcon } from '@/icons'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, ActionBar } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill, ActionBar, LoadError } from '@/components'
+import { ApiError } from '@gg/shared-api'
 import { openRemoteOrDataAttachment } from '@/lib/open-attachment'
 import { usePatientInvoice, usePatientInvoiceAttachment, useRejectInvoiceMutation } from '@gg/shared-hooks'
-import { formatCurrency, formatDate, isCreditRunningLow, wouldBeLowAfterPayment } from '@gg/shared-utils'
+import { formatCurrency, formatDate } from '@gg/shared-utils'
 import { getCountryByCode } from '@gg/shared-config'
 import { useUserStore } from '@gg/shared-stores'
 import type { PatientInvoice, InvoiceLineItem } from '@gg/shared-types'
@@ -55,10 +56,10 @@ export function InvoiceReviewScreen() {
   const invoiceId: string = route.params?.invoiceId ?? ''
 
   const user = useUserStore(s => s.user)
-  const country = getCountryByCode(user?.countryCode ?? 'KE')
-  const currency = country?.currencySymbol ?? 'Ksh.'
+  const country = getCountryByCode(user?.countryCode ?? '')
+  const currency = country?.currencySymbol ?? ''
 
-  const { data: invoice, isLoading } = usePatientInvoice(invoiceId)
+  const { data: invoice, isLoading, error, isFetching, refetch } = usePatientInvoice(invoiceId)
   const { data: attachment } = usePatientInvoiceAttachment(invoiceId, !!invoice)
   const rejectMutation = useRejectInvoiceMutation()
 
@@ -70,10 +71,27 @@ export function InvoiceReviewScreen() {
 
   const inv = invoice as PatientInvoice | undefined
 
+  if (!inv && (error || !invoiceId || !isLoading)) {
+    const notFound = !invoiceId || (error instanceof ApiError && error.status === 404) || !error
+    return (
+      <Screen header="detail">
+        <ScrollArea gap={14} px={16} py={16}>
+          <PageTitle title="Invoice Detail" />
+          <LoadError
+            title={notFound ? 'Invoice not found' : "We couldn't load this invoice."}
+            body={notFound ? 'Check the link or return to your invoices.' : 'Check your connection and try again.'}
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+          <MBtn variant="secondary" onPress={() => navigation.navigate('InvoiceList')}>All invoices</MBtn>
+        </ScrollArea>
+      </Screen>
+    )
+  }
+
   if (isLoading || !inv) {
     return (
-      <Screen>
-        <AppBar title="Invoice Detail" subtitle={invoiceId || 'Loading...'} />
+      <Screen header="detail">
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading invoice...</Text>
@@ -93,12 +111,6 @@ export function InvoiceReviewScreen() {
   const isPartialPay = walletPayAmount > 0 && offAppDue > 0
   const canAuthorize = hasApprovedCredit && walletPayAmount > 0
   const hasNoWalletBalance = hasApprovedCredit && walletPayAmount <= 0
-  const balanceAlreadyLow =
-    hasApprovedCredit && isCreditRunningLow(user?.creditAvailable ?? 0, user?.countryCode ?? 'KE')
-  const balanceLowAfterPayment =
-    hasApprovedCredit &&
-    walletPayAmount > 0 &&
-    wouldBeLowAfterPayment(user?.creditAvailable ?? 0, walletPayAmount, user?.countryCode ?? 'KE')
   const invoiceDate: string = inv.date ?? ''
   const services: InvoiceLineItem[] = (inv as any).services ?? []
   const serviceName = services[0]?.name ?? (inv as any).service ?? 'Healthcare Service'
@@ -158,10 +170,9 @@ export function InvoiceReviewScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar title="Invoice Detail" subtitle={invoiceRef} />
-
+    <Screen header="detail">
       <ScrollArea gap={16} px={16} py={14}>
+        <PageTitle title="Invoice Detail" subtitle={invoiceRef} />
         {/* === Invoice Card === */}
         <MCard padding={0}>
           <View style={s.cardHeader}>
@@ -248,14 +259,14 @@ export function InvoiceReviewScreen() {
           <MCard padding={16}>
             <Text style={s.summaryTitle}>Payment Summary</Text>
             <DetailRow label="Invoice Amount" value={formatCurrency(amount, currency)} />
-            <DetailRow label="Available Balance" value={formatCurrency(user?.creditAvailable ?? 0, currency)} />
+            <DetailRow label="Available to spend on care" value={formatCurrency(user?.creditAvailable ?? 0, currency)} />
             <DetailRow
               label="Pay from GG'APP"
               value={formatCurrency(walletPayAmount, currency)}
             />
             {isPartialPay && (
               <DetailRow
-                label="Pay off-app to provider"
+                label="Pay directly to provider"
                 value={formatCurrency(offAppDue, currency)}
               />
             )}
@@ -267,28 +278,18 @@ export function InvoiceReviewScreen() {
 
             <Text style={s.summaryNote}>
               {isPartialPay
-                ? `Your allocation covers ${formatCurrency(walletPayAmount, currency)}. Pay the remaining ${formatCurrency(offAppDue, currency)} off-app to ${providerName}.`
+                ? `Your allocation covers ${formatCurrency(walletPayAmount, currency)}. Pay the remaining ${formatCurrency(offAppDue, currency)} directly to ${providerName}.`
                 : 'You will enter your payment PIN three times to authorize the in-app portion.'}
             </Text>
 
             {!hasApprovedCredit && (
               <Text style={s.summaryWarning}>
-                Approved healthcare credit is required before you can authorize this invoice.
+                An approved healthcare allocation is required before you can authorize this invoice.
               </Text>
             )}
             {hasNoWalletBalance && (
               <Text style={s.summaryError}>
                 Your GG'APP allocation is fully used. Settle this invoice directly with your provider.
-              </Text>
-            )}
-            {balanceAlreadyLow && (
-              <Text style={s.summaryWarning}>
-                Your credit balance is running low. Consider requesting a limit increase.
-              </Text>
-            )}
-            {balanceLowAfterPayment && !balanceAlreadyLow && (
-              <Text style={s.summaryWarning}>
-                After this payment, your balance will be running low.
               </Text>
             )}
           </MCard>

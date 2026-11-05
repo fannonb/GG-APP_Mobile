@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -6,6 +6,10 @@ import {
   } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
+import { PAGE_SIZE, usePaged } from '@/lib/usePaged'
+import { useAttentionDismissals } from '@/lib/useAttentionDismissals'
+import type { DismissibleAttentionItem } from '@/lib/attention-dismissals'
+import { lastSettledPayment, recentPaymentRows } from '@/lib/recent-payments'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -14,34 +18,44 @@ import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from 
 import {
   Screen,
   ScrollArea,
-  AppBar,
+  PageTitle,
   MCard,
-  MAvatar,
   StatusPill,
-  MoneyText,
-  StatTile,
   NotifBanner,
+  GGPill,
+  Pager,
 } from '@/components'
 import InvoiceIcon from '@/icons/InvoiceIcon'
 import WalletIcon from '@/icons/WalletIcon'
 import { CardAction, CreditBalanceCard } from '@/components/credit/CreditBalanceCard'
 import { useCreditStatus, usePatientTransactions, usePatientInvoices } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
-import { formatCurrency, formatDate, isCreditRunningLow, isActionablePendingInvoice } from '@gg/shared-utils'
+import { formatCurrency, formatDate, getLowCreditThreshold, isCreditRunningLow, isActionablePendingInvoice } from '@gg/shared-utils'
 import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
-import type { CreditStatusResponse, Transaction, Patient, PatientInvoice } from '@gg/shared-types'
+import type { Transaction, Patient, PatientInvoice } from '@gg/shared-types'
 import { EmptyWalletScreen } from './EmptyWalletScreen'
+import { getIsMockApi } from '@gg/shared-api'
+import { buildRepaymentPreview } from '@/lib/repayment-preview'
+import { RepaymentCard, RepaymentSchedule } from '@/components/credit/RepaymentCard'
 
 /* ------------------------------------------------------------------ */
 /*  Status pill mapping                                                */
 /* ------------------------------------------------------------------ */
+/** A dismissible notice at the top of this screen. */
+interface WalletNotice extends DismissibleAttentionItem {
+  icon: React.ReactNode
+  tone: 'warning' | 'navy'
+  cta: string
+  onCta: () => void
+}
+
 const TX_STATUS: Record<
   string,
   { type: 'success' | 'info' | 'warning' | 'error' | 'navy'; label: string }
 > = {
   completed:  { type: 'success', label: 'Paid' },
   authorized: { type: 'info',    label: 'Authorized' },
-  pending:    { type: 'warning', label: 'Pending' },
+  pending:    { type: 'warning', label: 'Processing' },
   failed:     { type: 'error',   label: 'Failed' },
 }
 
@@ -90,6 +104,19 @@ function TxRowIcon({ status }: { status: string }) {
   )
 }
 
+/** One labelled fact, as on the PWA's allocation page. */
+function SummaryCard({ label, action, children }: { label: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <MCard padding={16}>
+      <View style={s.summaryHead}>
+        <Text style={s.summaryLabel}>{label}</Text>
+        {action}
+      </View>
+      {children}
+    </MCard>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /*  Main Screen                                                        */
 /* ------------------------------------------------------------------ */
@@ -102,8 +129,16 @@ export function CreditWalletScreen() {
   const { data: transactions = [], isLoading: txLoading, refetch: refetchTx } = usePatientTransactions()
   const { data: invoices = [], refetch: refetchInvoices } = usePatientInvoices()
   const pull = usePullToRefresh(refetchCredit, refetchTx, refetchInvoices)
+  const attentionDismissals = useAttentionDismissals()
+  const [scheduleOpen, setScheduleOpen] = useState(false)
 
-  /* Show empty wallet if no credit applied */
+  /* Every payment, newest first, with its Type and family line from the linked invoice.
+     Paged 10 per page; hooks run before the early return below. */
+  const paymentRows = recentPaymentRows(transactions, invoices)
+  // Out of range after the list shrinks: back to page 1, as the PWA does (this screen only).
+  const { pageItems: pagedPayments, pager } = usePaged(paymentRows, null, PAGE_SIZE, 'first')
+
+  /* Show empty allocation if no credit applied */
   if (u?.creditStatus === 'not_applied') {
     return <EmptyWalletScreen />
   }
@@ -115,28 +150,7 @@ export function CreditWalletScreen() {
   const currency = country?.currencySymbol ?? ''
   const creditAvailable = u?.creditAvailable ?? 0
   const creditLimit = u?.creditLimit ?? 0
-  const outstanding = creditData?.creditUsed ?? u?.creditUsed ?? 0
-
-  const spendable = transactions.filter(
-    (t: any) => t.status === 'completed' || t.status === 'authorized',
-  )
-  const now = new Date()
-  const thisMonthUsage = spendable
-    .filter((t: any) => {
-      const d = new Date(t.date)
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    })
-    .reduce((sum: number, t: any) => sum + (t.amount ?? 0), 0)
-
-  const thisMonthCount = spendable.filter((t: Transaction) => {
-    const d = new Date(t.date)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  }).length
-
-  const recentTx = [...transactions]
-    .sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5)
-  const activeBeneficiaries: any[] = beneficiaries ?? []
+  const lastPayment = lastSettledPayment(paymentRows)
   const pendingInvoices = (invoices as PatientInvoice[]).filter(isActionablePendingInvoice)
   const firstPending = pendingInvoices[0]
   const accountRef = u?.creditAccountRef ?? creditData?.creditAccountRef
@@ -145,7 +159,65 @@ export function CreditWalletScreen() {
     u?.creditStatus === 'approved' &&
     isCreditRunningLow(creditAvailable, u?.countryCode ?? '')
 
-  /* Currency and account ID sit in the top-right corner of the header. */
+  /* Family cover, allocation and repayment preview, as on the PWA's allocation page. */
+  const beneficiariesActive = Boolean(u?.beneficiariesEnabled) || beneficiaries.length > 0
+  const familyList: any[] = beneficiariesActive ? beneficiaries : []
+  const familyLabel = !beneficiariesActive
+    ? 'Not enabled'
+    : familyList.length === 0
+      ? 'None added'
+      : familyList.length === 1
+        ? `${familyList[0].name} · ${familyList[0].relation}`
+        : `${familyList[0].name} +${familyList.length - 1}`
+  const financePartnerName =
+    getFinancePartnerSummary(getFinancePartnerIdForCountry(u?.countryCode))?.name ?? 'your finance partner'
+  const cardAccountRef = u?.creditAccountRef?.trim() || null
+  const allocationSub =
+    [cardAccountRef && `Ref ${cardAccountRef}`, country?.currencyCode].filter(Boolean).join(' · ') || "Issued through GG'APP"
+  // Placeholder schedule: the PWA shows it only against the mock API, so live accounts never see it.
+  const repaymentPlan = getIsMockApi() ? buildRepaymentPreview(Math.max(0, creditLimit - creditAvailable)) : null
+
+  /* Notices that can be dismissed, matching the PWA's "Needs your attention" on this screen. */
+  const walletNotices: WalletNotice[] = []
+  if (firstPending) {
+    walletNotices.push({
+      id: `pending-invoice-${firstPending.id}`,
+      title: pendingInvoices.length === 1 ? 'An invoice needs your approval' : `${pendingInvoices.length} invoices need your approval`,
+      detail: `${firstPending.provider.name} · authorize to pay from your healthcare allocation.`,
+      icon: <InvoiceIcon size={18} color="#FFFFFF" />,
+      tone: 'warning',
+      cta: 'Authorize now',
+      onCta: () =>
+        navigation.navigate('InvoicesTab', {
+          screen: 'InvoiceReview',
+          params: { invoiceId: firstPending.id },
+          initial: false,
+        }),
+    })
+  }
+  if (showLowBalance) {
+    walletNotices.push({
+      id: 'credit-low',
+      title: 'Your allocation is running low',
+      detail: `${formatCurrency(creditAvailable, currency)} left, below the ${formatCurrency(getLowCreditThreshold(u?.countryCode ?? ''), currency)} buffer we recommend.`,
+      icon: <WalletIcon size={18} color="#FFFFFF" />,
+      tone: 'navy',
+      cta: 'Request increase',
+      onCta: () => navigation.navigate('CreditIncrease'),
+    })
+  }
+  const visibleWalletNotices = attentionDismissals.filterVisible(walletNotices)
+
+  // Tapping a payment opens its invoice, or the full history when no invoice is linked.
+  const openPayment = (tx: Transaction) => {
+    if (tx.invoiceId) {
+      navigation.navigate('InvoicesTab', { screen: 'InvoiceReview', params: { invoiceId: tx.invoiceId }, initial: false })
+    } else {
+      navigation.navigate('TransactionHistory')
+    }
+  }
+
+  /* Currency and account ID sit under the title, as pills. */
   const headerPills = (
     <View style={s.headerPills}>
       {country && (
@@ -162,8 +234,7 @@ export function CreditWalletScreen() {
   /* loading */
   if ((creditLoading || txLoading) && !creditData && transactions.length === 0) {
     return (
-      <Screen>
-        <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} right={headerPills} />
+      <Screen header="tabRoot">
         <SkeletonGroup style={s.skeleton}>
           <SkeletonBalanceCard />
           <SkeletonBlock width="45%" height={18} />
@@ -174,36 +245,23 @@ export function CreditWalletScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar title="Balance & Credit" subtitle="Manage your healthcare credit line" variant="hero" back={false} right={headerPills} />
-
+    <Screen header="tabRoot" curveDepth={120}>
       <ScrollArea gap={24} px={16} py={14} {...pull}>
-        {firstPending && (
+        <PageTitle title="Healthcare allocation" subtitle="Manage your healthcare allocation">
+          {headerPills}
+        </PageTitle>
+        {visibleWalletNotices.map(notice => (
           <NotifBanner
-            icon={<InvoiceIcon size={18} color="#FFFFFF" />}
-            tone="warning"
-            title={pendingInvoices.length === 1 ? 'An invoice needs your approval' : `${pendingInvoices.length} invoices need your approval`}
-            body={`${firstPending.provider.name} · authorize to pay from your healthcare credit.`}
-            cta="Authorize now"
-            onCta={() =>
-              navigation.navigate('InvoicesTab', {
-                screen: 'InvoiceReview',
-                params: { invoiceId: firstPending.id },
-                initial: false,
-              })
-            }
+            key={notice.id}
+            icon={notice.icon}
+            tone={notice.tone}
+            title={notice.title}
+            body={notice.detail}
+            cta={notice.cta}
+            onCta={notice.onCta}
+            onDismiss={() => attentionDismissals.dismiss(notice)}
           />
-        )}
-        {showLowBalance && (
-          <NotifBanner
-            icon={<WalletIcon size={18} color="#FFFFFF" />}
-            tone="navy"
-            title="Your healthcare balance is running low"
-            body={`Request a limit increase so you can keep paying providers without interruption.`}
-            cta="Request Increase"
-            onCta={() => navigation.navigate('CreditIncrease')}
-          />
-        )}
+        ))}
         {/* ====== 1. Balance card: the same card as on home, financier at the top ====== */}
         <CreditBalanceCard
           partnerId={partnerId}
@@ -215,24 +273,64 @@ export function CreditWalletScreen() {
           footer={
             <>
               <CardAction label="Use Balance →" onPress={() => navigation.navigate('ServicesTab', { screen: 'FindService' })} />
-              <CardAction label="Request Increase" variant="secondary" onPress={() => navigation.navigate('CreditIncrease')} />
+              <CardAction label="Request increase" variant="secondary" onPress={() => navigation.navigate('CreditIncrease')} />
             </>
           }
         />
 
-        {/* ====== 2. Figures sit outside the card ====== */}
 
-        <View style={[s.contentSection, s.statsCard]}>
-          <View style={s.statBlock}>
-            <Text style={s.statLabel}>Outstanding</Text>
-            <Text style={s.statValue}>{formatCurrency(outstanding, currency)}</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statBlock}>
-            <Text style={s.statLabel}>This month</Text>
-            <Text style={s.statValueBlue}>{formatCurrency(thisMonthUsage, currency)}</Text>
-            <Text style={s.statLabel}>{thisMonthCount} payment{thisMonthCount === 1 ? '' : 's'}</Text>
-          </View>
+        {repaymentPlan && (
+          <RepaymentCard
+            plan={repaymentPlan}
+            currency={currency}
+            scheduleOpen={scheduleOpen}
+            onToggleSchedule={() => setScheduleOpen(open => !open)}
+          />
+        )}
+        {repaymentPlan && scheduleOpen && <RepaymentSchedule plan={repaymentPlan} currency={currency} />}
+
+        {/* ====== 2b. Last payment, family cover, allocation (the PWA's summary cards) ====== */}
+        <View style={s.summaryStack}>
+          <SummaryCard label="Last payment">
+            {lastPayment ? (
+              <>
+                <Text style={s.summaryValue}>{formatCurrency(lastPayment.amount, currency)}</Text>
+                <Text style={s.summarySub}>
+                  {lastPayment.service} · {formatDate(lastPayment.date, { month: 'short', day: 'numeric' })}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={s.summaryValue}>No payments yet</Text>
+                <Text style={s.summarySub}>Your first payment will show here</Text>
+              </>
+            )}
+          </SummaryCard>
+
+          <SummaryCard
+            label="Family cover"
+            action={(
+              <Pressable
+                onPress={() => navigation.navigate('ProfileTab', { initial: false, screen: 'Beneficiaries' })}
+                accessibilityRole="button"
+                accessibilityLabel="Manage family cover"
+              >
+                <Text style={s.viewAll}>Manage</Text>
+              </Pressable>
+            )}
+          >
+            <Text style={s.summaryValue}>{familyLabel}</Text>
+            <Text style={s.summarySub}>
+              {beneficiariesActive && familyList.length > 0
+                ? 'Can use this allocation at verified providers'
+                : 'Enable beneficiaries in Profile'}
+            </Text>
+          </SummaryCard>
+
+          <SummaryCard label="Allocation">
+            <Text style={s.summaryValue}>{financePartnerName}</Text>
+            <Text style={s.summarySub}>{allocationSub}</Text>
+          </SummaryCard>
         </View>
 
         {/* ====== 3. Info Notice ====== */}
@@ -249,13 +347,13 @@ export function CreditWalletScreen() {
           </Text>
         </View>
 
-        {/* ====== 4. Transaction History ====== */}
+        {/* ====== 4. Recent payments to providers: every payment, newest first, 10 per page ====== */}
         <View style={s.contentSection}>
           <View style={s.sectionHeader}>
             <View>
-              <Text style={s.sectionTitle}>Transaction History</Text>
+              <Text style={s.sectionTitle}>Recent payments to providers</Text>
               <Text style={s.sectionSub}>
-                All medical payments made through GG'APP
+                Paid from your allocation after you approved the invoice
               </Text>
             </View>
             <Pressable onPress={() => navigation.navigate('TransactionHistory')}>
@@ -263,74 +361,57 @@ export function CreditWalletScreen() {
             </Pressable>
           </View>
 
-          {recentTx.length === 0 ? (
+          {paymentRows.length === 0 ? (
             <View style={s.emptyWrap}>
-              <Text style={s.emptyText}>No transactions yet</Text>
+              <Text style={s.emptyText}>No payments yet. Find a verified provider, then approve their invoice with your PIN.</Text>
             </View>
           ) : (
-            recentTx.map((tx: any, i: number) => {
-              const status = TX_STATUS[tx.status] ?? { type: 'default' as const, label: tx.status ?? 'Unknown' }
-              return (
-                <View
-                  key={tx.id ?? i}
-                  style={[s.txRow, i < recentTx.length - 1 && s.txRowBorder]}
-                >
-                  <TxRowIcon status={tx.status ?? 'completed'} />
-                  <View style={s.txInfo}>
-                    <Text style={s.txProvider} numberOfLines={1}>
-                      {tx.provider ?? 'Provider'}
-                    </Text>
-                    <Text style={s.txMeta}>
-                      {tx.service ?? 'Service'} ·{' '}
-                      {tx.date ? formatDate(tx.date) : ''}
-                    </Text>
-                  </View>
-                  <View style={s.txRight}>
-                    <Text style={s.txAmount}>
-                      -{formatCurrency(tx.amount ?? 0, currency)}
-                    </Text>
-                    <StatusPill label={status.label} tone={status.type} size="sm" />
-                  </View>
-                </View>
-              )
-            })
-          )}
-        </View>
-
-        {/* ====== 5. Authorized Beneficiaries ====== */}
-        <View style={s.contentSection}>
-          <View style={s.sectionHeader}>
-            <View>
-              <Text style={s.sectionTitle}>Authorized Beneficiaries</Text>
-              <Text style={s.sectionSub}>
-                Registered beneficiaries on this balance
-              </Text>
-            </View>
-            <Pressable onPress={() => navigation.navigate('ProfileTab', { initial: false, screen: 'Beneficiaries' })}>
-              <Text style={s.viewAll}>Manage →</Text>
-            </Pressable>
-          </View>
-
-          {activeBeneficiaries.length === 0 ? (
-            <View style={s.emptyWrap}>
-              <Text style={s.emptyText}>No beneficiaries added yet</Text>
-            </View>
-          ) : (
-            activeBeneficiaries.map((b: any, i: number) => (
-              <View
-                key={b.id ?? i}
-                style={[s.benRow, i < activeBeneficiaries.length - 1 && s.txRowBorder]}
-              >
-                <MAvatar name={b.name ?? 'U'} size={32} bg={colors.navy} />
-                <View style={s.benInfo}>
-                  <Text style={s.benName} numberOfLines={1}>{b.name ?? 'Beneficiary'}</Text>
-                  <Text style={s.benMeta}>
-                    {b.relation ?? 'Relation'} · Age {b.age ?? '--'}
-                  </Text>
-                </View>
-                <StatusPill label="Active" tone="success" size="sm" />
+            <>
+              {pagedPayments.map(({ tx, paymentType, forWhom }, i) => {
+                const status = TX_STATUS[tx.status] ?? { type: 'default' as const, label: tx.status ?? 'Unknown' }
+                return (
+                  <Pressable
+                    key={tx.id}
+                    onPress={() => openPayment(tx)}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      s.txRow,
+                      i < pagedPayments.length - 1 && s.txRowBorder,
+                      pressed && s.txRowPressed,
+                    ]}
+                  >
+                    <TxRowIcon status={tx.status ?? 'completed'} />
+                    <View style={s.txInfo}>
+                      <Text style={s.txProvider} numberOfLines={1}>
+                        {tx.provider ?? 'Provider'}
+                      </Text>
+                      <Text style={s.txMeta} numberOfLines={1}>
+                        {tx.service ?? 'Service'} · {tx.date ? formatDate(tx.date) : ''}
+                      </Text>
+                      <View style={s.txTags}>
+                        <GGPill type={paymentType === 'prescription' ? 'info' : 'default'}>
+                          {paymentType === 'prescription' ? 'Prescription' : 'Appointment'}
+                        </GGPill>
+                        {forWhom ? (
+                          <Text style={s.txFor} numberOfLines={1}>
+                            For {forWhom.name}{forWhom.relation ? ` · ${forWhom.relation}` : ''}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <View style={s.txRight}>
+                      <Text style={s.txAmount}>
+                        -{formatCurrency(tx.amount ?? 0, currency)}
+                      </Text>
+                      <StatusPill label={status.label} tone={status.type} size="sm" />
+                    </View>
+                  </Pressable>
+                )
+              })}
+              <View style={s.pagerWrap}>
+                <Pager {...pager} summary="showing" />
               </View>
-            ))
+            </>
           )}
         </View>
 
@@ -381,37 +462,33 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
   },
 
-  /* outstanding / this month, below the card */
-  statsCard: {
+  summaryStack: {
+    gap: 12,
+  },
+  summaryHead: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    gap: 12,
+    marginBottom: 6,
   },
-  statBlock: {
-    flex: 1,
-    gap: 4,
-  },
-  statDivider: {
-    width: 1,
-    alignSelf: 'stretch',
-    backgroundColor: colors.border,
-    marginHorizontal: 16,
-  },
-  statLabel: {
-    fontSize: 13,
-    fontFamily: fontWeights.medium,
+  summaryLabel: {
+    fontSize: 12,
+    fontFamily: fontWeights.bold,
     color: colors.textLight,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
-  statValue: {
-    fontSize: 17,
-    fontFamily: fontWeights.extraBold,
+  summaryValue: {
+    fontSize: 16,
+    fontFamily: fontWeights.bold,
     color: colors.text,
   },
-  statValueBlue: {
-    fontSize: 17,
-    fontFamily: fontWeights.extraBold,
-    color: colors.blueInk,
+  summarySub: {
+    fontSize: 13,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    marginTop: 4,
   },
 
   /* container sections */
@@ -496,6 +573,25 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  txRowPressed: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  txTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  txFor: {
+    fontSize: 12.5,
+    fontFamily: fontWeights.medium,
+    color: colors.textSub,
+  },
+  pagerWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
   txIcon: {
     width: 42,
     height: 44,
@@ -528,28 +624,5 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.extraBold,
     color: colors.text,
     letterSpacing: -0.3,
-  },
-
-  /* beneficiary rows */
-  benRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  benInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  benName: {
-    fontSize: 14.5,
-    fontFamily: fontWeights.bold,
-    color: colors.text,
-  },
-  benMeta: {
-    fontSize: 12.5,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
   },
 })

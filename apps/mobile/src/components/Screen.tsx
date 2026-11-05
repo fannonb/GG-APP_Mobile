@@ -2,45 +2,72 @@ import React, { createContext } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/theme'
+import { OfflineBanner } from './OfflineBanner'
+import AppHeader, { type HeaderVariant } from './AppHeader'
 
 interface ScreenProps {
   children: React.ReactNode
   bg?: string
+  /**
+   * The app bar every screen opens with. `tabRoot` for the five tab roots,
+   * `detail` for pushed screens, `modal` for task screens that slide up, and
+   * `auth` for sign-in and onboarding. `none` paints only the status-bar strip
+   * (the splash screen).
+   */
+  header?: HeaderVariant | 'none'
+  /** Screen-specific action on the right of the bar, after the market flag. */
+  headerRight?: React.ReactNode
+  /** Replaces the default back or close action (navigation.goBack). */
+  onBack?: () => void
+  /** Navy curve behind the content. Defaults to `dark-curve` on tab roots. */
   headerPattern?: 'default' | 'dark-curve'
   /** How far the dark curve reaches below the header, in points. */
   curveDepth?: number
 }
 
 /**
- * Set by `<Screen headerPattern="dark-curve">`. ScrollArea reads it and draws the
- * navy curve inside its scrolling content, so the curve scrolls away with the
- * cards instead of staying pinned behind them mid-page. The screen's header
- * (AppBar or custom) paints its own navy background above it.
+ * Set by a `dark-curve` screen. ScrollArea reads it and draws the navy curve
+ * inside its scrolling content, so the curve scrolls away with the cards
+ * instead of staying pinned behind them mid-page. PageTitle reads it too, to
+ * draw its heading in white on the navy.
  */
 export const DarkCurveContext = createContext<number | null>(null)
 
 /**
- * True inside a default `<Screen>`, which already paints the status-bar strip.
- * AppBar reads it so the top inset isn't added twice (that left a light band
- * behind the white status-bar icons and an over-tall header on phones).
+ * True inside a `header="none"` Screen, which already paints the status-bar strip.
+ * Lets any bar rendered inside it skip its own top inset, so it isn't added twice.
  */
 export const StatusStripContext = createContext(false)
 
 export default function Screen({
   children,
   bg = colors.bg,
-  headerPattern = 'default',
+  header = 'none',
+  headerRight,
+  onBack,
+  headerPattern,
   curveDepth = 200,
 }: ScreenProps) {
-  if (headerPattern === 'dark-curve') {
+  const pattern = headerPattern ?? (header === 'tabRoot' ? 'dark-curve' : 'default')
+  const curve = pattern === 'dark-curve' ? curveDepth : null
+
+  if (header === 'none') {
     return (
-      <DarkCurveContext.Provider value={curveDepth}>
-        <View style={[styles.fill, { backgroundColor: bg }]}>{children}</View>
+      <DarkCurveContext.Provider value={curve}>
+        <DefaultScreen bg={bg}>{children}</DefaultScreen>
       </DarkCurveContext.Provider>
     )
   }
 
-  return <DefaultScreen bg={bg}>{children}</DefaultScreen>
+  return (
+    <DarkCurveContext.Provider value={curve}>
+      <View style={[styles.fill, { backgroundColor: bg }]}>
+        <AppHeader variant={header} right={headerRight} onBack={onBack} />
+        <OfflineBanner />
+        {children}
+      </View>
+    </DarkCurveContext.Provider>
+  )
 }
 
 /** Navy status-bar strip (the app uses light status-bar icons), then the screen. */
@@ -50,6 +77,7 @@ function DefaultScreen({ bg, children }: { bg: string; children: React.ReactNode
     <StatusStripContext.Provider value>
       <View style={[styles.safe, { backgroundColor: bg }]}>
         <View style={{ height: insets.top, backgroundColor: colors.navy }} />
+        <OfflineBanner />
         <View style={[styles.fill, { backgroundColor: bg }]}>{children}</View>
       </View>
     </StatusStripContext.Provider>

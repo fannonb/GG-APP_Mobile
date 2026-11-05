@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { View, Text, StyleSheet, TextInput } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
 import { colors, fontWeights } from '@/theme'
 import { Field } from '@/components'
@@ -25,7 +26,7 @@ export function ResetPasswordScreen() {
   const navigation = useNavigation<AuthScreenProps<'ResetPassword'>['navigation']>()
   const route = useRoute<RouteProp<AuthStackParamList, 'ResetPassword'>>()
   const token = route.params?.token ?? ''
-  const confirmRef = useRef<TextInput>(null)
+  const confirmRef = useRef<TextInputInstance>(null)
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')

@@ -7,6 +7,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native'
+import type { ScrollViewInstance } from 'react-native'
 import Pressable from '@/components/Pressable'
 import BottomSheet from './BottomSheet'
 import { colors, fontWeights, radii, shadows } from '@/theme'
@@ -57,7 +58,7 @@ const PickerWheel = React.memo(function PickerWheel({
   onSelectIndex,
   flex = 1,
 }: PickerWheelProps) {
-  const scrollRef = useRef<ScrollView>(null)
+  const scrollRef = useRef<ScrollViewInstance>(null)
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastAlignedOffset = useRef<number | null>(null)
   const padding = ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2)

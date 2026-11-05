@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-nativ
 import { useNavigation, useRoute } from '@react-navigation/native'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, KeyPad } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, KeyPad } from '@/components'
 import { CheckIcon, LockIcon } from '@/icons'
 import { useAuthorizePaymentMutation, usePatientInvoice } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
@@ -205,7 +205,7 @@ export function PINAuthScreen() {
   const invoiceId = params?.invoiceId ?? ''
 
   // Deep links (app/invoices/:id/pay) only carry the invoice id, so
-  // re-derive the payment breakdown from the invoice and the wallet when
+  // re-derive the payment breakdown from the invoice and the allocation when
   // the navigation params are incomplete.
   const paramsIncomplete = !params || params.amount == null
   const { data: invoiceData, isLoading: invoiceLoading } = usePatientInvoice(
@@ -234,7 +234,7 @@ export function PINAuthScreen() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
 
   const stepInfo = STEP_TITLES[currentStep] ?? STEP_TITLES[1]
-  const currency = getCountryByCode(user?.countryCode ?? 'KE')?.currencySymbol ?? 'Ksh.'
+  const currency = getCountryByCode(user?.countryCode ?? '')?.currencySymbol ?? ''
   const shake = useRef(new Animated.Value(0)).current
 
   // A wrong PIN shakes the dots, the familiar "no" gesture of PIN pads.
@@ -282,8 +282,8 @@ export function PINAuthScreen() {
           setIsLocked(true)
         }
       }
-    } catch {
-      setError('Authorization failed')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Authorization failed')
       setPin('')
       hapticError()
       shakeDots()
@@ -303,8 +303,7 @@ export function PINAuthScreen() {
   /* ------ Deep-link hydration ------ */
   if (paramsIncomplete && invoiceLoading) {
     return (
-      <Screen bg={colors.bg}>
-        <AppBar title="Payment Authorization" subtitle="Payment PIN security" />
+      <Screen bg={colors.bg} header="modal">
         <View style={s.loadingContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
         </View>
@@ -315,9 +314,9 @@ export function PINAuthScreen() {
   /* ------ Locked State ------ */
   if (isLocked) {
     return (
-      <Screen bg={colors.bg}>
-        <AppBar title="Payment Authorization" subtitle="Payment PIN security" />
+      <Screen bg={colors.bg} header="modal">
         <ScrollArea gap={20}>
+          <PageTitle title="Payment Authorization" subtitle="Payment PIN security" />
           <View style={s.lockedContainer}>
             <View style={s.lockedCircle}>
               <LockIcon size={38} color={colors.error} />
@@ -342,9 +341,9 @@ export function PINAuthScreen() {
 
   /* ------ Normal Flow ------ */
   return (
-    <Screen bg={colors.bg}>
-      <AppBar title="Payment Authorization" subtitle="Payment PIN security" />
+    <Screen bg={colors.bg} header="modal">
       <ScrollArea gap={16} px={20}>
+        <PageTitle title="Payment Authorization" subtitle="Payment PIN security" />
         {/* Step Indicator */}
         <StepIndicator
           currentStep={currentStep}

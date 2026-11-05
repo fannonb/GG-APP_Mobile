@@ -21,7 +21,7 @@ interface CreditSummaryCardProps {
 }
 
 /**
- * The patient's credit at a glance, in the same navy card as the wallet. An
+ * The patient's credit at a glance, in the same navy card as the allocation. An
  * approved line shows the balance; new, pending and declined accounts see the
  * same card with the next step instead of a balance.
  */
@@ -45,7 +45,7 @@ export default function CreditSummaryCard(props: CreditSummaryCardProps) {
   if (status === 'rejected') {
     return (
       <CreditCardFace partnerId={partnerId} partnerName={partnerName} tag={{ text: 'Not approved', tone: 'warning' }}>
-        <Text style={styles.title}>No active credit line</Text>
+        <Text style={styles.title}>No active allocation</Text>
         <Text style={styles.body}>Your last application wasn't approved. See the reason and when you can re-apply.</Text>
         <CardButton label="View decision" onPress={props.onViewStatus} variant="secondary" />
       </CreditCardFace>
@@ -58,7 +58,7 @@ export default function CreditSummaryCard(props: CreditSummaryCardProps) {
       <Text style={styles.body}>
         Apply once and pay any verified clinic, lab or pharmacy on GG'APP without paying at the counter.
       </Text>
-      <CardButton label="Apply for credit" onPress={props.onApply} />
+      <CardButton label="Apply for an allocation" onPress={props.onApply} />
     </CreditCardFace>
   )
 }
@@ -77,7 +77,7 @@ function ActiveCredit(props: CreditSummaryCardProps) {
       limit={limit}
       currency={currency}
       isLow={isLow}
-      topRight={<CardLink label="View wallet" onPress={onOpenWallet} />}
+      topRight={<CardLink label="View allocation" onPress={onOpenWallet} />}
       footer={
         <>
           <CardAction label={isLow ? 'Request increase' : 'Increase limit'} onPress={onRequestIncrease} />

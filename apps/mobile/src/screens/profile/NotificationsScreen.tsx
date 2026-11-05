@@ -8,16 +8,18 @@ import {
 } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
+import { usePaged } from '@/lib/usePaged'
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import {
   Screen,
   ScrollArea,
-  AppBar,
+  PageTitle,
   MCard,
   FilterChips,
   LoadError,
+  Pager,
 } from '@/components'
 import BellIcon from '@/icons/BellIcon'
 import CheckIcon from '@/icons/CheckIcon'
@@ -232,7 +234,8 @@ export function NotificationsScreen() {
     () => notifications.filter(FILTERS[activeChip]?.match ?? (() => true)),
     [activeChip, notifications],
   )
-  const groups = useMemo(() => groupByDay(filtered), [filtered])
+  const { pageItems: pagedNotifs, pager } = usePaged(filtered, activeChip)
+  const groups = useMemo(() => groupByDay(pagedNotifs), [pagedNotifs])
 
   /* chips with counts */
   const chipsWithCounts = useMemo(
@@ -257,11 +260,7 @@ export function NotificationsScreen() {
   /* loading */
   if (isLoading && notifications.length === 0) {
     return (
-      <Screen>
-        <AppBar
-          title="Notifications"
-          subtitle={`${unreadCount} unread`}
-        />
+      <Screen header="detail">
         <View style={s.loadWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadText}>Loading notifications...</Text>
@@ -271,26 +270,24 @@ export function NotificationsScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar
-        title="Notifications"
-        subtitle={`${unreadCount} unread`}
-        right={
-          unreadCount > 0 ? (
-            <Pressable
-              style={s.markAllBtn}
-              onPress={handleMarkAllRead}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`Mark all ${unreadCount} as read`}
-            >
-              <Text style={s.markAllText}>Mark all read</Text>
-            </Pressable>
-          ) : undefined
-        }
-      />
-
+    <Screen
+      header="detail"
+      headerRight={
+        unreadCount > 0 ? (
+          <Pressable
+            style={s.markAllBtn}
+            onPress={handleMarkAllRead}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Mark all ${unreadCount} as read`}
+          >
+            <Text style={s.markAllText}>Mark all read</Text>
+          </Pressable>
+        ) : undefined
+      }
+    >
       <ScrollArea gap={12} px={16} py={14} {...pull}>
+        <PageTitle title="Notifications" subtitle={`${unreadCount} unread`} />
         {/* ============================================================ */}
         {/*  1. Filter Chips                                             */}
         {/* ============================================================ */}
@@ -388,6 +385,7 @@ export function NotificationsScreen() {
             </View>
           </View>
         ))}
+        <Pager {...pager} />
 
         {/* bottom spacer */}
         <View style={{ height: 24 }} />

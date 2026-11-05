@@ -6,11 +6,13 @@ import {
   } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
+import { useCurrency } from '@/lib/useCurrency'
 import Svg, { Rect, Line, Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii } from '@/theme'
 import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
-import { Screen, ScrollArea, AppBar, MCard, FilterChips, MoneyText, StatusPill, NotifBanner } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, FilterChips, MoneyText, StatusPill, NotifBanner, Pager } from '@/components'
+import { usePaged } from '@/lib/usePaged'
 import InvoiceIcon from '@/icons/InvoiceIcon'
 import { usePatientInvoices } from '@gg/shared-hooks'
 import { formatDate, isActionablePendingInvoice } from '@gg/shared-utils'
@@ -53,6 +55,7 @@ function InvoiceRowIcon({ isPending }: { isPending: boolean }) {
 /* ------------------------------------------------------------------ */
 export function InvoiceListScreen() {
   const navigation = useNavigation<any>()
+  const currency = useCurrency()
   const { data: invoiceData, isLoading, refetch } = usePatientInvoices()
   const pull = usePullToRefresh(refetch)
 
@@ -95,12 +98,12 @@ export function InvoiceListScreen() {
       : filterIndex === 1
         ? invoices.filter(inv => inv.status === 'pending_auth')
         : invoices.filter(inv => inv.status === 'paid')
+  const { pageItems: pagedInvoices, pager } = usePaged(filtered, filterIndex)
 
   /* Loading state */
   if (isLoading && !invoiceData) {
     return (
-      <Screen>
-        <AppBar title="Invoices" subtitle="Review and authorize pending invoices" variant="hero" back={false} />
+      <Screen header="tabRoot">
         <SkeletonGroup style={s.skeleton}>
           <SkeletonBlock width="50%" height={18} />
           <SkeletonList rows={5} />
@@ -110,21 +113,18 @@ export function InvoiceListScreen() {
   }
 
   return (
-    <Screen headerPattern="dark-curve">
-        <AppBar
+    <Screen header="tabRoot">
+      <ScrollArea gap={14} px={16} py={14} {...pull}>
+        <PageTitle
           title="Invoices"
           subtitle={pendingInvoices.length > 0 ? `${pendingInvoices.length} to authorize` : 'Review and settle your medical bills'}
-          variant="hero"
-          back={false}
         />
-
-      <ScrollArea gap={14} px={16} py={14} {...pull}>
         {firstPending && (
           <NotifBanner
             icon={<InvoiceIcon size={18} color="#FFFFFF" />}
             tone="warning"
             title={pendingInvoices.length === 1 ? 'An invoice needs your approval' : `${pendingInvoices.length} invoices need your approval`}
-            body={`${firstPending.provider} — authorize to pay from your healthcare credit.`}
+            body={`${firstPending.provider} — authorize to pay from your healthcare allocation.`}
             cta="Authorize now"
             onCta={() => navigation.navigate('InvoiceReview', { invoiceId: firstPending.id })}
           />
@@ -164,7 +164,7 @@ export function InvoiceListScreen() {
             </View>
           ) : (
             /* Invoice rows */
-            filtered.map((inv, index) => {
+            pagedInvoices.map((inv, index) => {
               const status = STATUS_MAP[inv.status] ?? {
                 tone: 'navy' as const,
                 label: inv.status,
@@ -176,7 +176,7 @@ export function InvoiceListScreen() {
                   key={inv.id}
                   style={({ pressed }) => [
                     s.invoiceRow,
-                    index < filtered.length - 1 && s.invoiceRowBorder,
+                    index < pagedInvoices.length - 1 && s.invoiceRowBorder,
                     pressed && s.invoiceRowPressed,
                   ]}
                   onPress={() =>
@@ -200,7 +200,7 @@ export function InvoiceListScreen() {
                   </View>
 
                   <View style={s.invoiceRight}>
-                    <MoneyText amount={inv.amount} size="md" color={colors.text} />
+                    <MoneyText amount={inv.amount} currency={currency} size="md" color={colors.text} />
                     <StatusPill label={status.label} tone={status.tone} size="sm" />
                   </View>
                 </Pressable>
@@ -208,6 +208,7 @@ export function InvoiceListScreen() {
             })
           )}
         </MCard>
+        <Pager {...pager} />
 
         {/* Bottom spacer */}
         <View style={{ height: 24 }} />

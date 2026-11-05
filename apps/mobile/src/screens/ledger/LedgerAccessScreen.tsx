@@ -9,7 +9,7 @@ import {
 } from '@gg/shared-hooks'
 import type { LedgerAccessEvent } from '@gg/shared-types'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill } from '@/components'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -102,13 +102,9 @@ export function LedgerAccessScreen() {
       : 'Without a PIN, no provider can open your history.'
 
   return (
-    <Screen>
-      <AppBar
-        title="Ledger Access Log"
-        subtitle="Who has opened your health ledger"
-        back
-      />
+    <Screen header="detail">
       <ScrollArea gap={16} px={16} py={14}>
+        <PageTitle title="Ledger Access Log" subtitle="Who has opened your health ledger" />
         {accessQuery.isLoading ? (
           <MCard padding={24}>
             <ActivityIndicator color={colors.blue} />

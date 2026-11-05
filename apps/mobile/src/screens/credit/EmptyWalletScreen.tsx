@@ -3,8 +3,8 @@ import { View, Text, StyleSheet } from 'react-native'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill } from '@/components'
+import { PartnerLogo } from '@/components/PartnerLogo'
 import CreditIcon from '@/icons/CreditIcon'
 import { HospitalIcon, LockIcon, ProfileIcon, WalletIcon } from '@/icons'
 import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
@@ -38,7 +38,7 @@ const CREDIT_JOURNEY_STEPS = [
   {
     step: 3,
     title: 'Use Your Balance',
-    desc: 'Once approved, your wallet balance is ready to use at verified providers.',
+    desc: 'Once approved, your allocation balance is ready to use at verified providers.',
   },
 ] as const
 
@@ -54,10 +54,9 @@ export function EmptyWalletScreen() {
   const partner = countryCode ? getFinancePartnerSummary(getFinancePartnerIdForCountry(countryCode)) : undefined
 
   return (
-    <Screen>
-      <AppBar title="Balance" subtitle="Manage your healthcare balance" />
-
+    <Screen header="tabRoot" curveDepth={120}>
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title="Healthcare allocation" subtitle="Manage your healthcare allocation" />
         {/* === 1. Placeholder Balance Card === */}
         <View style={s.balanceCard}>
           <Text style={s.balanceLabel}>Available balance</Text>
@@ -70,7 +69,7 @@ export function EmptyWalletScreen() {
 
           {/* Warning pill */}
           <View style={s.warningPill}>
-            <Text style={s.warningPillText}>No Active Credit</Text>
+            <Text style={s.warningPillText}>No Active Allocation</Text>
           </View>
         </View>
 
@@ -81,7 +80,7 @@ export function EmptyWalletScreen() {
               <CreditIcon size={24} color={colors.blue} />
             </View>
             <View style={s.applyHeaderText}>
-              <Text style={s.applyTitle}>Apply for Healthcare Credit</Text>
+              <Text style={s.applyTitle}>Apply for a Healthcare Allocation</Text>
               <Text style={s.applyDesc}>
                 Get approved for healthcare financing and access funds at verified providers.
               </Text>
@@ -105,7 +104,7 @@ export function EmptyWalletScreen() {
             fullWidth
             onPress={() => navigation.navigate('CreditDisclaimer')}
           >
-            {'Apply for Credit →'}
+            {'Apply for an Allocation →'}
           </MBtn>
         </MCard>
 
@@ -140,9 +139,7 @@ export function EmptyWalletScreen() {
 
           {partner ? (
             <View style={[s.partnerCard, { borderColor: colors.border }]}>
-              <View style={s.partnerLogoZone}>
-                <FinancePartnerLogo partnerId={partner.id} height={28} />
-              </View>
+              <PartnerLogo partnerId={partner.id} partnerName={partner.name} size="md" />
               <View style={{ flex: 1 }}>
                 <Text style={s.partnerName}>{partner.name}</Text>
                 <Text style={s.partnerTagline}>{partner.tagline}</Text>
@@ -346,17 +343,6 @@ const s = StyleSheet.create({
     borderRadius: radii.default,
     padding: 12,
     marginBottom: 12,
-  },
-  partnerLogoZone: {
-    width: 96,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
   },
   partnerName: {
     fontSize: 15.5,

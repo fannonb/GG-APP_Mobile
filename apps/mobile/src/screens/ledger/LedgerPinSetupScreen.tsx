@@ -4,7 +4,7 @@ import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import { useLedgerStatus, useSetupLedgerPinMutation, useResetLedgerPinMutation } from '@gg/shared-hooks'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, PinField } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, Field, PinField } from '@/components'
 
 const EXPIRY_OPTIONS: Array<{ value: number | undefined; label: string }> = [
   { value: undefined, label: 'No expiry' },
@@ -81,9 +81,9 @@ export function LedgerPinSetupScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar title={title} subtitle={subtitle} back />
+    <Screen header="modal">
       <ScrollArea gap={16} px={16} py={14}>
+        <PageTitle title={title} subtitle={subtitle} />
         <MCard padding={20}>
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>

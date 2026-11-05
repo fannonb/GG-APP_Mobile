@@ -30,6 +30,8 @@ export function openPatientNotification(
   if (screen) {
     // Deep-link routes may carry query strings (e.g. `/app/credit/status?type=increase`).
     const screenPath = screen.split('?')[0]
+    const query = new URLSearchParams(screen.split('?')[1] ?? '')
+    const requestType = query.get('type') === 'increase' || query.get('requestType') === 'increase' ? 'increase' : 'application'
     const normalizedScreen = screenPath.toLowerCase()
 
     const rescheduleMatch = screenPath.match(/^\/app\/appointments\/([^/]+)\/reschedule$/i)
@@ -79,7 +81,7 @@ export function openPatientNotification(
         goToTab('WalletTab', { screen: 'CreditIncrease' })
         return
       case 'credit-status':
-        goToTab('WalletTab', { screen: 'CreditStatus' })
+        goToTab('WalletTab', { screen: 'CreditStatus', params: { requestType } })
         return
       case 'credit-wallet':
       case '/app/credit':
@@ -89,7 +91,7 @@ export function openPatientNotification(
         goToTab('WalletTab', { screen: 'CreditDisclaimer' })
         return
       case '/app/credit/status':
-        goToTab('WalletTab', { screen: 'CreditStatus' })
+        goToTab('WalletTab', { screen: 'CreditStatus', params: { requestType } })
         return
       case '/app/credit/increase':
         goToTab('WalletTab', { screen: 'CreditIncrease' })

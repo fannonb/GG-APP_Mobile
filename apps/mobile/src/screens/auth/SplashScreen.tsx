@@ -39,7 +39,7 @@ const STEPS: SplashStep[] = [
     id: 'healing',
     title: 'Focus on healing,\n',
     highlight: 'not the billing.',
-    subtitle: 'Experience stress-free care with instant credit disbursements to verified providers.',
+    subtitle: 'Experience stress-free care with instant allocation payments to verified providers.',
   },
 ]
 

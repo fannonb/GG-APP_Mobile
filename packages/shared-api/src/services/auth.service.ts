@@ -1,5 +1,5 @@
 import { getIsMockApi } from '../config'
-import { apiClient } from '../client'
+import { apiClient, refreshAuthSession } from '../client'
 import { mockDelay } from '../mock/delay'
 import { getTokenStorage } from '../token-storage'
 import type {
@@ -130,7 +130,12 @@ export const authService = {
     return data
   },
 
-  async getSPApplicationStatus(applicationId: string): Promise<SPApplicationStatusResponse> {
+  async getApplicationAccess(applicationId: string, credentials: { email: string; password: string }): Promise<{ accessToken: string; expiresAt: number }> {
+    const { data } = await apiClient.post<{ accessToken: string; expiresAt: number }>(`/auth/register/sp/${encodeURIComponent(applicationId)}/access`, credentials)
+    return data
+  },
+
+  async getSPApplicationStatus(applicationId: string, applicationToken?: string): Promise<SPApplicationStatusResponse> {
     if (getIsMockApi()) {
       await mockDelay(400)
       return {
@@ -144,6 +149,7 @@ export const authService = {
 
     const { data } = await apiClient.get<SPApplicationStatusResponse>(
       `/auth/register/sp/${applicationId}/status`,
+      { headers: { 'X-Application-Token': applicationToken } },
     )
     return data
   },
@@ -203,11 +209,7 @@ export const authService = {
       return session
     }
 
-    const { data } = await apiClient.post<AuthSession>('/auth/refresh', {
-      refreshToken: stored.refreshToken,
-    })
-    getTokenStorage().setSession(data)
-    return data
+    return refreshAuthSession()
   },
 
   getStoredSession(): AuthSession | null {

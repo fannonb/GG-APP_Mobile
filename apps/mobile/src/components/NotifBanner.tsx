@@ -69,15 +69,17 @@ export default function NotifBanner({
           {onDismiss && (
             <Pressable
               onPress={() => {
-              animateNextLayout()
-              onDismiss()
-            }}
-              style={[styles.dismissBtn, { borderColor: t.edge }]}
-              hitSlop={12}
+                animateNextLayout()
+                onDismiss()
+              }}
+              style={styles.dismissBtn}
               accessibilityRole="button"
-              accessibilityLabel={`Dismiss: ${title}`}
+              accessibilityLabel="Dismiss"
+              accessibilityHint={`Hides: ${title}`}
             >
-              <Text style={[styles.dismissText, { color: t.ink }]}>✕</Text>
+              <View style={[styles.dismissCircle, { borderColor: t.edge }]}>
+                <Text style={[styles.dismissText, { color: t.ink }]}>✕</Text>
+              </View>
             </Pressable>
           )}
         </View>
@@ -141,7 +143,16 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.bold,
     marginTop: 2,
   },
+  // 44pt touch target around a 24pt circle; pulled up and out so the circle stays where it was.
   dismissBtn: {
+    width: 44,
+    height: 44,
+    marginTop: -10,
+    marginRight: -10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dismissCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,

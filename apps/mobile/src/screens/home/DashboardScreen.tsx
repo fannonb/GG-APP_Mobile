@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { View, Text, Image, StyleSheet, type LayoutChangeEvent } from 'react-native'
-import Pressable from '@/components/Pressable'
+import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import * as SecureStore from 'expo-secure-store'
 import { colors, fontWeights } from '@/theme'
 import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import { Screen, ScrollArea, AdBanner } from '@/components'
@@ -13,8 +10,6 @@ import GetStartedCard, { type GetStartedStep } from '@/components/home/GetStarte
 import CareSection, { type PrescriptionSummary, type VisitSummary } from '@/components/home/CareSection'
 import FindCare from '@/components/home/FindCare'
 import HealthNewsSection from '@/components/HealthNewsSection'
-import MarketFlag from '@/components/MarketFlag'
-import BellIcon from '@/icons/BellIcon'
 import CalendarIcon from '@/icons/CalendarIcon'
 import CheckIcon from '@/icons/CheckIcon'
 import InvoiceIcon from '@/icons/InvoiceIcon'
@@ -34,6 +29,17 @@ import {
 } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore, useNotificationsStore } from '@gg/shared-stores'
 import { openPatientNotification } from '@/lib/patient-notification-routing'
+import { useAttentionDismissals } from '@/lib/useAttentionDismissals'
+import {
+  creditReviewNotice,
+  findPendingVisit,
+  lowBalanceNotice,
+  pendingAppointmentNotice,
+  pendingInvoiceNotice,
+  rescheduleNotice,
+} from '@/lib/home-attention'
+import CreditIcon from '@/icons/CreditIcon'
+import WalletIcon from '@/icons/WalletIcon'
 import {
   getUnreadCreditApprovalItems,
   getUnreadConfirmedAppointmentItems,
@@ -56,7 +62,6 @@ import {
 import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
 import type { Appointment, CreditStatus, PrescriptionRequest } from '@gg/shared-types'
 
-const wordmark = require('../../../assets/gg-wordmark.png')
 
 /** Navy depth before the credit card has been measured. */
 const DEFAULT_CURVE_DEPTH = 420
@@ -104,7 +109,6 @@ function prescriptionStatusLabel(rx: PrescriptionRequest): string {
  * the setup checklist), their upcoming care, then ways to find care.
  */
 export function DashboardScreen() {
-  const insets = useSafeAreaInsets()
   const navigation = useNavigation<any>()
   const u = useUserStore(s => s.user)
   const userMode = useAuthStore(s => s.userMode)
@@ -122,10 +126,9 @@ export function DashboardScreen() {
   const markNotificationRead = useMarkPatientNotificationReadMutation()
   const patientNotifs = useNotificationsStore(s => s.patientNotifs)
   const notifications = fetchedNotifs ?? patientNotifs
-  const unreadCount = notifications.filter(n => !n.read).length
 
   /* Keep the shared stores in sync with the freshest server data so every
-     screen (profile, security, wallet) reflects completed actions. */
+     screen (profile, security, allocation) reflects completed actions. */
   useEffect(() => {
     if (profileData) {
       useUserStore.setState({
@@ -152,42 +155,9 @@ export function DashboardScreen() {
   }, [])
   const [showAllAlerts, setShowAllAlerts] = useState(false)
 
-  /* Dismissed alert ids are persisted per account. Alerts are only ever
-     suppressed after an explicit dismiss — never auto-marked on render. */
-  const bannerStorageKey = `gg_dashboard_viewed_banners_${(u?.email ?? 'anonymous').replace(/[^a-zA-Z0-9._-]/g, '_')}`
-  const [viewedBannerIds, setViewedBannerIds] = useState<Set<string> | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setViewedBannerIds(null)
-    SecureStore.getItemAsync(bannerStorageKey)
-      .then(value => {
-        if (!active) return
-        try {
-          const ids = value ? JSON.parse(value) : []
-          setViewedBannerIds(new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []))
-        } catch {
-          setViewedBannerIds(new Set())
-        }
-      })
-      .catch(() => {
-        if (active) setViewedBannerIds(new Set())
-      })
-    return () => {
-      active = false
-    }
-  }, [bannerStorageKey])
-
-  const dismissBanner = useCallback((id: string) => {
-    setViewedBannerIds(previous => {
-      const next = new Set(previous ?? [])
-      next.add(id)
-      void SecureStore.setItemAsync(bannerStorageKey, JSON.stringify([...next]))
-      return next
-    })
-  }, [bannerStorageKey])
-
-  const isBannerViewed = (id: string) => viewedBannerIds === null || viewedBannerIds.has(id)
+  /* Dismissals are per account and reappear when a notice's text changes.
+     Alerts are only ever suppressed after an explicit dismiss, never on render. */
+  const attentionDismissals = useAttentionDismissals()
 
   /* account state */
   const profileUser = profileData?.user
@@ -239,9 +209,8 @@ export function DashboardScreen() {
 
   if (waitingForLiveUser) {
     return (
-      <View style={[s.loadingContainer, { paddingTop: insets.top }]}>
-        {/* Navy header band, then the shapes of the credit card and lists. */}
-        <View style={s.skeletonHeader} />
+      <Screen header="tabRoot">
+        {/* The shapes of the credit card and lists, under the app bar. */}
         <SkeletonGroup style={s.skeleton}>
           <SkeletonBalanceCard light />
           <SkeletonBlock width="55%" height={18} />
@@ -249,19 +218,19 @@ export function DashboardScreen() {
           <SkeletonBlock width="40%" height={18} />
           <SkeletonList rows={1} />
         </SkeletonGroup>
-      </View>
+      </Screen>
     )
   }
 
   const firstName = currentUser?.name?.split(' ')[0] || 'there'
-  const country = getCountryByCode(currentUser?.countryCode ?? 'KE')
-  const currency = country?.currencySymbol ?? 'Ksh.'
+  const country = getCountryByCode(currentUser?.countryCode ?? '')
+  const currency = country?.currencySymbol ?? ''
   const partnerId = currentUser?.financePartnerId ?? getFinancePartnerIdForCountry(currentUser?.countryCode)
   const partnerName = getFinancePartnerSummary(partnerId)?.name ?? 'your finance partner'
   const creditLimit = currentUser?.creditLimit ?? 0
   const creditAvailable = currentUser?.creditAvailable ?? 0
   const isLowBalance =
-    creditStatus === 'approved' && isCreditRunningLow(creditAvailable, currentUser?.countryCode ?? 'KE')
+    creditStatus === 'approved' && isCreditRunningLow(creditAvailable, currentUser?.countryCode ?? '')
 
   /* Open appointments that haven't happened yet, soonest first. A past date
      never counts as "next", even if the provider hasn't closed it out. */
@@ -277,7 +246,8 @@ export function DashboardScreen() {
     a => getAppointmentDisplayStatus(a) === 'pending' && (a as any).rescheduledAt,
   )
 
-  const pendingInvoice = (invoices as any[]).find(isActionablePendingInvoice)
+  const pendingInvoices = (invoices as any[]).filter(isActionablePendingInvoice)
+  const pendingInvoice = pendingInvoices[0]
   const activeLedgerGrants = ledgerStatus?.activeGrants ?? []
 
   const prescriptionRequests: PrescriptionRequest[] =
@@ -289,18 +259,18 @@ export function DashboardScreen() {
   /* ---------------------------------------------------------------- */
   /*  Needs your attention                                            */
   /* ---------------------------------------------------------------- */
-  const dismissedBannerIds = viewedBannerIds ?? new Set<string>()
   const creditApprovalItems = getUnreadCreditApprovalItems(notifications)
   const apptConfirmedNotifItems = getUnreadConfirmedAppointmentItems(notifications)
   const apptCancelledItems = getUnreadProviderCancelledAppointmentItems(notifications)
-  const prescriptionQuoteItems = buildPrescriptionQuoteBannerItems(notifications, prescriptionRequests, dismissedBannerIds)
+  const prescriptionQuoteItems = buildPrescriptionQuoteBannerItems(notifications, prescriptionRequests)
   const prescriptionReadyItems = getUnreadPrescriptionReadyItems(notifications)
   const prescriptionInvoiceItems = getUnreadPrescriptionInvoiceItems(notifications)
 
+  // Notification-backed items are marked read; synthetic ones are dismissed by id and text.
   const dismissNotifItems = (items: NotifBannerItem[]) => {
     items.forEach(item => {
       if (item.notification) markNotificationRead.mutate(item.notification.id)
-      else dismissBanner(item.id)
+      else attentionDismissals.dismiss({ id: item.id, title: item.headline, detail: item.detail })
     })
   }
 
@@ -324,8 +294,9 @@ export function DashboardScreen() {
     tone: AttentionItem['tone'],
     Icon: AttentionItem['Icon'],
     actionLabel?: string,
+    blocksAd = false,
   ): AttentionItem => ({
-    key: item.id,
+    id: item.id,
     tone,
     Icon,
     title: item.headline,
@@ -333,55 +304,114 @@ export function DashboardScreen() {
     actionLabel,
     onPress: () => openNotifItems([item]),
     onDismiss: () => dismissNotifItems([item]),
+    blocksAd,
   })
 
-  // Low balance, credit under review and appointment reminders are not listed
-  // here: the credit card and "Your care" already show them.
+  // The same list as the PWA's patient home. The credit card and "Your care" show
+  // some of the same state; these notices repeat it so it can be dismissed.
   const attention: AttentionItem[] = []
   apptCancelledItems.forEach(item => attention.push(fromNotif(item, 'alert', CalendarIcon, 'View')))
 
-  const pendingInvoiceId = `pending-invoice-${pendingInvoice?.id ?? 'none'}`
-  if (pendingInvoice && !isBannerViewed(pendingInvoiceId)) {
+  if (pendingInvoice) {
     attention.push({
-      key: pendingInvoiceId,
+      ...pendingInvoiceNotice({
+        invoiceId: String(pendingInvoice.id),
+        count: pendingInvoices.length,
+        providerName: pendingInvoice.provider?.name ?? pendingInvoice.provider ?? 'Your provider',
+        amount: pendingInvoice.amount,
+        format: amount => formatCurrency(amount, currency),
+      }),
       tone: 'action',
       Icon: InvoiceIcon,
-      title: `Approve ${formatCurrency(pendingInvoice.amount, currency)} invoice`,
-      detail: `${pendingInvoice.provider?.name ?? pendingInvoice.provider ?? 'Your provider'} is waiting for payment approval.`,
-      actionLabel: 'Review',
       onPress: () =>
-        navigation.navigate('InvoicesTab', {
-          screen: 'InvoiceReview',
-          params: { invoiceId: pendingInvoice.id },
-          initial: false,
-        }),
-      onDismiss: () => dismissBanner(pendingInvoiceId),
+        pendingInvoices.length > 1
+          ? navigation.navigate('InvoicesTab', { screen: 'InvoiceList' })
+          : navigation.navigate('InvoicesTab', {
+              screen: 'InvoiceReview',
+              params: { invoiceId: pendingInvoice.id },
+              initial: false,
+            }),
+      blocksAd: true,
     })
   }
   if (!pendingInvoice) {
-    prescriptionInvoiceItems.forEach(item => attention.push(fromNotif(item, 'action', InvoiceIcon, 'Pay')))
+    prescriptionInvoiceItems.forEach(item => attention.push(fromNotif(item, 'action', InvoiceIcon, 'Pay', true)))
   }
 
-  const rescheduleId = `reschedule-${rescheduleApt?.id ?? 'none'}`
-  if (rescheduleApt && !isBannerViewed(rescheduleId)) {
+  if (rescheduleApt) {
     attention.push({
-      key: rescheduleId,
+      ...rescheduleNotice(rescheduleApt, formatTime12h),
       tone: 'action',
       Icon: CalendarIcon,
-      title: 'New appointment time proposed',
-      detail: `${(rescheduleApt as any).provider ?? 'Your provider'} suggested a different time. Accept or decline it.`,
-      actionLabel: 'Review',
       onPress: () => navigation.navigate('RescheduleReview', { appointmentId: String(rescheduleApt.id) }),
-      onDismiss: () => dismissBanner(rescheduleId),
+      blocksAd: true,
     })
   }
-  prescriptionQuoteItems.forEach(item => attention.push(fromNotif(item, 'action', PharmacyIcon, 'Review')))
-  prescriptionReadyItems.forEach(item => attention.push(fromNotif(item, 'good', PharmacyIcon)))
+
+  // Web's patient home: the same ids, conditions and copy.
+  const creditPartnerName =
+    getFinancePartnerSummary(getFinancePartnerIdForCountry(currentUser?.countryCode))?.name ?? 'your finance partner'
+  const pendingVisit = findPendingVisit(dashAppointments, appointment => getAppointmentDisplayStatus(appointment))
+  const pendingVisitNotice = pendingVisit ? pendingAppointmentNotice(pendingVisit, formatTime12h) : null
+  if (pendingVisitNotice) {
+    attention.push({
+      id: pendingVisitNotice.id,
+      tone: 'info',
+      Icon: CalendarIcon,
+      title: pendingVisitNotice.title,
+      detail: pendingVisitNotice.detail,
+      actionLabel: pendingVisitNotice.actionLabel,
+      onPress: () => navigation.navigate('Appointments'),
+      blocksAd: true,
+    })
+  }
+  const creditReview = creditReviewNotice({
+    creditStatus,
+    applicationType: (creditData as any)?.application?.type,
+    partnerName: creditPartnerName,
+  })
+  if (creditReview) {
+    attention.push({
+      id: creditReview.id,
+      tone: 'info',
+      Icon: CreditIcon,
+      title: creditReview.title,
+      detail: creditReview.detail,
+      actionLabel: creditReview.actionLabel,
+      onPress: () =>
+        navigation.navigate('WalletTab', {
+          initial: false,
+          screen: 'CreditStatus',
+          ...(creditReview.increase ? { params: { requestType: 'increase' } } : {}),
+        }),
+      blocksAd: true,
+    })
+  }
+  const lowBalance = lowBalanceNotice({
+    creditStatus,
+    available: creditAvailable,
+    countryCode: currentUser?.countryCode ?? '',
+    format: amount => formatCurrency(amount, currency),
+  })
+  if (lowBalance) {
+    attention.push({
+      id: lowBalance.id,
+      tone: 'info',
+      Icon: WalletIcon,
+      title: lowBalance.title,
+      detail: lowBalance.detail,
+      actionLabel: lowBalance.actionLabel,
+      onPress: () => navigation.navigate('WalletTab', { initial: false, screen: 'CreditIncrease' }),
+    })
+  }
+
+  prescriptionQuoteItems.forEach(item => attention.push(fromNotif(item, 'action', PharmacyIcon, 'Review', true)))
+  prescriptionReadyItems.forEach(item => attention.push(fromNotif(item, 'good', PharmacyIcon, undefined, true)))
 
   const ledgerId = `ledger-access-${activeLedgerGrants.map(g => g.id).sort().join('|') || 'none'}`
-  if (activeLedgerGrants.length > 0 && !isBannerViewed(ledgerId)) {
+  if (activeLedgerGrants.length > 0) {
     attention.push({
-      key: ledgerId,
+      id: ledgerId,
       tone: 'info',
       Icon: LockIcon,
       title:
@@ -390,13 +420,15 @@ export function DashboardScreen() {
           : `${activeLedgerGrants.length} providers can see your health ledger`,
       detail: 'Access ends 24 hours after unlock. You can revoke it anytime.',
       onPress: () => navigation.navigate('ProfileTab', { initial: false, screen: 'LedgerAccess' }),
-      onDismiss: () => dismissBanner(ledgerId),
     })
   }
   creditApprovalItems.forEach(item => attention.push(fromNotif(item, 'good', CheckIcon)))
   apptConfirmedNotifItems.forEach(item => attention.push(fromNotif(item, 'good', CheckIcon)))
   // Array.prototype.sort is stable, so the order above holds within each tone.
   attention.sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone])
+  const visibleAttention = attentionDismissals.filterVisible(attention)
+  // The promo strip waits until saved dismissals have loaded and no blocking notice is visible (web's rule).
+  const showAdBanner = attentionDismissals.ready && !visibleAttention.some(item => item.blocksAd)
 
   /* ---------------------------------------------------------------- */
   /*  Get started (new accounts)                                      */
@@ -428,7 +460,7 @@ export function DashboardScreen() {
     },
     {
       key: 'credit',
-      title: 'Apply for healthcare credit',
+      title: 'Apply for a healthcare allocation',
       detail: 'Get care now and pay over time. Takes about 5 minutes.',
       done: completedSteps.has(4),
       actionLabel: 'Apply now',
@@ -484,35 +516,13 @@ export function DashboardScreen() {
   /*  Render                                                          */
   /* ---------------------------------------------------------------- */
   return (
-    <Screen headerPattern="dark-curve" curveDepth={curveDepth}>
-      {/* Status-bar strip stays navy while the header scrolls away under it. */}
-      <View style={{ height: insets.top, backgroundColor: colors.navy }} />
-
+    <Screen header="tabRoot" curveDepth={curveDepth}>
       <ScrollArea gap={24} px={16} py={0} refreshing={refreshing} onRefresh={onRefresh}>
-        {/* === Header (scrolls away): brand bar, then the greeting === */}
+        {/* === Greeting (scrolls away under the app bar) === */}
         <View style={s.header}>
-          <View style={s.brandRow}>
-            <View style={s.brandLeft}>
-              <MarketFlag />
-              <Image source={wordmark} style={s.wordmark} resizeMode="contain" accessibilityLabel="GG'APP" />
-            </View>
-            <Pressable
-              style={({ pressed }) => [s.bell, pressed && { opacity: 0.8 }]}
-              onPress={() => navigation.navigate('Notifications')}
-              accessibilityRole="button"
-              accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
-            >
-              <BellIcon size={20} color="#FFFFFF" />
-              {unreadCount > 0 && (
-                <View style={s.bellBadge}>
-                  <Text style={s.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
-          <Text style={s.greeting} numberOfLines={1}>
-            {isSettingUp && userMode === 'new' ? `Welcome, ${firstName}` : `${getGreeting()}, ${firstName}`}
-          </Text>
+          {/* Two lines: the time of day, then the name, which wraps rather than truncating. */}
+          <Text style={s.greetingEyebrow}>{isSettingUp && userMode === 'new' ? 'Welcome' : getGreeting()}</Text>
+          <Text style={s.greeting}>{firstName}</Text>
           <Text style={s.subGreeting}>
             {isSettingUp
               ? "Let's get your account ready for your first visit."
@@ -541,9 +551,10 @@ export function DashboardScreen() {
         {/* === New accounts: setup first; everyone: what's waiting === */}
         <GetStartedCard steps={steps} />
         <AttentionList
-          items={attention}
+          items={visibleAttention}
           expanded={showAllAlerts}
           onToggleExpanded={() => setShowAllAlerts(v => !v)}
+          onDismiss={item => attentionDismissals.dismiss(item)}
         />
 
         {/* === Upcoming care === */}
@@ -566,7 +577,7 @@ export function DashboardScreen() {
         {/* === Health news === */}
         <HealthNewsSection />
 
-        <AdBanner countryName={country?.name} />
+        {showAdBanner ? <AdBanner countryName={country?.name} /> : null}
 
         <View style={{ height: 24 }} />
       </ScrollArea>
@@ -581,47 +592,23 @@ const s = StyleSheet.create({
     padding: 16,
     gap: 14,
   },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  skeletonHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 190,
-    backgroundColor: colors.navy,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-  },
   loadingText: {
     fontFamily: fontWeights.medium,
     fontSize: 15.5,
     color: colors.textSub,
   },
   header: {
-    paddingTop: 8,
+    paddingTop: 16,
     marginBottom: -4,
   },
   // Space between the navy edge and the next section, so its heading is not on the curve.
   creditSlot: {
     marginBottom: 28,
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  brandLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  wordmark: {
-    width: 122,
-    height: 26,
+  greetingEyebrow: {
+    fontFamily: fontWeights.medium,
+    fontSize: 15.5,
+    color: 'rgba(255,255,255,0.8)',
   },
   greeting: {
     fontFamily: fontWeights.extraBold,
@@ -634,32 +621,5 @@ const s = StyleSheet.create({
     fontSize: 15.5,
     color: 'rgba(255,255,255,0.72)',
     marginTop: 2,
-  },
-  bell: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    backgroundColor: colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.navy,
-  },
-  bellBadgeText: {
-    fontFamily: fontWeights.bold,
-    fontSize: 11.5,
-    color: '#FFFFFF',
   },
 })

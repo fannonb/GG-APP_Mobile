@@ -6,7 +6,7 @@ import {
 } from 'react-native'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill } from '@/components'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { useUserStore } from '@gg/shared-stores'
 
@@ -46,13 +46,9 @@ export function BookingConfirmScreen({ route, navigation }: ServicesScreenProps<
   const patientName = user?.name ?? 'Patient'
 
   return (
-    <Screen>
-      <AppBar
-        title="Request Sent"
-        subtitle="Pending provider confirmation"
-      />
-
+    <Screen header="detail">
       <ScrollArea gap={16} px={16} py={20}>
+        <PageTitle title="Request Sent" subtitle="Pending provider confirmation" />
         {/* === 1. Success Illustration === */}
         <View style={s.successSection}>
           <SuccessCheck />

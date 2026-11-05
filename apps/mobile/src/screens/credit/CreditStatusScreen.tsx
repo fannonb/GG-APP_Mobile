@@ -8,22 +8,23 @@ import {
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, LoadError } from '@/components'
-import CheckIcon from '@/icons/CheckIcon'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, LoadError } from '@/components'
 import { useCreditStatus } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
-import { getCountryByCode } from '@gg/shared-config'
-import type { CreditStatusResponse, Patient } from '@gg/shared-types'
+import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
+import type { CreditApplication, CreditStatusResponse, Patient } from '@gg/shared-types'
+import { creditDecision } from '@/lib/patient-parity'
 import type { WalletScreenProps } from '@/navigation/types'
 import { EmptyCreditStatusScreen } from './EmptyCreditStatusScreen'
 
 /* ------------------------------------------------------------------ */
 /*  Timeline data builder                                              */
 /* ------------------------------------------------------------------ */
-function buildTimeline(application: any, creditStatus?: string, isIncrease?: boolean) {
-  const isApproved =
-    application?.status === 'approved' || creditStatus === 'approved'
+function buildTimeline(application: CreditApplication | null, creditStatus: CreditStatusResponse['creditStatus'] | undefined, isIncrease: boolean, partnerName: string) {
+  const decision = creditDecision(application, creditStatus)
+  const isApproved = decision === 'approved'
+  const decided = isApproved || decision === 'declined'
 
   // An approved account was necessarily submitted, even when the application
   // record itself is missing (e.g. approved directly by an admin).
@@ -39,8 +40,8 @@ function buildTimeline(application: any, creditStatus?: string, isIncrease?: boo
   if (isIncrease) {
     return [
       { label: 'Increase Request Submitted', date: submittedDate, done: submitted },
-      { label: 'Partner Review', date: isApproved ? reviewedDate : 'In progress...', done: isApproved },
-      { label: 'Wallet Updated', date: isApproved ? reviewedDate : '', done: isApproved },
+      { label: `${partnerName} Review`, date: decided ? reviewedDate : 'In progress...', done: decided },
+      { label: decision === 'declined' ? 'Request Declined' : 'Allocation Updated', date: decided ? reviewedDate : '', done: decided },
     ]
   }
 
@@ -51,21 +52,21 @@ function buildTimeline(application: any, creditStatus?: string, isIncrease?: boo
       done: submitted,
     },
     {
-      label: 'Partner Review',
-      date: isApproved ? reviewedDate : 'In progress...',
-      done: isApproved,
+      label: `${partnerName} Review`,
+      date: decided ? reviewedDate : 'In progress...',
+      done: decided,
     },
     {
-      label: 'Credit Decision',
-      date: isApproved ? reviewedDate : '',
-      done: isApproved,
+      label: decision === 'declined' ? 'Application Declined' : 'Allocation Decision',
+      date: decided ? reviewedDate : '',
+      done: decided,
     },
     {
       label: 'Balance Loaded',
       date: isApproved ? reviewedDate : '',
       done: isApproved,
     },
-  ]
+  ].filter(step => decision !== 'declined' || step.label !== 'Balance Loaded')
 }
 
 /* ------------------------------------------------------------------ */
@@ -92,43 +93,42 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
   const navigation = useNavigation<any>()
   const u = useUserStore(s => s.user) as Patient | undefined
   const { data: creditData, isLoading, isError, isFetching, refetch } = useCreditStatus()
-  const currency = getCountryByCode(u?.countryCode ?? 'KE')?.currencySymbol ?? 'Ksh.'
+  const currency = getCountryByCode(u?.countryCode ?? '')?.currencySymbol ?? ''
 
-  const isIncrease =
-    route.params?.requestType === 'increase' ||
-    creditData?.application?.type === 'increase'
+  const isIncrease = route.params?.requestType
+    ? route.params.requestType === 'increase'
+    : creditData?.application?.type === 'increase'
 
-  const application = (creditData as any)?.application ?? null
+  const application = creditData?.application ?? null
+  const accountStatus = creditData?.creditStatus ?? u?.creditStatus
+  const decision = creditDecision(application, accountStatus)
+  const isApproved = decision === 'approved'
+  const isDeclined = decision === 'declined'
+  const partnerId = application?.financePartnerId ?? creditData?.financePartnerId ?? u?.financePartnerId ?? getFinancePartnerIdForCountry(u?.countryCode)
+  const partnerName = getFinancePartnerSummary(partnerId)?.name ?? 'your finance partner'
+  const decisionColor = isApproved ? colors.success : isDeclined ? colors.error : colors.warning
+  const decisionBg = isApproved ? colors.successBg : isDeclined ? colors.errorBg : colors.warningBg
   const creditRef =
     application?.reference ??
     creditData?.creditAccountRef ??
     u?.creditAccountRef ??
     'Pending'
 
-  const isApproved =
-    application?.status === 'approved' ||
-    (creditData as any)?.creditStatus === 'approved' ||
-    u?.creditStatus === 'approved'
-
   const requestedAmount = application?.requestedAmount ?? u?.creditLimit ?? 0
   const approvedAmount =
-    application?.approvedAmount ?? (isApproved ? u?.creditLimit : 0) ?? 0
+    application?.approvedAmount ?? (isApproved && !isIncrease ? creditData?.creditLimit ?? u?.creditLimit : 0) ?? 0
 
   const timeline = buildTimeline(
     application,
-    (creditData as any)?.creditStatus ?? u?.creditStatus,
+    accountStatus,
     isIncrease,
+    partnerName,
   )
 
   /* loading */
   if (isLoading && !creditData) {
     return (
-      <Screen>
-        <AppBar
-          title={isIncrease ? 'Increase Request Status' : 'Application Status'}
-          subtitle={`Ref: ${creditRef}`}
-          back
-        />
+      <Screen header="detail">
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading application status...</Text>
@@ -141,8 +141,7 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
      invite a duplicate application */
   if (isError && !creditData) {
     return (
-      <Screen>
-        <AppBar title={isIncrease ? 'Increase Request Status' : 'Application Status'} back />
+      <Screen header="detail">
         <View style={s.errorWrap}>
           <LoadError
             title="We couldn't load your application status."
@@ -156,26 +155,21 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
   }
 
   /* empty state — render dedicated empty screen */
-  if (!application && !isApproved) {
+  if (!application && decision === 'pending') {
     return <EmptyCreditStatusScreen />
   }
 
   return (
-    <Screen>
-      <AppBar
-        title={isIncrease ? 'Increase Request Status' : 'Application Status'}
-        subtitle={`Ref: ${creditRef}`}
-        back
-      />
-
+    <Screen header="detail">
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title={isIncrease ? 'Increase Request Status' : 'Application Status'} subtitle={`Ref: ${creditRef}`} />
         {/* ====== 1. Approved Banner ====== */}
-        <View style={s.banner}>
+        <View style={[s.banner, { backgroundColor: decisionBg }]}>
           <View style={s.bannerIconCircle}>
             <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
               <Path
-                d="M5 12l5 5L19 7"
-                stroke={colors.success}
+                d={isApproved ? 'M5 12l5 5L19 7' : isDeclined ? 'M6 6l12 12M18 6L6 18' : 'M12 5v8M12 17v1'}
+                stroke={decisionColor}
                 strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -184,18 +178,21 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={s.bannerTitle}>
-              {isApproved ? 'Approved' : isIncrease ? 'Under Review' : 'Under Review'}
+            <Text style={[s.bannerTitle, { color: decisionColor }]}>
+              {isApproved ? 'Approved' : isDeclined ? 'Declined' : decision === 'pending' ? 'Pending' : 'Under Review'}
             </Text>
             <Text style={s.bannerDesc}>
               {isApproved
                 ? isIncrease
                   ? 'Your limit increase has been approved. Your updated balance is ready to use.'
-                  : 'Your application has been approved and your wallet balance is ready to use.'
-                : isIncrease
-                  ? 'Your increase request is with the finance partner team for review.'
-                  : 'Your application is being reviewed. You will be notified once a decision is made.'}
+                  : 'Your application has been approved and your allocation balance is ready to use.'
+                : isDeclined
+                  ? isIncrease ? 'Your increase request was declined. Your existing allocation limit remains unchanged.' : 'Your application was declined. Review the reason below before applying again.'
+                  : `Your ${isIncrease ? 'increase request' : 'application'} is with ${partnerName} for review. You will be notified once a decision is made.`}
             </Text>
+            {isDeclined && application?.declineReason ? (
+              <Text style={[s.bannerDesc, { color: colors.error }]} accessibilityRole="alert">Reason: {application.declineReason}</Text>
+            ) : null}
 
             <View style={s.bannerDetails}>
               <View style={s.bannerDetailItem}>
@@ -213,7 +210,7 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
               <View style={s.bannerDetailItem}>
                 <Text style={s.bannerDetailLabel}>Partner</Text>
                 <Text style={s.bannerDetailValue} numberOfLines={1}>
-                  Accredited finance partner
+                  {partnerName}
                 </Text>
               </View>
             </View>
@@ -239,7 +236,7 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
                         s.timelineLine,
                         {
                           backgroundColor: step.done
-                            ? colors.success
+                            ? decisionColor
                             : colors.border,
                         },
                       ]}
@@ -252,7 +249,7 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
                       s.timelineDot,
                       {
                         backgroundColor: step.done
-                          ? colors.success
+                          ? decisionColor
                           : colors.border,
                       },
                     ]}
@@ -305,7 +302,7 @@ export function CreditStatusScreen({ route }: WalletScreenProps<'CreditStatus'>)
             style={{ flex: 2 }}
             onPress={() => navigation.navigate('CreditWallet')}
           >
-            View Wallet →
+            View Allocation →
           </MBtn>
         </View>
 

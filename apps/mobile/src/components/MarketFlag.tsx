@@ -4,8 +4,8 @@ import { useUserStore } from '@gg/shared-stores'
 import { getCountryByCode } from '@gg/shared-config'
 
 /**
- * The customer's market flag, shown at the top left of every signed-in screen
- * (AppBar and the home header) so the market is always visible.
+ * The customer's market flag, shown in the right-hand cluster of every signed-in
+ * app bar (see AppHeader) so the market is always visible.
  */
 export default function MarketFlag() {
   const countryCode = useUserStore(s => s.user?.countryCode) ?? 'KE'

@@ -1,5 +1,7 @@
 import * as Linking from 'expo-linking'
 import type { LinkingOptions } from '@react-navigation/native'
+import { getStateFromPath } from '@react-navigation/native'
+import { normalizeCreditStatusPath } from '@/lib/patient-links'
 import type { RootStackParamList } from './types'
 
 /**
@@ -8,6 +10,7 @@ import type { RootStackParamList } from './types'
  */
 export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [Linking.createURL('/'), 'ggapp://'],
+  getStateFromPath: (path, options) => getStateFromPath(normalizeCreditStatusPath(path), options),
   config: {
     screens: {
       Auth: {

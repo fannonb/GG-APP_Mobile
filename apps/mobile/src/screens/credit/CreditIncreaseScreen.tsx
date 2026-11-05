@@ -9,12 +9,12 @@ import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, ActionBar } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, Field, ActionBar } from '@/components'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
-import { getCountryByCode, getFinancePartnerSummary } from '@gg/shared-config'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
+import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSummary } from '@gg/shared-config'
+import { PartnerLogo } from '@/components/PartnerLogo'
 import type { Patient } from '@gg/shared-types'
 
 const REASON_OPTIONS = [
@@ -82,7 +82,9 @@ export function CreditIncreaseScreen() {
   const inUse = creditLimit - creditAvailable
   const refNum = u?.creditAccountRef ?? creditData?.creditAccountRef ?? 'Pending'
 
-  const partner = u?.financePartnerId ? getFinancePartnerSummary(u.financePartnerId) : undefined
+  // The stored partner, else the one for the patient's country (as web does), so the logo shows even if the profile has no partner id.
+  const partnerId = u?.financePartnerId ?? (u?.countryCode ? getFinancePartnerIdForCountry(u.countryCode) : undefined)
+  const partner = partnerId ? getFinancePartnerSummary(partnerId) : undefined
 
   const pendingReview = u?.creditStatus === 'pending'
   const pendingIncrease =
@@ -158,22 +160,15 @@ export function CreditIncreaseScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar
-        title="Request Limit Increase"
-        subtitle="Increase your approved healthcare credit"
-        back
-      />
-
+    <Screen header="modal">
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title="Request Limit Increase" subtitle="Increase your approved healthcare allocation" />
         <MCard padding={16}>
           {partner ? (
             <>
               <Text style={s.partnerLabel}>Your Finance Partner</Text>
               <View style={s.partnerRow}>
-                <View style={s.partnerLogoZone}>
-                  <FinancePartnerLogo partnerId={partner.id} height={26} />
-                </View>
+                <PartnerLogo partnerId={partner.id} partnerName={partner.name} size="md" />
                 <View style={{ flex: 1 }}>
                   <Text style={s.partnerName}>{partner.name}</Text>
                   <Text style={s.partnerDesc}>
@@ -181,7 +176,7 @@ export function CreditIncreaseScreen() {
                     application — {partner.shortName} reassesses and approves the request.
                   </Text>
                   <View style={s.linkedBadge}>
-                    <Text style={s.linkedBadgeText}>Linked to your active credit line</Text>
+                    <Text style={s.linkedBadgeText}>Linked to your active allocation</Text>
                   </View>
                 </View>
               </View>
@@ -195,7 +190,7 @@ export function CreditIncreaseScreen() {
                   application — your finance partner reassesses and approves the request.
                 </Text>
                 <View style={s.linkedBadge}>
-                  <Text style={s.linkedBadgeText}>Linked to your active credit line</Text>
+                  <Text style={s.linkedBadgeText}>Linked to your active allocation</Text>
                 </View>
               </View>
             </View>
@@ -205,7 +200,7 @@ export function CreditIncreaseScreen() {
         {pendingReview && (
           <MCard padding={18} style={s.pendingCard}>
             <Text style={s.pendingTitle}>
-              {pendingIncrease ? 'Increase request under review' : 'Credit request under review'}
+              {pendingIncrease ? 'Increase request under review' : 'Allocation request under review'}
             </Text>
             <Text style={s.pendingDesc}>
               You already have a pending request with the finance partner team.
@@ -226,8 +221,8 @@ export function CreditIncreaseScreen() {
         )}
 
         <MCard padding={16}>
-          {/* One summary instead of four boxed figures that repeated the wallet. */}
-          <Text style={s.cardTitle}>Your current credit</Text>
+          {/* One summary instead of four boxed figures that repeated the allocation. */}
+          <Text style={s.cardTitle}>Your current allocation</Text>
           <View style={s.summaryRow}>
             <Text style={s.summaryAmount}>{formatCurrency(creditLimit, currency)}</Text>
             <Text style={s.summaryLabel}>limit</Text>
@@ -241,7 +236,7 @@ export function CreditIncreaseScreen() {
         <MCard padding={18} style={pendingReview ? s.formDisabled : undefined}>
           <Text style={s.cardTitle}>Increase Request Details</Text>
           <Text style={s.cardSubtitle}>
-            Tell your finance partner how much additional credit you need.
+            Tell your finance partner how much additional allocation you need.
             They will reassess based on your current limit and repayment history.
           </Text>
 
@@ -346,7 +341,7 @@ export function CreditIncreaseScreen() {
             <Text style={s.feeDesc}>
               By submitting this increase request, you acknowledge that a 2.5% platform
               administration fee will be deducted from any newly approved increase amount
-              and remitted to GG'APP. The remaining balance will be added to your wallet
+              and remitted to GG'APP. The remaining balance will be added to your allocation
               for use with verified healthcare providers.
             </Text>
 
@@ -365,7 +360,7 @@ export function CreditIncreaseScreen() {
                 <View style={s.feeDivider} />
                 <View style={s.feeRow}>
                   <Text style={[s.feeRowLabel, { fontFamily: fontWeights.bold, color: colors.text }]}>
-                    Est. added to wallet
+                    Est. added to allocation
                   </Text>
                   <Text style={s.feeNetValue}>
                     {formatCurrency(increaseNum * (1 - ADMIN_FEE_RATE), currency)}
@@ -453,17 +448,6 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.bold,
     color: colors.textSub,
     marginBottom: 10,
-  },
-  partnerLogoZone: {
-    width: 112,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
   },
   partnerName: {
     fontSize: 15.5,

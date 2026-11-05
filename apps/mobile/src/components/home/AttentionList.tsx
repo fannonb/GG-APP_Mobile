@@ -4,22 +4,23 @@ import Pressable from '@/components/Pressable'
 import { animateNextLayout } from '@/lib/motion'
 import { colors, fontWeights, radii } from '@/theme'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
+import type { DismissibleAttentionItem } from '@/lib/attention-dismissals'
 import SectionHeader from './SectionHeader'
 
 /** alert = something went wrong · action = waiting on you · info = in progress · good = good news */
 export type AttentionTone = 'alert' | 'action' | 'info' | 'good'
 
-export interface AttentionItem {
-  key: string
+export interface AttentionItem extends DismissibleAttentionItem {
   tone: AttentionTone
   /** Icon component; receives the tone's ink colour. */
   Icon: React.ComponentType<{ size?: number; color?: string }>
-  title: string
-  detail: string
   onPress: () => void
   /** Short verb shown as a button on the top item, e.g. "Review". */
   actionLabel?: string
+  /** The item's own side effect on dismiss, e.g. marking a notification read. */
   onDismiss?: () => void
+  /** While this item is visible the home promo strip stays hidden (web's hasUnresolvedAction). */
+  blocksAd?: boolean
 }
 
 export const TONE_RANK: Record<AttentionTone, number> = { alert: 0, action: 1, info: 2, good: 3 }
@@ -34,18 +35,22 @@ const TONES: Record<AttentionTone, { ink: string; bg: string }> = {
 /**
  * Everything waiting on the patient as one compact, ranked list instead of a
  * stack of full-width banners. Only the most urgent row carries a button; the
- * rest open on tap.
+ * rest open on tap. Pass `items` already filtered to the visible ones: when
+ * none are left the whole card, header included, is not rendered.
  */
 export default function AttentionList({
   items,
   limit = 3,
   expanded,
   onToggleExpanded,
+  onDismiss,
 }: {
   items: AttentionItem[]
   limit?: number
   expanded: boolean
   onToggleExpanded: () => void
+  /** Persists a dismissal. When given, every row gets a dismiss button. */
+  onDismiss?: (item: AttentionItem) => void
 }) {
   if (items.length === 0) return null
   const visible = expanded ? items : items.slice(0, limit)
@@ -64,7 +69,13 @@ export default function AttentionList({
       />
       <View style={styles.card}>
         {visible.map((item, i) => (
-          <Row key={item.key} item={item} first={i === 0} last={i === visible.length - 1 && hidden === 0} />
+          <Row
+            key={item.id}
+            item={item}
+            first={i === 0}
+            last={i === visible.length - 1 && hidden === 0}
+            onDismiss={onDismiss}
+          />
         ))}
         {hidden > 0 ? (
           <Pressable
@@ -85,7 +96,17 @@ export default function AttentionList({
   )
 }
 
-function Row({ item, first, last }: { item: AttentionItem; first: boolean; last: boolean }) {
+function Row({
+  item,
+  first,
+  last,
+  onDismiss,
+}: {
+  item: AttentionItem
+  first: boolean
+  last: boolean
+  onDismiss?: (item: AttentionItem) => void
+}) {
   const tone = TONES[item.tone]
   const showButton = first && Boolean(item.actionLabel)
   // The row and its dismiss button are siblings: nested buttons confuse screen readers.
@@ -113,18 +134,19 @@ function Row({ item, first, last }: { item: AttentionItem; first: boolean; last:
             </View>
           ) : null}
         </View>
-        {item.onDismiss ? null : <ChevronRightIcon size={16} color={colors.textLight} />}
+        {onDismiss ? null : <ChevronRightIcon size={16} color={colors.textLight} />}
       </Pressable>
-      {item.onDismiss ? (
+      {onDismiss ? (
         <Pressable
           onPress={() => {
             animateNextLayout()
+            onDismiss(item)
             item.onDismiss?.()
           }}
-          hitSlop={12}
           style={styles.dismiss}
           accessibilityRole="button"
-          accessibilityLabel={`Dismiss: ${item.title}`}
+          accessibilityLabel="Dismiss"
+          accessibilityHint={`Hides: ${item.title}`}
         >
           <Text style={styles.dismissText}>✕</Text>
         </Pressable>
@@ -144,7 +166,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingRight: 14,
+    paddingRight: 4,
   },
   rowMain: {
     flex: 1,
@@ -197,10 +219,11 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     color: '#FFFFFF',
   },
+  // 44pt touch target; the visible glyph is centred in it and the box is pulled up to line up with the title.
   dismiss: {
-    marginTop: 14,
-    width: 24,
-    height: 24,
+    marginTop: 4,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -9,7 +9,7 @@ import Pressable from '@/components/Pressable'
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, ActionBar } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, Field, ActionBar } from '@/components'
 import { useCreditStatus, useIncreaseCreditMutation } from '@gg/shared-hooks'
 import { useUserStore } from '@gg/shared-stores'
 import { formatCurrency } from '@gg/shared-utils'
@@ -143,14 +143,9 @@ export function CreditApplyScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar
-        title="Request Limit Increase"
-        subtitle="Increase your approved healthcare credit"
-        back
-      />
-
+    <Screen header="modal">
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title="Request Limit Increase" subtitle="Increase your approved healthcare allocation" />
         {/* ====== 1. Finance Partner Note ====== */}
         <MCard padding={16}>
           <View style={s.partnerRow}>
@@ -166,7 +161,7 @@ export function CreditApplyScreen() {
 
         {/* ====== 2. Current Credit Card ====== */}
         <MCard padding={16}>
-          <Text style={s.cardTitle}>Your Current Credit</Text>
+          <Text style={s.cardTitle}>Your Current Allocation</Text>
 
           <View style={s.creditGrid}>
             {[
@@ -196,7 +191,7 @@ export function CreditApplyScreen() {
         <MCard padding={18}>
           <Text style={s.cardTitle}>Increase Request Details</Text>
           <Text style={s.cardSubtitle}>
-            Tell your finance partner how much additional credit you need. They
+            Tell your finance partner how much additional allocation you need. They
             will reassess based on your current limit and repayment history.
           </Text>
 

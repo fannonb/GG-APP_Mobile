@@ -14,7 +14,7 @@ interface MoneyTextProps {
 
 export default function MoneyText({
   amount,
-  currency = 'Ksh.',
+  currency = '',
   style,
   symbolStyle,
   size = 'md',

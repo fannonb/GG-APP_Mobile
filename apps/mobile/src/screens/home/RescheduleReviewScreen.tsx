@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-nati
 import Pressable from '@/components/Pressable'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill } from '@/components'
 import { usePatientAppointments, useConfirmRescheduledAppointmentMutation, useCancelPatientAppointmentMutation } from '@gg/shared-hooks'
 import { formatDate, formatTime12h, getAppointmentDisplayStatus } from '@gg/shared-utils'
 import type { HomeScreenProps } from '@/navigation/types'
@@ -54,8 +54,7 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
 
   if (isLoading) {
     return (
-      <Screen>
-        <AppBar title="Reschedule Review" back />
+      <Screen header="modal">
         <View style={st.centered}>
           <ActivityIndicator size="large" color={colors.blue} />
         </View>
@@ -65,8 +64,7 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
 
   if (!apt) {
     return (
-      <Screen>
-        <AppBar title="Reschedule Review" back />
+      <Screen header="modal">
         <View style={st.centered}>
           <Text style={st.emptyText}>Appointment not found.</Text>
           <MBtn variant="secondary" onPress={() => navigation.goBack()}>Go Back</MBtn>
@@ -80,8 +78,7 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
 
   if (displayStatus === 'confirmed' || !hasProposal) {
     return (
-      <Screen>
-        <AppBar title="Reschedule Review" back />
+      <Screen header="modal">
         <View style={st.centered}>
           <Text style={st.emptyText}>
             {displayStatus === 'confirmed'
@@ -101,8 +98,7 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
 
   if (confirmed) {
     return (
-      <Screen>
-        <AppBar title="Reschedule Review" back />
+      <Screen header="modal">
         <View style={st.centered}>
           <View style={st.successCircle}>
             <Svg width={32} height={32} viewBox="0 0 24 24" fill="none">
@@ -142,10 +138,9 @@ export function RescheduleReviewScreen({ route, navigation }: HomeScreenProps<'R
   }
 
   return (
-    <Screen>
-      <AppBar title="Reschedule Review" subtitle="Review proposed changes" back />
-
+    <Screen header="modal">
       <ScrollArea gap={16} px={16} py={14}>
+        <PageTitle title="Reschedule Review" subtitle="Review proposed changes" />
         {/* Info banner */}
         <View style={st.infoBanner}>
           <Text style={st.infoBannerText}>

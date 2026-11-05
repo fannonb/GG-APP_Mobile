@@ -14,7 +14,8 @@ import Svg, { Path, Circle, Rect, Line } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, SegmentedTabs } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill, SegmentedTabs, Pager } from '@/components'
+import { usePaged } from '@/lib/usePaged'
 import { CalendarIcon, CheckIcon } from '@/icons'
 import { usePatientAppointments, useCancelPatientAppointmentMutation, useProvider } from '@gg/shared-hooks'
 import { patientService } from '@gg/shared-api'
@@ -235,6 +236,7 @@ export function AppointmentsScreen() {
 
   const filtered =
     tabIndex === 0 ? upcoming : tabIndex === 1 ? past : allAppointments
+  const { pageItems: pagedAppointments, pager } = usePaged(filtered, tabIndex)
 
   const tabs = [
     { label: 'Upcoming', count: upcoming.length },
@@ -250,8 +252,7 @@ export function AppointmentsScreen() {
   /* Loading state */
   if (isLoading && !data) {
     return (
-      <Screen>
-        <AppBar title="Appointments" subtitle="Your healthcare schedule" />
+      <Screen header="detail">
         <SkeletonGroup style={s.skeleton}>
           <SkeletonBlock height={44} radius={22} />
           <SkeletonList rows={4} />
@@ -261,10 +262,9 @@ export function AppointmentsScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar title="Appointments" subtitle="Your healthcare schedule" />
-
+    <Screen header="detail">
       <ScrollArea gap={14} px={16} py={14} {...pull}>
+        <PageTitle title="Appointments" subtitle="Your healthcare schedule" />
         {/* === 1. Stats Row === */}
         <View style={s.statsRow}>
           {[
@@ -343,7 +343,7 @@ export function AppointmentsScreen() {
             </View>
           </MCard>
         ) : (
-          filtered.map(apt => {
+          pagedAppointments.map(apt => {
             const d = new Date(apt.date)
             const displayStatus = getAppointmentDisplayStatus(apt)
             const isPast =
@@ -476,6 +476,7 @@ export function AppointmentsScreen() {
             )
           })
         )}
+        <Pager {...pager} />
 
         {/* Bottom spacer for tab bar */}
         <View style={{ height: 24 }} />

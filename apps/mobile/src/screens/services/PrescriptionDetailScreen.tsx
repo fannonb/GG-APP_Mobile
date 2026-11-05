@@ -10,7 +10,8 @@ import {
 } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useCurrency } from '@/lib/useCurrency'
-import { AppBar, GGPill, MBtn, MCard, Screen, ScrollArea } from '@/components'
+import { PageTitle, GGPill, MBtn, MCard, Screen, ScrollArea, LoadError } from '@/components'
+import { prescriptionTotal, prescriptionInvoiceState, prescriptionProgress } from '@/lib/patient-parity'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { colors, fontWeights, radii } from '@/theme'
 import { openRemoteOrDataAttachment } from '@/lib/open-attachment'
@@ -39,6 +40,8 @@ function getStatusMeta(status: PrescriptionRequest['status']) {
       return { type: 'success' as const, label: 'Fulfilled' }
     case 'cancelled':
       return { type: 'error' as const, label: 'Cancelled' }
+    case 'rejected':
+      return { type: 'error' as const, label: 'Declined by pharmacy' }
     default:
       return { type: 'default' as const, label: status }
   }
@@ -54,7 +57,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function StatusNotice({ request }: { request: PrescriptionRequest }) {
-  if (request.invoiceId) return null
+  if (request.invoiceId && request.status !== 'rejected' && request.status !== 'cancelled') return null
 
   const copy: Partial<Record<PrescriptionRequest['status'], string>> = {
     submitted:
@@ -74,6 +77,9 @@ function StatusNotice({ request }: { request: PrescriptionRequest }) {
     cancelled: request.declineReason
       ? `You declined this quote: ${request.declineReason}`
       : 'This prescription request was cancelled.',
+    rejected: request.declineReason
+      ? `The pharmacy could not fill this prescription. Reason: ${request.declineReason}. You can send it to another pharmacy.`
+      : 'The pharmacy could not fill this prescription. You can send it to another pharmacy.',
   }
 
   const message = copy[request.status]
@@ -196,7 +202,7 @@ export function PrescriptionDetailScreen({
 }: ServicesScreenProps<'PrescriptionDetail'>) {
   const currency = useCurrency()
   const { prescriptionId } = route.params
-  const { data, isLoading } = usePatientPrescriptionRequests()
+  const { data, isLoading, isError, isFetching, refetch } = usePatientPrescriptionRequests()
   const requests = (data ?? []) as PrescriptionRequest[]
   const request = useMemo(
     () => requests.find(item => item.id === prescriptionId),
@@ -215,14 +221,13 @@ export function PrescriptionDetailScreen({
     if (!request || request.status !== 'quoted' || request.quoteReviewedAt) return
     if (reviewedIdsRef.current.has(request.id)) return
     reviewedIdsRef.current.add(request.id)
-    reviewMutation.mutate(request.id)
+    reviewMutation.mutate(request.id, { onError: () => reviewedIdsRef.current.delete(request.id) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request?.id, request?.status, request?.quoteReviewedAt])
 
   if (isLoading && !request) {
     return (
-      <Screen>
-        <AppBar title="Prescription Request" subtitle="Loading..." back />
+      <Screen header="detail">
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading prescription request...</Text>
@@ -233,9 +238,10 @@ export function PrescriptionDetailScreen({
 
   if (!request) {
     return (
-      <Screen>
-        <AppBar title="Prescription Request" subtitle="Not found" back />
+      <Screen header="detail">
         <ScrollArea gap={14} px={16} py={16}>
+          <PageTitle title="Prescription Request" subtitle="Not found" />
+          {isError ? <LoadError title="We couldn't load this prescription." onRetry={() => void refetch()} retrying={isFetching} /> : (
           <MCard padding={18}>
             <Text style={s.emptyTitle}>Request not found</Text>
             <Text style={s.emptyBody}>
@@ -250,12 +256,14 @@ export function PrescriptionDetailScreen({
               ← All Prescription Requests
             </MBtn>
           </MCard>
+          )}
         </ScrollArea>
       </Screen>
     )
   }
 
   const statusMeta = getStatusMeta(request.status)
+  const invoiceState = prescriptionInvoiceState(request)
   const attachment = request.attachment
   const attachmentUrl = attachment.url ?? attachment.dataUrl ?? ''
   const isImage =
@@ -286,14 +294,9 @@ export function PrescriptionDetailScreen({
   }
 
   return (
-    <Screen>
-      <AppBar
-        title={request.id}
-        subtitle={`${request.provider ?? 'Pharmacy'} · ${request.for}`}
-        back
-      />
-
+    <Screen header="detail">
       <ScrollArea gap={14} px={16} py={16}>
+        <PageTitle title={request.id} subtitle={`${request.provider ?? 'Pharmacy'} · ${request.for}`} />
         <MCard padding={16}>
           <View style={s.cardTopRow}>
             <Text style={s.sectionTitle}>Request Details</Text>
@@ -313,6 +316,19 @@ export function PrescriptionDetailScreen({
           {request.pharmacyNotes ? (
             <InfoRow label="Pharmacy notes" value={request.pharmacyNotes} />
           ) : null}
+        </MCard>
+
+        <StatusNotice request={request} />
+        {invoiceState.closed && (
+          <MBtn variant="secondary" fullWidth onPress={() => navigation.navigate('ProviderList', { category: 'pharmacy' })}>
+            Find another pharmacy
+          </MBtn>
+        )}
+        <MCard padding={16}>
+          <Text style={s.sectionTitle}>Order progress</Text>
+          {prescriptionProgress(request).map(step => (
+            <InfoRow key={step.label} label={step.label} value={step.done ? (step.date ? formatDate(step.date) : 'Complete') : 'Pending'} />
+          ))}
         </MCard>
 
         <MCard padding={16}>
@@ -359,10 +375,16 @@ export function PrescriptionDetailScreen({
               </View>
             ))}
             {request.quotedAmount != null ? (
+              <>
+              <InfoRow label="Medicines subtotal" value={formatCurrency(request.quotedAmount, currency)} />
+              {request.fulfillmentMode === 'delivery' && (
+                <InfoRow label="Delivery fee" value={formatCurrency(request.deliveryFee ?? 0, currency)} />
+              )}
               <View style={s.quoteTotalRow}>
                 <Text style={s.quoteTotalLabel}>Total</Text>
-                <Text style={s.quoteTotalValue}>{formatCurrency(request.quotedAmount, currency)}</Text>
+                <Text style={s.quoteTotalValue}>{formatCurrency(prescriptionTotal(request), currency)}</Text>
               </View>
+              </>
             ) : null}
             {request.quotedAt ? (
               <Text style={s.quoteTimestamp}>Quoted on {formatDate(request.quotedAt)}</Text>
@@ -373,17 +395,19 @@ export function PrescriptionDetailScreen({
 
         {request.invoiceId ? (
           <MCard padding={16}>
-            <Text style={s.sectionTitle}>Invoice Ready</Text>
+            <Text style={s.sectionTitle}>{invoiceState.paid ? 'Payment complete' : invoiceState.canPay ? 'Invoice ready' : 'Invoice'}</Text>
             <Text style={s.invoiceCopy}>
-              Your {request.fulfillmentMode === 'delivery' ? 'delivery' : 'pickup'} has been
-              confirmed. Pay the invoice below to complete this order.
+              {invoiceState.paid ? 'Your payment has been approved. You can view the receipt below.'
+                : invoiceState.closed ? 'This order is closed. You can view the linked invoice below.'
+                : invoiceState.canPay ? 'Review the invoice and approve payment with your payment PIN.'
+                : 'View the invoice for its current status.'}
             </Text>
             <View style={s.invoicePanel}>
               <View style={{ flex: 1 }}>
                 <Text style={s.metaLabel}>Invoice</Text>
                 <Text style={s.invoiceRef}>{request.invoiceId}</Text>
               </View>
-              <GGPill type={request.invoiceStatus === 'pending_auth' ? 'warning' : 'info'}>
+              <GGPill type={invoiceState.paid ? 'success' : request.invoiceStatus === 'pending_auth' ? 'warning' : 'info'}>
                 {(request.invoiceStatus ?? 'pending').replace('_', ' ')}
               </GGPill>
             </View>
@@ -392,18 +416,16 @@ export function PrescriptionDetailScreen({
               fullWidth
               onPress={() =>
                 navigation.navigate('InvoicesTab', {
-                  screen: 'InvoiceReview',
+                  screen: invoiceState.paid ? 'PaymentSuccess' : 'InvoiceReview',
                   params: { invoiceId: request.invoiceId! },
                   initial: false,
                 } as never)
               }
             >
-              Review & Pay →
+              {invoiceState.action}
             </MBtn>
           </MCard>
-        ) : (
-          <StatusNotice request={request} />
-        )}
+        ) : null}
 
         <MBtn
           variant="secondary"

@@ -1,5 +1,10 @@
+// App chrome: every screen's header comes from Screen's `header` prop.
+export { default as AppHeader } from './AppHeader'
+export { default as BrandLogo } from './BrandLogo'
+export { default as NotificationBell } from './NotificationBell'
+export { default as PageTitle } from './PageTitle'
+
 // Existing components (10)
-export { default as AppBar } from './AppBar'
 export { default as Field } from './Field'
 export { default as DateField } from './DateField'
 export { default as DatePickerModal } from './DatePickerModal'
@@ -25,6 +30,7 @@ export { default as AdBanner } from './AdBanner'
 export { default as MoneyText } from './MoneyText'
 export { default as StatTile } from './StatTile'
 export { default as StatusPill } from './StatusPill'
+export { default as Pager } from './Pager'
 export { default as ScalePress } from './ScalePress'
 export { LedgerTimeline } from './LedgerTimeline'
 export { default as PhonePrefixInput } from './PhonePrefixInput'

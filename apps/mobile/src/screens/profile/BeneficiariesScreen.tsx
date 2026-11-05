@@ -14,7 +14,7 @@ import { colors, fontWeights, radii, shadows } from '@/theme'
 import {
   Screen,
   ScrollArea,
-  AppBar,
+  PageTitle,
   MCard,
   MBtn,
   MAvatar,
@@ -274,11 +274,7 @@ export function BeneficiariesScreen() {
   /* loading */
   if (isLoading && beneficiaries.length === 0 && !profile) {
     return (
-      <Screen>
-        <AppBar
-          title="Beneficiaries"
-          subtitle="Manage covered family members"
-        />
+      <Screen header="detail">
         <View style={s.loadWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadText}>Loading beneficiaries...</Text>
@@ -478,20 +474,16 @@ export function BeneficiariesScreen() {
   )
 
   return (
-    <Screen>
-      <AppBar
-        title="Beneficiaries"
-        subtitle="Manage covered family members"
-      />
-
+    <Screen header="detail">
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title="Beneficiaries" subtitle="Manage covered family members" />
         {/* ============================================================ */}
         {/*  1. Info Notice                                              */}
         {/* ============================================================ */}
         <View style={s.infoNotice}>
           <InfoIcon size={18} color={colors.blue} />
           <Text style={s.infoText}>
-            Appointments for beneficiaries are billed to your credit account
+            Appointments for beneficiaries are billed to your allocation
             with clear attribution.
           </Text>
         </View>
@@ -531,7 +523,7 @@ export function BeneficiariesScreen() {
             <Text style={s.lockedTitle}>Beneficiaries are locked</Text>
             <Text style={s.lockedBody}>
               Enable the toggle above to activate this section, or choose Self +
-              beneficiaries during your credit application.
+              beneficiaries during your allocation application.
             </Text>
             <MBtn
               variant="primary"
@@ -598,7 +590,7 @@ export function BeneficiariesScreen() {
                 <Text style={s.deleteTitle}>Remove {ben.name}?</Text>
                 <Text style={s.deleteDesc}>
                   This beneficiary will be removed from your account and will no
-                  longer be covered under your healthcare credit.
+                  longer be covered under your healthcare allocation.
                 </Text>
                 <View style={s.formBtnRow}>
                   <MBtn
@@ -640,7 +632,7 @@ export function BeneficiariesScreen() {
             </View>
             <Text style={s.addTitle}>Add a Beneficiary</Text>
             <Text style={s.addSubtitle}>
-              Cover family members with your credit
+              Cover family members with your allocation
             </Text>
             <MBtn variant="outline" sm onPress={openAddForm}>
               + Add Beneficiary

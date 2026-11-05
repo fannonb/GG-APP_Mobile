@@ -1,18 +1,17 @@
 import React from 'react'
-import { View, Text, Image, ScrollView, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
 import Screen from './Screen'
 
-const logo = require('../../assets/gg-logo.png')
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 /**
  * The navy sign-in look shared by every pre-login screen (forgot/reset
  * password, verify email), so they match Login and Register instead of
- * switching to the light in-app style halfway through signing in.
+ * switching to the light in-app style halfway through signing in. The logo sits
+ * in the auth app bar; `onBack` adds the back button to that bar.
  */
 export function AuthShell({
   title,
@@ -30,38 +29,17 @@ export function AuthShell({
 }) {
   const insets = useSafeAreaInsets()
   return (
-    <Screen bg={colors.navy}>
+    <Screen bg={colors.navy} header="auth" onBack={onBack}>
       <View style={styles.bgGlow} pointerEvents="none" />
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + 12,
+          paddingTop: 28,
           paddingBottom: insets.bottom + 40,
           paddingHorizontal: 32,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topRow}>
-          {onBack ? (
-            <Pressable
-              onPress={onBack}
-              hitSlop={12}
-              style={styles.backBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Back"
-            >
-              <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                <Path d="M15 18l-6-6 6-6" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-            </Pressable>
-          ) : (
-            <View style={styles.spacer} />
-          )}
-          <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityLabel="GG'APP" />
-          {/* Mirrors the back button's width so the logo stays centred. */}
-          <View style={styles.spacer} />
-        </View>
-
         <Text style={styles.title} accessibilityRole="header">
           {title}
           {highlight ? (
@@ -133,28 +111,6 @@ const styles = StyleSheet.create({
     height: SCREEN_WIDTH * 1.5,
     borderRadius: 9999,
     backgroundColor: 'rgba(56, 182, 255, 0.04)',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  spacer: {
-    width: 40,
-    height: 40,
-  },
-  logo: {
-    width: 72,
-    height: 72,
   },
   title: {
     fontFamily: fontWeights.extraBold,

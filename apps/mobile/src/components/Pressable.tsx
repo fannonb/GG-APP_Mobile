@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import { Pressable as RNPressable, StyleSheet, type PressableProps, type View } from 'react-native'
+import { Pressable as RNPressable, StyleSheet, type PressableProps, type ViewInstance } from 'react-native'
 
 export type AppPressableProps = PressableProps & {
   /**
@@ -15,7 +15,7 @@ export type AppPressableProps = PressableProps & {
  * the next screen appeared. Elements that pass their own `({ pressed }) => …`
  * style keep full control of their pressed look.
  */
-const Pressable = forwardRef<View, AppPressableProps>(function Pressable(
+const Pressable = forwardRef<ViewInstance, AppPressableProps>(function Pressable(
   { style, feedback = 'opacity', disabled, ...rest },
   ref,
 ) {

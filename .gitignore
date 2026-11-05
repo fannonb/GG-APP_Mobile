@@ -38,3 +38,6 @@ android/
 Thumbs.db
 .idea/
 .vscode/
+
+# graft's local repository settings — not committed.
+/.graft/

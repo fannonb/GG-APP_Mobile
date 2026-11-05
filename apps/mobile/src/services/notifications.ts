@@ -115,6 +115,19 @@ export async function subscribeToNotificationResponses(
   if (!mod) {
     return { remove: () => {} }
   }
-  const subscription = mod.addNotificationResponseReceivedListener(listener)
-  return { remove: () => subscription.remove() }
+  let active = true
+  const seen = new Set<string>()
+  const deliver = (response: Notifications.NotificationResponse) => {
+    const id = `${response.notification.request.identifier}:${response.actionIdentifier}`
+    if (!active || seen.has(id)) return
+    seen.add(id)
+    listener(response)
+    void mod.clearLastNotificationResponseAsync().catch(() => {})
+  }
+  const subscription = mod.addNotificationResponseReceivedListener(deliver)
+  // The tap that launched a terminated app predates listener registration.
+  void mod.getLastNotificationResponseAsync().then(response => {
+    if (response) deliver(response)
+  }).catch(() => {})
+  return { remove: () => { active = false; subscription.remove() } }
 }

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
-import { View, Text, Image, StyleSheet, Dimensions, ScrollView, TextInput } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, ScrollView, TextInput } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -13,7 +14,6 @@ import { useAuthStore } from '@gg/shared-stores'
 import { isValidEmail, normalizeEmail } from '@/lib/validation'
 import type { AuthScreenProps } from '@/navigation/types'
 
-const logo = require('../../../assets/gg-logo.png')
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 function GoogleIcon() {
@@ -54,7 +54,7 @@ export function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [needsVerification, setNeedsVerification] = useState(false)
-  const passwordRef = useRef<TextInput>(null)
+  const passwordRef = useRef<TextInputInstance>(null)
 
   const handleGoogleLogin = async () => {
     setError(null)
@@ -140,21 +140,17 @@ export function LoginScreen() {
   }
 
   return (
-    <Screen bg={colors.navy}>
+    <Screen bg={colors.navy} header="auth">
       <View style={styles.bgGlow} />
       
       <ScrollView 
         contentContainerStyle={{ 
-          paddingTop: 20, 
+          paddingTop: 28, 
           paddingBottom: insets.bottom + 40,
           paddingHorizontal: 32,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Logo */}
-        <View style={styles.header}>
-          <Image source={logo} style={styles.logo} resizeMode="contain" />
-        </View>
 
         {/* Welcome Titles */}
         <View style={styles.titleWrap}>
@@ -303,15 +299,6 @@ const styles = StyleSheet.create({
     height: SCREEN_WIDTH * 1.5,
     borderRadius: 9999,
     backgroundColor: 'rgba(56, 182, 255, 0.04)',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    opacity: 1,
   },
   titleWrap: {
     marginBottom: 32,

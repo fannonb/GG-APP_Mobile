@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 import { ActivityIndicator, NativeModules, Platform, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import {
@@ -24,6 +24,8 @@ import type { RootStackParamList } from '@/navigation/types'
 import { openPatientNotification } from '@/lib/patient-notification-routing'
 import { registerPushSubscription, subscribeToNotificationResponses } from '@/services/notifications'
 import type { Notification } from '@gg/shared-types'
+import { useAuthStore } from '@gg/shared-stores'
+import { useConnectionStore } from '@/lib/connection'
 
 const API_PORT = 3001
 const API_PATH = '/api/v1'
@@ -94,7 +96,10 @@ function getMobileApiBaseUrl() {
   // Release builds have no Metro host to discover: the API target is fixed at
   // build time by EXPO_PUBLIC_API_BASE_URL. Failing loudly here is deliberate —
   // a test APK that silently points at localhost/10.0.2.2 is useless and hides
-  // the misconfiguration until runtime.
+  // the misconfiguration until runtime. The base URL must also be https: in
+  // release — tokens are Bearer credentials and travel on every request; a
+  // plain-http target would leak them on the wire even if the app otherwise
+  // boots fine (the sign-in screen would work exactly up until it doesn't).
   if (!__DEV__) {
     if (!envBaseUrl || !envHost || isUnroutableHost(envHost)) {
       throw new Error(
@@ -188,37 +193,43 @@ class AppErrorBoundary extends React.Component<
 }
 
 export default function App() {
+  const pendingNotification = useRef<Notification | null>(null)
+  const loggedIn = useAuthStore(s => s.loggedIn)
+  const restoring = useConnectionStore(s => s.restoring)
+  const flushNotification = useCallback(() => {
+    const auth = useAuthStore.getState()
+    if (!pendingNotification.current || !navigationRef.isReady() || !auth.loggedIn || auth.userRole !== 'patient' || useConnectionStore.getState().restoring) return
+    const notification = pendingNotification.current
+    pendingNotification.current = null
+    openPatientNotification({ navigate: (name, params) => {
+      ;(navigationRef.navigate as (routeName: string, params?: unknown) => void)(name, params)
+    } }, notification)
+  }, [])
+
+  useEffect(() => { flushNotification() }, [loggedIn, restoring, flushNotification])
   // Opens the right screen when the user taps a push notification.
   useEffect(() => {
     let sub: { remove: () => void } | null = null
+    let active = true
 
     void subscribeToNotificationResponses(response => {
       const data = response.notification.request.content.data as
         | { notification?: Notification }
         | undefined
       const notification = data?.notification
-      if (!notification || !navigationRef.isReady()) return
-
-      openPatientNotification(
-        {
-          navigate: (name, params) => {
-            ;(navigationRef.navigate as (routeName: string, params?: unknown) => void)(
-              'App',
-              { screen: name, params },
-            )
-          },
-        },
-        notification,
-      )
+      if (!notification || !active) return
+      pendingNotification.current = notification
+      flushNotification()
     }).then(handle => {
-      sub = handle
-    })
+      if (active) sub = handle
+      else handle.remove()
+    }).catch(() => {})
 
     // Register for push once on launch; SessionBootstrap re-attempts on login.
-    void registerPushSubscription()
+    if (useAuthStore.getState().loggedIn) void registerPushSubscription().catch(() => {})
 
-    return () => sub?.remove()
-  }, [])
+    return () => { active = false; sub?.remove() }
+  }, [flushNotification])
 
   const [fontsLoaded] = useFonts({
     Figtree_400Regular,
@@ -243,7 +254,7 @@ export default function App() {
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <SessionBootstrap />
-            <NavigationContainer ref={navigationRef} linking={linking}>
+            <NavigationContainer ref={navigationRef} linking={linking} onReady={flushNotification} onStateChange={flushNotification}>
               <StatusBar style="light" />
               <RootNavigator />
             </NavigationContainer>

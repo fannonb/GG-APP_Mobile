@@ -12,7 +12,7 @@ import {
 import Pressable from '@/components/Pressable'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, MAvatar, GGPill, Stars, ActionBar } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, MAvatar, GGPill, Stars, ActionBar } from '@/components'
 import { ProviderLocationMap } from '@/components/provider/ProviderLocationMap'
 import type { ServicesScreenProps } from '@/navigation/types'
 import {
@@ -190,8 +190,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
 
   if (isLoading || !provider) {
     return (
-      <Screen>
-        <AppBar title="Provider" subtitle="Loading..." />
+      <Screen header="detail">
         <View style={st.loadingContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={st.loadingText}>Loading provider...</Text>
@@ -223,9 +222,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
   const pharmacyMultiCategory = isPharmacyMultiCategoryProvider(p)
 
   return (
-    <Screen>
-      <AppBar title={categoryName || 'Provider'} />
-
+    <Screen header="detail">
       <Modal
         visible={logoPopupOpen && Boolean(p.logoUrl)}
         transparent
@@ -247,6 +244,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
       </Modal>
 
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title={categoryName || 'Provider'} />
         {/* === 1. Who, where, and whether you can go now === */}
         <MCard padding={16}>
           <View style={st.headerRow}>
@@ -284,7 +282,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
 
           <View style={st.creditBadge}>
             <CheckSmIcon />
-            <Text style={st.creditBadgeText}>GG'APP credit accepted · no upfront payment</Text>
+            <Text style={st.creditBadgeText}>GG'APP allocation accepted · no upfront payment</Text>
           </View>
 
           <View style={st.quickActions}>

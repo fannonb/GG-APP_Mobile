@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, PinField } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, Field, PinField } from '@/components'
 import { useSetupPaymentPinMutation, useChangePatientPasswordMutation } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
 import ChangeEmailCard from '@/components/ChangeEmailCard'
@@ -136,15 +136,9 @@ export function SecurityPINScreen() {
   }
 
   return (
-    <Screen bg={colors.bg}>
-      <AppBar
-        title="Security"
-        subtitle="Payment PIN, email and password"
-        dark
-        back={() => navigation.goBack()}
-      />
-
+    <Screen bg={colors.bg} header="modal">
       <ScrollArea gap={14} py={16} px={16}>
+        <PageTitle title="Security" subtitle="Payment PIN, email and password" />
         {/* Info card */}
         <MCard padding={20}>
           <View style={styles.infoRow}>

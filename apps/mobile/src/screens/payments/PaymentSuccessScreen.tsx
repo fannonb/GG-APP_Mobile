@@ -1,10 +1,10 @@
 import { AppRatingCard } from '@/components/AppRatingCard'
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, TextInput, Animated, Easing } from 'react-native'
+import { View, Text, StyleSheet, TextInput, Animated, Easing, ActivityIndicator } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights, radii, shadows } from '@/theme'
-import { Screen, ScrollArea, MCard, MBtn } from '@/components'
+import { Screen, ScrollArea, MCard, MBtn, PageTitle, LoadError } from '@/components'
 import {
   useCreditStatus,
   usePatientAppointments,
@@ -140,9 +140,9 @@ export function PaymentSuccessScreen() {
     provider: providerName,
   } = route.params ?? {}
   const user = useUserStore(s => s.user)
-  const country = getCountryByCode(user?.countryCode ?? 'KE')
-  const currency = country?.currencySymbol ?? 'Ksh.'
-  const { data: invoiceData } = usePatientInvoice(invoiceId)
+  const country = getCountryByCode(user?.countryCode ?? '')
+  const currency = country?.currencySymbol ?? ''
+  const { data: invoiceData, isLoading: invoiceLoading, isFetching: invoiceFetching, refetch: refetchInvoice } = usePatientInvoice(invoiceId)
   const { data: creditData } = useCreditStatus()
   const { data: appointmentsData } = usePatientAppointments()
   const submitReview = useSubmitReviewMutation()
@@ -226,8 +226,33 @@ export function PaymentSuccessScreen() {
     )
   }
 
+  if (!invoice && amount == null) {
+    return (
+      <Screen header="detail">
+        <ScrollArea gap={14} px={16} py={16}>
+          <PageTitle title="Payment receipt" />
+          {invoiceLoading ? <ActivityIndicator color={colors.blue} /> : (
+            <LoadError title="We couldn't load this receipt." body="Open the invoice to confirm its payment status." onRetry={() => void refetchInvoice()} retrying={invoiceFetching} />
+          )}
+          <MBtn variant="secondary" onPress={() => navigation.navigate('InvoiceReview', { invoiceId })}>View invoice</MBtn>
+        </ScrollArea>
+      </Screen>
+    )
+  }
+  if (invoice && invoice.status !== 'paid' && invoice.status !== 'authorized') {
+    return (
+      <Screen header="detail">
+        <ScrollArea gap={14} px={16} py={16}>
+          <PageTitle title="Payment status" />
+          <MCard padding={18}><Text>This invoice has not been paid. Review the invoice for its current status.</Text></MCard>
+          <MBtn variant="primary" onPress={() => navigation.navigate('InvoiceReview', { invoiceId })}>Review invoice</MBtn>
+        </ScrollArea>
+      </Screen>
+    )
+  }
+
   return (
-    <Screen bg={colors.bg}>
+    <Screen bg={colors.bg} header="detail">
       <ScrollArea gap={20} px={20} py={32}>
         <View style={s.center}>
           {/* Success Circle */}

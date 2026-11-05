@@ -7,8 +7,8 @@ import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii } from '@/theme'
 import { useCurrency } from '@/lib/useCurrency'
 import { displayCurrencySymbol, formatCurrency } from '@gg/shared-utils'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, Field, ActionBar } from '@/components'
-import FinancePartnerLogo from '@/components/FinancePartnerLogo'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, Field, ActionBar } from '@/components'
+import { PartnerLogo } from '@/components/PartnerLogo'
 import { useApplyCreditMutation } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
 import {
@@ -125,18 +125,13 @@ export function CreditInitialApplyScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar title="Apply for credit" subtitle="Takes about 2 minutes" back />
-
+    <Screen header="modal">
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title="Apply for an allocation" subtitle="Takes about 2 minutes" />
         {/* 1. Who reviews it */}
         <MCard padding={16}>
           <View style={st.partnerRow}>
-            {partnerId ? (
-              <View style={st.partnerChip}>
-                <FinancePartnerLogo partnerId={partnerId} height={partnerId === 'equity' ? 30 : 28} />
-              </View>
-            ) : null}
+            {partnerId ? <PartnerLogo partnerId={partnerId} partnerName={partner?.name ?? ''} size="lg" /> : null}
             <View style={{ flex: 1 }}>
               <Text style={st.partnerLabel}>Your finance partner</Text>
               <Text style={st.partnerName}>{partner?.name}</Text>
@@ -144,7 +139,7 @@ export function CreditInitialApplyScreen() {
             </View>
           </View>
           <Text style={st.partnerNote}>
-            {countryName ? `Healthcare credit in ${countryName} is provided by ${partner?.name}. ` : ''}
+            {countryName ? `Healthcare allocation in ${countryName} is provided by ${partner?.name}. ` : ''}
             They review your application and set your limit.
           </Text>
         </MCard>
@@ -258,7 +253,7 @@ export function CreditInitialApplyScreen() {
           <InfoIcon />
           <Text style={st.nextText}>
             After you submit, {partner?.name ?? 'your finance partner'} reviews your application. We'll notify you as
-            soon as there's a decision, and approved credit appears in your wallet straight away.
+            soon as there's a decision, and approved funds appear in your allocation straight away.
           </Text>
         </View>
 
@@ -297,17 +292,6 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-  },
-  partnerChip: {
-    minWidth: 72,
-    height: 56,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   partnerLabel: {
     fontFamily: fontWeights.medium,

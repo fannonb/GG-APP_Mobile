@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights, radii, shadows } from '@/theme'
 import { BankIcon, CheckIcon, HospitalIcon, InvoiceIcon, WalletIcon } from '@/icons'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, ActionBar } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, ActionBar } from '@/components'
 
 /* ------------------------------------------------------------------ */
 /*  Disclosure card data                                               */
@@ -80,14 +80,9 @@ export function CreditDisclaimerScreen() {
   const [agreed, setAgreed] = useState(false)
 
   return (
-    <Screen>
-      <AppBar
-        title="Healthcare Credit"
-        subtitle="Review before applying"
-        back
-      />
-
+    <Screen header="modal">
       <ScrollArea gap={14} px={16} py={14}>
+        <PageTitle title="Healthcare Allocation" subtitle="Review before applying" />
         {/* ============================================================ */}
         {/*  Disclosure Cards                                            */}
         {/* ============================================================ */}

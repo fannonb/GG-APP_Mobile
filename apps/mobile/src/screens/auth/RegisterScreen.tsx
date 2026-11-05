@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Dimensions,
   ScrollView,
   BackHandler,
   TextInput,
 } from 'react-native'
+import type { ScrollViewInstance, TextInputInstance } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -29,7 +29,7 @@ import {
 } from '@/lib/validation'
 import type { AuthScreenProps, GoogleProfileState } from '@/navigation/types'
 
-const logo = require('../../../assets/gg-logo.png')
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 const COUNTRIES = [
@@ -105,10 +105,10 @@ export function RegisterScreen() {
   const route = useRoute<AuthScreenProps<'Register'>['route']>()
   const googleProfile: GoogleProfileState | undefined = route.params?.googleProfile
   const [step, setStep] = useState(0)
-  const scrollRef = useRef<ScrollView>(null)
-  const lastNameRef = useRef<TextInput>(null)
-  const emailRef = useRef<TextInput>(null)
-  const confirmRef = useRef<TextInput>(null)
+  const scrollRef = useRef<ScrollViewInstance>(null)
+  const lastNameRef = useRef<TextInputInstance>(null)
+  const emailRef = useRef<TextInputInstance>(null)
+  const confirmRef = useRef<TextInputInstance>(null)
 
   // Step 1: Personal Info
   const [firstName, setFirstName] = useState(googleProfile?.firstName ?? '')
@@ -239,13 +239,11 @@ export function RegisterScreen() {
   }
 
   return (
-    <Screen bg={colors.navy}>
+    <Screen bg={colors.navy} header="auth">
       <View style={styles.bgGlow} />
 
-      {/* Sleek Minimalist Header */}
+      {/* Step progress, under the auth app bar */}
       <View style={[styles.header, { paddingTop: 20 }]}>
-        <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityIgnoresInvertColors />
-
         {/* Minimal Progress Dots */}
         <View
           style={styles.progressRow}
@@ -676,12 +674,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 24,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    opacity: 1,
-    marginBottom: 20,
   },
   progressRow: {
     flexDirection: 'row',

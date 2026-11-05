@@ -15,8 +15,9 @@ import {
   useRevokeLedgerGrantMutation,
 } from '@gg/shared-hooks'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, GGPill, LoadError } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, GGPill, LoadError } from '@/components'
 import { LedgerTimeline } from '@/components/LedgerTimeline'
+import { LedgerSnapshot } from '@/components/LedgerSnapshot'
 
 function timeRemaining(expiresAt: string) {
   const ms = new Date(expiresAt).getTime() - Date.now()
@@ -79,23 +80,22 @@ export function HealthLedgerScreen() {
   }
 
   return (
-    <Screen>
-      <AppBar
-        title="Health Ledger"
-        subtitle={
-          statusUnknown
-            ? 'Your treatment history'
-            : !hasPin
-            ? pinExpired
-              ? 'PIN expired'
-              : 'PIN not set'
-            : activeGrants.length > 0
-              ? `${activeGrants.length} active access`
-              : 'Your treatment history'
-        }
-        back
-      />
+    <Screen header="detail">
       <ScrollArea gap={16} px={16} py={14} {...pull}>
+        <PageTitle
+          title="Health Ledger"
+          subtitle={
+            statusUnknown
+              ? 'Your treatment history'
+              : !hasPin
+              ? pinExpired
+                ? 'PIN expired'
+                : 'PIN not set'
+              : activeGrants.length > 0
+                ? `${activeGrants.length} active access`
+                : 'Your treatment history'
+          }
+        />
         {statusUnknown ? (
           statusQuery.isError ? (
             <LoadError
@@ -176,6 +176,7 @@ export function HealthLedgerScreen() {
           </MCard>
         ) : null}
 
+        {!beneficiaryFilter || beneficiaryFilter === 'self' ? <LedgerSnapshot entries={ledgerQuery.data?.entries ?? []} /> : null}
         <View>
           <View style={styles.historyHeader}>
             <Text style={styles.sectionTitle}>Your treatment history</Text>

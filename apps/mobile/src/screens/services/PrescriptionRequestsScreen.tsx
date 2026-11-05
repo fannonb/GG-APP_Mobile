@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useCurrency } from '@/lib/useCurrency'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
-import { AppBar, GGPill, MBtn, MCard, Screen, ScrollArea } from '@/components'
+import { PageTitle, GGPill, MBtn, MCard, Screen, ScrollArea, LoadError, Pager } from '@/components'
+import { usePaged } from '@/lib/usePaged'
+import { prescriptionTotal } from '@/lib/patient-parity'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { colors, fontWeights, radii } from '@/theme'
 import { usePatientPrescriptionRequests } from '@gg/shared-hooks'
@@ -26,6 +28,8 @@ function getStatusMeta(status: PrescriptionRequest['status']) {
       return { type: 'success' as const, label: 'Fulfilled' }
     case 'cancelled':
       return { type: 'error' as const, label: 'Cancelled' }
+    case 'rejected':
+      return { type: 'error' as const, label: 'Declined by pharmacy' }
     default:
       return { type: 'default' as const, label: status }
   }
@@ -35,14 +39,14 @@ export function PrescriptionRequestsScreen({
   navigation,
 }: ServicesScreenProps<'PrescriptionRequests'>) {
   const currency = useCurrency()
-  const { data, isLoading, refetch } = usePatientPrescriptionRequests()
+  const { data, isLoading, isError, isFetching, refetch } = usePatientPrescriptionRequests()
   const pull = usePullToRefresh(refetch)
   const requests = (data ?? []) as PrescriptionRequest[]
+  const { pageItems: pagedRequests, pager } = usePaged(requests)
 
   if (isLoading && requests.length === 0) {
     return (
-      <Screen>
-        <AppBar title="Prescription Requests" subtitle="Loading pharmacy activity..." />
+      <Screen header="detail">
         <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading requests...</Text>
@@ -52,14 +56,12 @@ export function PrescriptionRequestsScreen({
   }
 
   return (
-    <Screen>
-      <AppBar
-        title="Prescription Requests"
-        subtitle="Your medication orders"
-      />
-
+    <Screen header="detail">
       <ScrollArea gap={14} px={16} py={16} {...pull}>
-        {requests.length === 0 ? (
+        <PageTitle title="Prescription Requests" subtitle="Your medication orders" />
+        {isError && !data ? (
+          <LoadError title="We couldn't load your prescriptions." onRetry={() => void refetch()} retrying={isFetching} />
+        ) : requests.length === 0 ? (
           <MCard padding={18}>
             <Text style={s.emptyTitle}>No prescription requests yet</Text>
             <Text style={s.emptyBody}>
@@ -74,7 +76,7 @@ export function PrescriptionRequestsScreen({
             </MBtn>
           </MCard>
         ) : (
-          requests.map(request => {
+          pagedRequests.map(request => {
             const statusMeta = getStatusMeta(request.status)
             return (
               <MCard key={request.id} padding={16}>
@@ -139,7 +141,12 @@ export function PrescriptionRequestsScreen({
                   <View style={s.noteBlock}>
                     <Text style={s.noteLabel}>Quote Summary</Text>
                     {request.quotedAmount != null ? (
-                      <Text style={s.quoteAmount}>{formatCurrency(request.quotedAmount, currency)}</Text>
+                      <>
+                      <Text style={s.quoteAmount}>Total: {formatCurrency(prescriptionTotal(request), currency)}</Text>
+                      {request.fulfillmentMode === 'delivery' && (
+                        <Text style={s.noteBody}>Medicines {formatCurrency(request.quotedAmount, currency)} · Delivery {formatCurrency(request.deliveryFee ?? 0, currency)}</Text>
+                      )}
+                      </>
                     ) : null}
                     {(request.quotedItems?.length ?? 0) > 0 ? (
                       <View style={s.quoteList}>
@@ -209,6 +216,7 @@ export function PrescriptionRequestsScreen({
             )
           })
         )}
+        <Pager {...pager} />
 
         <View style={{ height: 24 }} />
       </ScrollArea>

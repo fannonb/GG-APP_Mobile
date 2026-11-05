@@ -1,7 +1,7 @@
 ﻿import React from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { AppBar, Screen, ScrollArea } from '@/components'
+import { PageTitle, Screen, ScrollArea } from '@/components'
 import { colors, fontWeights, radii } from '@/theme'
 import type { AuthScreenProps } from '@/navigation/types'
 
@@ -76,9 +76,9 @@ export function LegalDocumentScreen({
   const navigation = useNavigation<AuthScreenProps<'Terms'>['navigation']>()
 
   return (
-    <Screen bg={colors.bg}>
-      <AppBar title={title} back={() => navigation.goBack()} />
+    <Screen bg={colors.bg} header="detail">
       <ScrollArea py={20} px={20}>
+        <PageTitle title={title} />
         <View style={s.card}>
           <View style={s.metaRow}>
             <Text style={s.meta}>

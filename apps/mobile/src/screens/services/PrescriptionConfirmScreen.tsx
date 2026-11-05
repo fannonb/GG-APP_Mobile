@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { colors, fontWeights } from '@/theme'
-import { AppBar, GGPill, MBtn, MCard, Screen, ScrollArea } from '@/components'
+import { PageTitle, GGPill, MBtn, MCard, Screen, ScrollArea } from '@/components'
 import type { ServicesScreenProps } from '@/navigation/types'
 
 function SuccessCheck() {
@@ -31,10 +31,9 @@ export function PrescriptionConfirmScreen({
   const hasDetails = !!referenceId
 
   return (
-    <Screen>
-      <AppBar title="Prescription Sent" subtitle="Awaiting pharmacy review" />
-
+    <Screen header="detail">
       <ScrollArea gap={16} px={16} py={20}>
+        <PageTitle title="Prescription Sent" subtitle="Awaiting pharmacy review" />
         <View style={s.successSection}>
           <SuccessCheck />
           <Text style={s.successTitle}>Prescription Submitted</Text>

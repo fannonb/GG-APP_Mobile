@@ -88,7 +88,7 @@ export function SkeletonList({ rows = 4 }: { rows?: number }) {
 }
 
 /**
- * A balance card placeholder. Dark for the wallet's navy card; `light` for the
+ * A balance card placeholder. Dark for the allocation's navy card; `light` for the
  * home credit card, whose face is pale blue with a partner logo chip.
  */
 export function SkeletonBalanceCard({ light }: { light?: boolean } = {}) {

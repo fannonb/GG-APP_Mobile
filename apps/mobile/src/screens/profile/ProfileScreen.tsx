@@ -14,7 +14,7 @@ import { colors, fontWeights, radii, shadows } from '@/theme'
 import {
   Screen,
   ScrollArea,
-  AppBar,
+  PageTitle,
   MCard,
   MBtn,
   MAvatar,
@@ -218,7 +218,7 @@ export function ProfileScreen() {
   /* loading */
   if (isLoading && !u) {
     return (
-      <Screen headerPattern="dark-curve">
+      <Screen header="tabRoot">
         <View style={s.loadWrap}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadText}>Loading profile...</Text>
@@ -228,10 +228,9 @@ export function ProfileScreen() {
   }
 
   return (
-    <Screen headerPattern="dark-curve">
-      <AppBar title="My Profile" subtitle="Manage your account" variant="hero" back={false} />
-
+    <Screen header="tabRoot">
       <ScrollArea gap={24} px={16} py={14}>
+        <PageTitle title="My Profile" subtitle="Manage your account" />
         {/* ============================================================ */}
         {/*  1. Profile Header (navy gradient card)                      */}
         {/* ============================================================ */}
@@ -272,7 +271,7 @@ export function ProfileScreen() {
                 <View style={s.pillRow}>
                   <StatusPill label="Verified Patient" tone="success" size="sm" />
                   {u?.creditStatus === 'approved' ? (
-                    <StatusPill label="Credit active" tone="info" size="sm" />
+                    <StatusPill label="Allocation active" tone="info" size="sm" />
                   ) : null}
                   <StatusPill
                     label={`${beneficiaries.length} ${beneficiaries.length === 1 ? 'Beneficiary' : 'Beneficiaries'}`}
@@ -432,7 +431,7 @@ export function ProfileScreen() {
               )}
               {editForm.residenceCountryCode && !isOperatingCountryCode(editForm.residenceCountryCode) && (
                 <Text style={s.residenceHint}>
-                  You are living abroad. Your wallet currency stays tied to your registered
+                  You are living abroad. Your allocation currency stays tied to your registered
                   market ({marketCountryName}). Beneficiaries must reside in Kenya, Zimbabwe, or Zambia.
                 </Text>
               )}
@@ -538,7 +537,7 @@ export function ProfileScreen() {
           />
           <SettingsRow
             title="Notifications"
-            subtitle="Appointment, payment and credit updates"
+            subtitle="Appointment, payment and allocation updates"
             onPress={() => navigation.navigate('Notifications')}
           />
           <SettingsRow

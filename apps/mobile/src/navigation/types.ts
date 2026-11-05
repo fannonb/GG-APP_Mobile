@@ -61,10 +61,10 @@ export type InvoicesStackParamList = {
   }
   PaymentSuccess: {
     invoiceId: string
-    amount: number
+    amount?: number
     walletAmountPaid?: number
     offAppAmountDue?: number
-    provider: string
+    provider?: string
   }
 }
 

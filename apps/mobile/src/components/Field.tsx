@@ -1,5 +1,6 @@
 import React, { forwardRef, useState } from 'react'
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 import { colors, fontWeights } from '@/theme'
 
 interface FieldProps {
@@ -28,7 +29,7 @@ interface FieldProps {
   variant?: 'light' | 'dark'
 }
 
-const Field = forwardRef<TextInput, FieldProps>(function Field(
+const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
   {
     label,
     value,

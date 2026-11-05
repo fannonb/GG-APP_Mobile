@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet } from 'react-native'
+import type { ScrollViewInstance } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { animateNextLayout } from '@/lib/motion'
 import { colors, fontWeights } from '@/theme'
@@ -18,7 +19,7 @@ interface FilterChipsProps {
 
 export default function FilterChips({ items, activeIndex, onSelect }: FilterChipsProps) {
   // Keep the selected chip in view: on a narrow phone the last filters sit off-screen.
-  const scrollRef = useRef<ScrollView>(null)
+  const scrollRef = useRef<ScrollViewInstance>(null)
   const chipX = useRef<number[]>([])
   useEffect(() => {
     const x = chipX.current[activeIndex]

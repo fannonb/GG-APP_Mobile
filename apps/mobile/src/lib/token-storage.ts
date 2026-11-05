@@ -10,6 +10,12 @@ const KEYS = {
 } as const
 
 let cache: StoredSession | null = null
+const clearListeners = new Set<() => void>()
+
+export function onSessionCleared(listener: () => void) {
+  clearListeners.add(listener)
+  return () => { clearListeners.delete(listener) }
+}
 
 export async function loadSessionFromStore(): Promise<StoredSession | null> {
   try {
@@ -19,7 +25,7 @@ export async function loadSessionFromStore(): Promise<StoredSession | null> {
       SecureStore.getItemAsync(KEYS.ROLE),
       SecureStore.getItemAsync(KEYS.EXPIRES),
     ])
-    if (!access || !refresh || !role) {
+    if (!access || !refresh || !role || !['patient', 'sp', 'admin'].includes(role)) {
       cache = null
       return null
     }
@@ -65,6 +71,7 @@ export const mobileTokenStorage: ITokenStorage = {
 
   clear(): void {
     cache = null
+    clearListeners.forEach(listener => listener())
     SecureStore.deleteItemAsync(KEYS.ACCESS).catch(err =>
       console.warn('[token-storage] SecureStore delete failed (access token)', err),
     )

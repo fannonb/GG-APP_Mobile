@@ -12,7 +12,7 @@ import * as DocumentPicker from 'expo-document-picker'
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, AppBar, MCard, MBtn, ActionBar } from '@/components'
+import { Screen, ScrollArea, PageTitle, MCard, MBtn, ActionBar } from '@/components'
 import CalendarIcon from '@/icons/CalendarIcon'
 import CheckIcon from '@/icons/CheckIcon'
 import type { ServicesScreenProps } from '@/navigation/types'
@@ -129,8 +129,7 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
 
   if (!providerId) {
     return (
-      <Screen>
-        <AppBar title="Appointment Request" subtitle="No provider specified" />
+      <Screen header="modal">
         <View style={s.loadingContainer}>
           <Text style={s.loadingText}>
             This booking link did not include a provider. Browse services to
@@ -146,8 +145,7 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
 
   if (isLoading || !provider) {
     return (
-      <Screen>
-        <AppBar title="Appointment Request" subtitle="Loading..." />
+      <Screen header="modal">
         <View style={s.loadingContainer}>
           <ActivityIndicator size="large" color={colors.blue} />
           <Text style={s.loadingText}>Loading provider...</Text>
@@ -306,13 +304,9 @@ export function BookingFormScreen({ route, navigation }: ServicesScreenProps<'Bo
   }
 
   return (
-    <Screen>
-      <AppBar
-        title="Appointment Request"
-        subtitle={`Sending to ${provider.name}`}
-      />
-
+    <Screen header="modal">
       <ScrollArea gap={16} px={16} py={16}>
+        <PageTitle title="Appointment Request" subtitle={`Sending to ${provider.name}`} />
         {/* === 1. Who is this for === */}
         <View>
           <Text style={s.fieldLabel}>Who is this for?</Text>

@@ -4,7 +4,7 @@ import Pressable from '@/components/Pressable'
 import { useNavigation } from '@react-navigation/native'
 import Svg, { Path, Circle, Line } from 'react-native-svg'
 import { colors, fontWeights, radii } from '@/theme'
-import { Screen, ScrollArea, MCard, AppBar, StatusPill, LoadError } from '@/components'
+import { Screen, ScrollArea, MCard, PageTitle, StatusPill, LoadError } from '@/components'
 import SearchIcon from '@/icons/SearchIcon'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
 import { useProviders, useDrivingDistances } from '@gg/shared-hooks'
@@ -76,8 +76,7 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
   /* ----- Loading state ----- */
   if (isLoading && providers.length === 0) {
     return (
-      <Screen>
-        <AppBar title="Find a Service" subtitle="Verified clinics, labs and pharmacies" variant="hero" back={false} />
+      <Screen header="tabRoot">
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.blue} />
         </View>
@@ -86,10 +85,9 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
   }
 
   return (
-    <Screen headerPattern="dark-curve">
-      <AppBar title="Find a Service" subtitle="Verified clinics, labs and pharmacies" variant="hero" back={false} />
-
+    <Screen header="tabRoot">
       <ScrollArea gap={16} px={16} py={14}>
+        <PageTitle title="Find a Service" subtitle="Verified clinics, labs and pharmacies" />
         {/* ===== Section 1 — Search ===== */}
         <View style={styles.searchContainer}>
           <View style={styles.searchField}>
