@@ -9,7 +9,8 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "335540055294-raieetpuh61lvu9ar6vm2i49bnfu5kjb.apps.googleusercontent.com"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -20,7 +21,8 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -34,7 +36,8 @@
         "buildArtifactPaths": [
           "android/app/build/outputs/mapping/release/mapping.txt"
         ]
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

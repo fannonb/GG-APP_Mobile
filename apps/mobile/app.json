@@ -97,6 +97,14 @@
         "projectId": "993ee4f3-5bba-47bc-bf7a-cfa0d08ea343"
       }
     },
-    "owner": "fannonb"
+    "owner": "fannonb",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/993ee4f3-5bba-47bc-bf7a-cfa0d08ea343",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    }
   }
 }
