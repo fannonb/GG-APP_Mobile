@@ -277,7 +277,7 @@ function OfferCard({
       </View>
 
       <PlaceDetails
-        addressLine={offer.addressLine}
+        addressLine={offer.addressLine ?? offer.address}
         directions={delivery ? undefined : offer.directions}
         mapUrl={offer.mapUrl}
         onOpenMap={onOpenMap}
@@ -610,6 +610,7 @@ export function PrescriptionDetailScreen({
           : {
             title: 'Being prepared',
             body: `${pharmacy} is getting your order ready. We’ll tell you when it’s ready for pickup.`,
+            extra: pickupPlace,
           }
       case 'ready':
         return delivery
@@ -620,7 +621,20 @@ export function PrescriptionDetailScreen({
           : {
             title: `Ready for pickup at ${pharmacy}`,
             body: 'Bring your ID when you collect it.',
-            extra: pickupPlace,
+            extra: (
+              <View style={{ gap: 10 }}>
+                {pickupPlace}
+                {request.providerId != null ? (
+                  <MBtn
+                    variant="secondary"
+                    fullWidth
+                    onPress={() => navigation.navigate('ProviderProfile', { providerId: request.providerId! })}
+                  >
+                    Hours & directions
+                  </MBtn>
+                ) : null}
+              </View>
+            ),
           }
       case 'done':
         return {
@@ -667,6 +681,18 @@ export function PrescriptionDetailScreen({
           </View>
           <InfoRow label="Submitted" value={formatDate(request.submittedAt)} />
           <InfoRow label="Pharmacy" value={request.provider ?? (choosing ? 'Not chosen yet' : '—')} />
+          {!delivery && !choosing && request.provider ? (
+            <View style={s.pharmacyExtra}>
+              {request.providerAddressLine ? (
+                <Text style={s.pharmacyAddress}>{request.providerAddressLine}</Text>
+              ) : null}
+              {request.providerMapUrl ? (
+                <Pressable onPress={() => openMap(request.providerMapUrl!)} accessibilityRole="link">
+                  <Text style={s.linkText}>View on map</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
           {choosing ? <InfoRow label="Sent to" value={sentTo} /> : null}
           <InfoRow label="For" value={request.for} />
           <InfoRow
@@ -1051,6 +1077,19 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.regular,
     color: colors.text,
     lineHeight: 20,
+  },
+  pharmacyExtra: {
+    gap: 6,
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pharmacyAddress: {
+    fontSize: 13,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    lineHeight: 19,
   },
   offerList: {
     gap: 12,
