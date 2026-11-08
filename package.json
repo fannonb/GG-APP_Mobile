@@ -9,7 +9,7 @@
     "mobile": "npm run start --workspace=apps/mobile",
     "android": "npm run android --workspace=apps/mobile",
     "typecheck": "tsc --noEmit -p apps/mobile",
-    "test:patient": "node --test tests/patient-parity.test.cjs tests/patient-session.test.cjs tests/patient-screens.test.cjs"
+    "test:patient": "node --test tests/patient-parity.test.cjs tests/patient-session.test.cjs tests/patient-screens.test.cjs tests/push-notifications.test.cjs"
   },
   "dependencies": {
     "@expo/log-box": "^58.0.15",

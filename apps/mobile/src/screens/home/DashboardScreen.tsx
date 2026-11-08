@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native'
+import { View, StyleSheet, type LayoutChangeEvent } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { colors, fontWeights } from '@/theme'
 import { SkeletonBalanceCard, SkeletonBlock, SkeletonGroup, SkeletonList } from '@/components/Skeleton'
 import { Screen, ScrollArea, AdBanner } from '@/components'
+import type { HeaderGreeting } from '@/components/AppHeader'
 import CreditSummaryCard from '@/components/home/CreditSummaryCard'
 import AttentionList, { TONE_RANK, type AttentionItem } from '@/components/home/AttentionList'
 import GetStartedCard, { type GetStartedStep } from '@/components/home/GetStartedCard'
@@ -29,6 +30,7 @@ import {
 } from '@gg/shared-hooks'
 import { useUserStore, useAuthStore, useNotificationsStore } from '@gg/shared-stores'
 import { openPatientNotification } from '@/lib/patient-notification-routing'
+import { useAdSessionStore } from '@/lib/ad-session'
 import { useAttentionDismissals } from '@/lib/useAttentionDismissals'
 import {
   creditReviewNotice,
@@ -63,10 +65,8 @@ import { getCountryByCode, getFinancePartnerIdForCountry, getFinancePartnerSumma
 import type { Appointment, CreditStatus, PrescriptionRequest } from '@gg/shared-types'
 
 
-/** Navy depth before the credit card has been measured. */
-const DEFAULT_CURVE_DEPTH = 420
-/** Navy left showing below the credit card. */
-const CURVE_BELOW_CARD = 24
+/** Navy depth before the credit card has been measured: about its middle on a typical phone. The measured value replaces it on first layout. */
+const DEFAULT_CURVE_DEPTH = 200
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -145,15 +145,19 @@ export function DashboardScreen() {
   }, [fetchedNotifs])
 
   const [refreshing, setRefreshing] = useState(false)
-  /* The navy header ends just below the credit card, whatever its height
+  /* The navy header ends at the middle of the credit card, so its top half sits on navy
+     and its bottom half over the page. Measured, so it holds whatever the card's height
      (balance, pending, apply) or the user's font size. */
   const [curveDepth, setCurveDepth] = useState(DEFAULT_CURVE_DEPTH)
   const onCreditLayout = useCallback((e: LayoutChangeEvent) => {
     const { y, height } = e.nativeEvent.layout
-    const next = Math.round(y + height + CURVE_BELOW_CARD)
+    const next = Math.round(y + height / 2)
     setCurveDepth(prev => (prev === next ? prev : next))
   }, [])
   const [showAllAlerts, setShowAllAlerts] = useState(false)
+  /* The ad carousel stays hidden for the rest of the app session once closed. */
+  const adsClosed = useAdSessionStore(s => s.adsClosed)
+  const closeAds = useAdSessionStore(s => s.closeAds)
 
   /* Dismissals are per account and reappear when a notice's text changes.
      Alerts are only ever suppressed after an explicit dismiss, never on render. */
@@ -222,7 +226,7 @@ export function DashboardScreen() {
     )
   }
 
-  const firstName = currentUser?.name?.split(' ')[0] || 'there'
+  const firstName = currentUser?.name?.split(' ')[0] || ''
   const country = getCountryByCode(currentUser?.countryCode ?? '')
   const currency = country?.currencySymbol ?? ''
   const partnerId = currentUser?.financePartnerId ?? getFinancePartnerIdForCountry(currentUser?.countryCode)
@@ -427,8 +431,6 @@ export function DashboardScreen() {
   // Array.prototype.sort is stable, so the order above holds within each tone.
   attention.sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone])
   const visibleAttention = attentionDismissals.filterVisible(attention)
-  // The promo strip waits until saved dismissals have loaded and no blocking notice is visible (web's rule).
-  const showAdBanner = attentionDismissals.ready && !visibleAttention.some(item => item.blocksAd)
 
   /* ---------------------------------------------------------------- */
   /*  Get started (new accounts)                                      */
@@ -498,10 +500,14 @@ export function DashboardScreen() {
           : navigation.navigate('Appointments'),
     }
   }
+  // A request has no pharmacy until one is chosen, and expired requests are not in ACTIVE_RX_STATUSES.
   const prescription: PrescriptionSummary | null = activeRx
     ? {
-        provider: activeRx.provider,
-        statusLabel: prescriptionStatusLabel(activeRx),
+        provider: activeRx.provider ?? 'Nearby pharmacies',
+        statusLabel:
+          !activeRx.provider && activeRx.status === 'submitted'
+            ? 'Waiting for quotes'
+            : prescriptionStatusLabel(activeRx),
         ready: activeRx.status === 'ready',
         onPress: () =>
           navigation.navigate('ServicesTab', {
@@ -515,37 +521,36 @@ export function DashboardScreen() {
   /* ---------------------------------------------------------------- */
   /*  Render                                                          */
   /* ---------------------------------------------------------------- */
-  return (
-    <Screen header="tabRoot" curveDepth={curveDepth}>
-      <ScrollArea gap={24} px={16} py={0} refreshing={refreshing} onRefresh={onRefresh}>
-        {/* === Greeting (scrolls away under the app bar) === */}
-        <View style={s.header}>
-          {/* Two lines: the time of day, then the name, which wraps rather than truncating. */}
-          <Text style={s.greetingEyebrow}>{isSettingUp && userMode === 'new' ? 'Welcome' : getGreeting()}</Text>
-          <Text style={s.greeting}>{firstName}</Text>
-          <Text style={s.subGreeting}>
-            {isSettingUp
-              ? "Let's get your account ready for your first visit."
-              : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </Text>
-        </View>
+  /* The greeting sits in the navy app bar: "Good evening, Fannon" and the short date.
+     A new account's setup sub-line is left out there, so it just sees the date. */
+  const today = new Date()
+  const salutation = isSettingUp && userMode === 'new' ? 'Welcome' : getGreeting()
+  const greetingLine = firstName ? `${salutation}, ${firstName}` : salutation
+  const headerGreeting: HeaderGreeting = {
+    line1: greetingLine,
+    line2: today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+    accessibilityLabel: `${greetingLine}. ${today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`,
+  }
 
-        {/* === Credit: the card and its actions sit inside the navy header === */}
+  return (
+    <Screen header="tabRoot" curveDepth={curveDepth} headerGreeting={headerGreeting}>
+      <ScrollArea gap={24} px={16} py={0} refreshing={refreshing} onRefresh={onRefresh}>
+        {/* === Credit: the first item under the app bar. The navy header ends mid-card, so the card straddles its bottom edge. === */}
         <View onLayout={onCreditLayout} style={s.creditSlot}>
-        <CreditSummaryCard
-          status={creditStatus}
-          available={creditAvailable}
-          limit={creditLimit}
-          currency={currency}
-          isLow={isLowBalance}
-          partnerId={partnerId}
-          partnerName={partnerName}
-          onApply={() => navigation.navigate('WalletTab', { initial: false, screen: 'CreditDisclaimer' })}
-          onViewStatus={() => navigation.navigate('WalletTab', { initial: false, screen: 'CreditStatus' })}
-          onRequestIncrease={() => navigation.navigate('WalletTab', { initial: false, screen: 'CreditIncrease' })}
-          onOpenWallet={() => navigation.navigate('WalletTab', { screen: 'CreditWallet' })}
-          onHistory={() => navigation.navigate('WalletTab', { initial: false, screen: 'TransactionHistory' })}
-        />
+          <CreditSummaryCard
+            status={creditStatus}
+            available={creditAvailable}
+            limit={creditLimit}
+            currency={currency}
+            isLow={isLowBalance}
+            partnerId={partnerId}
+            partnerName={partnerName}
+            onApply={() => navigation.navigate('WalletTab', { initial: false, screen: 'CreditDisclaimer' })}
+            onViewStatus={() => navigation.navigate('WalletTab', { initial: false, screen: 'CreditStatus' })}
+            onRequestIncrease={() => navigation.navigate('WalletTab', { initial: false, screen: 'CreditIncrease' })}
+            onOpenWallet={() => navigation.navigate('WalletTab', { screen: 'CreditWallet' })}
+            onHistory={() => navigation.navigate('WalletTab', { initial: false, screen: 'TransactionHistory' })}
+          />
         </View>
 
         {/* === New accounts: setup first; everyone: what's waiting === */}
@@ -556,6 +561,14 @@ export function DashboardScreen() {
           onToggleExpanded={() => setShowAllAlerts(v => !v)}
           onDismiss={item => attentionDismissals.dismiss(item)}
         />
+
+        {/* === Ads: after the wallet and what needs attention, before the care sections. Closed, it takes no space. === */}
+        {adsClosed ? null : (
+          <AdBanner
+            onClose={closeAds}
+            onSampleAdPress={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
+          />
+        )}
 
         {/* === Upcoming care === */}
         <CareSection
@@ -569,15 +582,16 @@ export function DashboardScreen() {
         <FindCare
           onSearch={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
           onCategory={category =>
-            navigation.navigate('ServicesTab', { initial: false, screen: 'ProviderList', params: { category } })
+            // Pharmacy: the prescription goes to nearby pharmacies, so there's no pharmacy to pick first.
+            category === 'pharmacy'
+              ? navigation.navigate('ServicesTab', { initial: false, screen: 'PrescriptionRequest' })
+              : navigation.navigate('ServicesTab', { initial: false, screen: 'ProviderList', params: { category } })
           }
           onSeeAll={() => navigation.navigate('ServicesTab', { screen: 'FindService' })}
         />
 
         {/* === Health news === */}
         <HealthNewsSection />
-
-        {showAdBanner ? <AdBanner countryName={country?.name} /> : null}
 
         <View style={{ height: 24 }} />
       </ScrollArea>
@@ -597,29 +611,8 @@ const s = StyleSheet.create({
     fontSize: 15.5,
     color: colors.textSub,
   },
-  header: {
-    paddingTop: 16,
-    marginBottom: -4,
-  },
-  // Space between the navy edge and the next section, so its heading is not on the curve.
+  // The card is the first item under the app bar: 16 px of top gap. The ScrollArea's section gap separates it from what follows.
   creditSlot: {
-    marginBottom: 28,
-  },
-  greetingEyebrow: {
-    fontFamily: fontWeights.medium,
-    fontSize: 15.5,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  greeting: {
-    fontFamily: fontWeights.extraBold,
-    fontSize: 26,
-    letterSpacing: -0.7,
-    color: '#FFFFFF',
-  },
-  subGreeting: {
-    fontFamily: fontWeights.regular,
-    fontSize: 15.5,
-    color: 'rgba(255,255,255,0.72)',
-    marginTop: 2,
+    marginTop: 16,
   },
 })

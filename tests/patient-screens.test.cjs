@@ -52,6 +52,8 @@ function prescriptionScreen(request, Screen = Box) {
       useMarkPrescriptionQuoteReviewedMutation: () => ({ mutate() {} }),
       useAcceptPrescriptionQuoteMutation: () => ({}),
       useDeclinePrescriptionQuoteMutation: () => ({}),
+      useSelectPrescriptionOfferMutation: () => ({}),
+      useDeclinePrescriptionOfferMutation: () => ({}),
     },
   })
   return renderToStaticMarkup(React.createElement(PrescriptionDetailScreen, { navigation: { navigate() {} }, route: { params: { prescriptionId: request.id } } }))

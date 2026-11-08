@@ -178,7 +178,11 @@ export function FindServiceScreen({ navigation }: ServicesScreenProps<'FindServi
                 <Pressable
                   key={cat.id}
                   disabled={soon}
-                  onPress={() => navigation.navigate('ProviderList', { category: cat.id })}
+                  onPress={() =>
+                    cat.id === 'pharmacy'
+                      ? navigation.navigate('PrescriptionRequest')
+                      : navigation.navigate('ProviderList', { category: cat.id })
+                  }
                   style={[styles.categoryRow, i < SERVICE_CATEGORIES.length - 1 && styles.categoryDivider]}
                   accessibilityRole="button"
                   accessibilityLabel={soon ? `${cat.label}, coming soon` : `${cat.label}, ${count} ${count === 1 ? 'provider' : 'providers'}`}

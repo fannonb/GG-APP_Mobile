@@ -29,6 +29,7 @@
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
@@ -54,7 +55,21 @@
         }
       ],
       "expo-sharing",
-      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow GG'APP to use your photos so you can set a profile picture.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "ggapp-alerts",
+          "color": "#011F4A"
+        }
+      ],
       "expo-status-bar",
       "expo-web-browser",
       [

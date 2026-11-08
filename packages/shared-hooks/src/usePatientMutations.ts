@@ -6,6 +6,7 @@ import type {
   CancelPatientAppointmentPayload,
   ChangePatientPasswordPayload,
   CreatePrescriptionRequestPayload,
+  PrescriptionRequest,
   SubmitReviewPayload,
   UpdatePatientProfilePayload,
   UpsertBeneficiaryPayload,
@@ -184,6 +185,106 @@ export function useSetBeneficiariesEnabledMutation() {
         beneficiaries: profile.beneficiaries,
       })
       queryClient.setQueryData(queryKeys.patient.profile(userMode), profile)
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.dashboard(userMode),
+      })
+    },
+  })
+}
+
+export function useSelectPrescriptionOfferMutation() {
+  const queryClient = useQueryClient()
+  const userMode = useAuthStore(s => s.userMode)
+
+  return useMutation({
+    mutationFn: ({ id, offerId }: { id: string; offerId: string }) =>
+      patientService.selectPrescriptionOffer(id, offerId),
+    onSuccess: request => {
+      queryClient.setQueryData(
+        queryKeys.patient.prescriptionRequests(userMode),
+        (current: PrescriptionRequest[] | undefined) =>
+          current?.map(item => (item.id === request.id ? request : item)) ?? current,
+      )
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.prescriptionRequests(userMode),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.notifications(userMode),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.dashboard(userMode),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.invoices(userMode),
+      })
+    },
+  })
+}
+
+export function useDeclinePrescriptionOfferMutation() {
+  const queryClient = useQueryClient()
+  const userMode = useAuthStore(s => s.userMode)
+
+  return useMutation({
+    mutationFn: ({ id, offerId, reason }: { id: string; offerId: string; reason?: string }) =>
+      patientService.declinePrescriptionOffer(id, offerId, reason),
+    onSuccess: request => {
+      queryClient.setQueryData(
+        queryKeys.patient.prescriptionRequests(userMode),
+        (current: PrescriptionRequest[] | undefined) =>
+          current?.map(item => (item.id === request.id ? request : item)) ?? current,
+      )
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.prescriptionRequests(userMode),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.notifications(userMode),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.dashboard(userMode),
+      })
+    },
+  })
+}
+
+export function useUploadProfilePhotoMutation() {
+  const queryClient = useQueryClient()
+  const userMode = useAuthStore(s => s.userMode)
+
+  return useMutation({
+    mutationFn: (payload: { dataUrl: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }) =>
+      patientService.uploadProfilePhoto(payload, userMode),
+    onSuccess: profile => {
+      useUserStore.setState({
+        user: profile.user,
+        beneficiaries: profile.beneficiaries,
+      })
+      queryClient.setQueryData(queryKeys.patient.profile(userMode), profile)
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.profile(userMode),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.dashboard(userMode),
+      })
+    },
+  })
+}
+
+export function useRemoveProfilePhotoMutation() {
+  const queryClient = useQueryClient()
+  const userMode = useAuthStore(s => s.userMode)
+
+  return useMutation({
+    mutationFn: () => patientService.removeProfilePhoto(userMode),
+    onSuccess: profile => {
+      useUserStore.setState({
+        user: profile.user,
+        beneficiaries: profile.beneficiaries,
+      })
+      queryClient.setQueryData(queryKeys.patient.profile(userMode), profile)
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.patient.profile(userMode),
+      })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.patient.dashboard(userMode),
       })

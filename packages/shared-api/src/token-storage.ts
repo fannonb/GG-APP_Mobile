@@ -6,6 +6,8 @@ export interface ITokenStorage {
   clear(): void
   getAccessToken(): string | null
   getRefreshToken(): string | null
+  /** Platform cleanup that needs authentication, before explicit sign-out. */
+  beforeLogout?(): Promise<void>
 }
 
 let _storage: ITokenStorage | null = null

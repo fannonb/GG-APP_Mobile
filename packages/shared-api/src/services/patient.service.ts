@@ -9,6 +9,7 @@ import type {
   CreateAppointmentPayload,
   CreateAppointmentResult,
   CreatePrescriptionRequestPayload,
+  NearbyPharmaciesResult,
   PatientProfileResponse,
   UpdatePatientProfilePayload,
   PrescriptionRequest,
@@ -78,8 +79,11 @@ const NEW_USER: Patient = {
   creditAccountRef: undefined,
 }
 
+// Session-only avatar for the mock profile, so a set or clear survives later profile refetches.
+let mockAvatarUrl: string | undefined
+
 function resolveUser(mode: UserMode): Patient {
-  return mode === 'new' ? NEW_USER : MOCK_USER
+  return { ...(mode === 'new' ? NEW_USER : MOCK_USER), avatarUrl: mockAvatarUrl }
 }
 
 function buildDashboard(mode: UserMode): PatientDashboard {
@@ -162,6 +166,37 @@ export const patientService = {
     }
 
     const { data } = await apiClient.patch<PatientProfileResponse>('/patient/profile', payload)
+    return {
+      ...data,
+      user: normalizePatient(data.user),
+    }
+  },
+
+  async uploadProfilePhoto(
+    payload: { dataUrl: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' },
+    mode: UserMode = 'existing',
+  ): Promise<PatientProfileResponse> {
+    if (getIsMockApi()) {
+      await mockDelay(250)
+      mockAvatarUrl = payload.dataUrl
+      return buildProfile(mode)
+    }
+
+    const { data } = await apiClient.put<PatientProfileResponse>('/patient/profile/photo', payload)
+    return {
+      ...data,
+      user: normalizePatient(data.user),
+    }
+  },
+
+  async removeProfilePhoto(mode: UserMode = 'existing'): Promise<PatientProfileResponse> {
+    if (getIsMockApi()) {
+      await mockDelay(250)
+      mockAvatarUrl = undefined
+      return buildProfile(mode)
+    }
+
+    const { data } = await apiClient.delete<PatientProfileResponse>('/patient/profile/photo')
     return {
       ...data,
       user: normalizePatient(data.user),
@@ -416,13 +451,18 @@ export const patientService = {
   ): Promise<PrescriptionRequest> {
     if (getIsMockApi()) {
       await mockDelay(400)
-      const provider = MOCK_PROVIDERS.find(item => item.id === payload.providerId)
+      // No pharmacy yet: quotes arrive as offers and the patient picks one later.
       const request: PrescriptionRequest = {
         id: `RX-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-        providerId: payload.providerId,
-        provider: provider?.name ?? 'Pharmacy',
         category: 'pharmacy',
         status: 'submitted',
+        searchLat: payload.searchLat,
+        searchLng: payload.searchLng,
+        searchRadiusKm: 2,
+        pharmaciesContacted: 3,
+        pharmaciesPending: 3,
+        pharmaciesDeclined: 0,
+        offers: [],
         fulfillmentMode: payload.fulfillmentMode ?? 'pickup',
         deliveryAddress: payload.deliveryAddress,
         patientNotes: payload.patientNotes,
@@ -453,6 +493,19 @@ export const patientService = {
 
     const { data } = await apiClient.get<PrescriptionRequest[]>(
       '/patient/prescription-requests',
+    )
+    return data
+  },
+
+  async getNearbyPharmacies(lat: number, lng: number): Promise<NearbyPharmaciesResult> {
+    if (getIsMockApi()) {
+      await mockDelay(200)
+      return { radiusKm: 2, count: 3, maxRadiusKm: 6 }
+    }
+
+    const { data } = await apiClient.get<NearbyPharmaciesResult>(
+      '/patient/prescription-requests/nearby-pharmacies',
+      { params: { lat, lng } },
     )
     return data
   },
@@ -522,6 +575,68 @@ export const patientService = {
 
     const { data } = await apiClient.patch<PrescriptionRequest>(
       `/patient/prescription-requests/${id}/decline`,
+      { reason },
+    )
+    return data
+  },
+
+  async selectPrescriptionOffer(id: string, offerId: string): Promise<PrescriptionRequest> {
+    if (getIsMockApi()) {
+      await mockDelay(200)
+      const index = mockPrescriptionRequests.findIndex(item => item.id === id)
+      if (index < 0) {
+        throw new Error('Prescription request not found')
+      }
+      const offer = mockPrescriptionRequests[index].offers?.find(item => item.id === offerId)
+      if (!offer) {
+        throw new Error('Quote not found')
+      }
+      const updated: PrescriptionRequest = {
+        ...mockPrescriptionRequests[index],
+        status: 'accepted',
+        providerId: offer.providerId,
+        provider: offer.provider,
+        providerMapUrl: offer.mapUrl,
+        providerAddressLine: offer.addressLine,
+        providerDirections: offer.directions,
+        quotedItems: offer.quotedItems,
+        quotedAmount: offer.quotedAmount,
+        deliveryFee: offer.deliveryFee,
+        pharmacyNotes: offer.pharmacyNotes,
+        acceptedAt: new Date().toISOString(),
+        offers: [{ ...offer, status: 'selected' }],
+      }
+      mockPrescriptionRequests[index] = updated
+      return updated
+    }
+
+    const { data } = await apiClient.patch<PrescriptionRequest>(
+      `/patient/prescription-requests/${id}/offers/${offerId}/select`,
+    )
+    return data
+  },
+
+  async declinePrescriptionOffer(
+    id: string,
+    offerId: string,
+    reason?: string,
+  ): Promise<PrescriptionRequest> {
+    if (getIsMockApi()) {
+      await mockDelay(200)
+      const index = mockPrescriptionRequests.findIndex(item => item.id === id)
+      if (index < 0) {
+        throw new Error('Prescription request not found')
+      }
+      const updated: PrescriptionRequest = {
+        ...mockPrescriptionRequests[index],
+        offers: (mockPrescriptionRequests[index].offers ?? []).filter(item => item.id !== offerId),
+      }
+      mockPrescriptionRequests[index] = updated
+      return updated
+    }
+
+    const { data } = await apiClient.patch<PrescriptionRequest>(
+      `/patient/prescription-requests/${id}/offers/${offerId}/decline`,
       { reason },
     )
     return data

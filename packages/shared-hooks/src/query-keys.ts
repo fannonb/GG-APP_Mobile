@@ -18,6 +18,7 @@ export const queryKeys = {
     provider: (id: string | number) => ['patient', 'provider', id] as const,
     providerReviews: (id: string | number) => ['patient', 'provider', id, 'reviews'] as const,
     news: ['patient', 'news'] as const,
+    ads: (mode: string) => ['patient', 'ads', mode] as const,
     credit: (mode: string) => ['patient', 'credit', mode] as const,
     ledgerStatus: ['patient', 'ledger', 'status'] as const,
     ledger: ['patient', 'ledger'] as const,

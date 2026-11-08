@@ -478,7 +478,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
       {/* Main action pinned above the tab bar, never buried below the map and hours. */}
       <ActionBar aboveTabBar>
         {viaPharmacy || pharmacyOnly ? (
-          <MBtn variant="primary" style={{ flex: 1 }} onPress={() => navigation.navigate('PrescriptionRequest', { providerId })}>
+          <MBtn variant="primary" style={{ flex: 1 }} onPress={() => navigation.navigate('PrescriptionRequest')}>
             Upload a prescription
           </MBtn>
         ) : pharmacyMultiCategory ? (
@@ -486,7 +486,7 @@ export function ProviderProfileScreen({ route, navigation }: ServicesScreenProps
             <MBtn variant="secondary" style={{ flex: 1 }} onPress={() => navigation.navigate('BookingForm', { providerId })}>
               Book visit
             </MBtn>
-            <MBtn variant="primary" style={{ flex: 1.4 }} onPress={() => navigation.navigate('PrescriptionRequest', { providerId })}>
+            <MBtn variant="primary" style={{ flex: 1.4 }} onPress={() => navigation.navigate('PrescriptionRequest')}>
               Upload prescription
             </MBtn>
           </>

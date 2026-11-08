@@ -5,8 +5,12 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Alert,
+  Image,
+  type AlertButton,
 } from 'react-native'
 import Pressable from '@/components/Pressable'
+import BottomSheet from '@/components/BottomSheet'
 import Svg, { Path } from 'react-native-svg'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -26,7 +30,14 @@ import {
 } from '@/components'
 import CheckIcon from '@/icons/CheckIcon'
 import ChevronRightIcon from '@/icons/ChevronRightIcon'
-import { usePatientProfile, usePatientTransactions, useUpdatePatientProfileMutation } from '@gg/shared-hooks'
+import { pickProfilePhoto, type ProfilePhotoPayload } from '@/lib/profile-photo'
+import {
+  usePatientProfile,
+  usePatientTransactions,
+  useRemoveProfilePhotoMutation,
+  useUpdatePatientProfileMutation,
+  useUploadProfilePhotoMutation,
+} from '@gg/shared-hooks'
 import { useUserStore, useAuthStore } from '@gg/shared-stores'
 import { authService } from '@gg/shared-api'
 import { formatCurrency, formatPhone } from '@gg/shared-utils'
@@ -94,6 +105,21 @@ function SettingsRow({
   )
 }
 
+/* Small camera outline for the avatar's edit badge. */
+function CameraGlyph() {
+  return (
+    <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 8.5h3.5L9 6h6l1.5 2.5H20a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5V10A1.5 1.5 0 0 1 4 8.5z"
+        stroke={colors.navy}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <Path d="M12 10.5A3.5 3.5 0 1 0 12 17.5A3.5 3.5 0 1 0 12 10.5Z" stroke={colors.navy} strokeWidth={2} />
+    </Svg>
+  )
+}
+
 export function ProfileScreen() {
   const navigation = useNavigation<any>()
   const route = useRoute<any>()
@@ -102,6 +128,14 @@ export function ProfileScreen() {
   const { data: profile, isLoading } = usePatientProfile()
   const { data: transactions = [] } = usePatientTransactions()
   const updateProfileMutation = useUpdatePatientProfileMutation()
+  const uploadPhotoMutation = useUploadProfilePhotoMutation()
+  const removePhotoMutation = useRemoveProfilePhotoMutation()
+
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoSaving, setPhotoSaving] = useState(false)
+  const [photoPreview, setPhotoPreview] = useState<ProfilePhotoPayload | null>(null)
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
 
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -215,6 +249,68 @@ export function ProfileScreen() {
     setEditing(true)
   }
 
+  /* Profile photo: choose, preview, save or remove. The photo hooks update the profile cache. */
+  const avatarUrl = u?.avatarUrl
+
+  const choosePhoto = async () => {
+    setPhotoBusy(true)
+    try {
+      const picked = await pickProfilePhoto()
+      if (!picked) return
+      setPhotoPreview(picked)
+      setPhotoError(null)
+      setPhotoSheetOpen(true)
+    } catch (err: any) {
+      Alert.alert('Could not use that photo', err?.message ?? 'Please try a different photo.')
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  const savePhoto = async () => {
+    if (!photoPreview) return
+    setPhotoSaving(true)
+    setPhotoError(null)
+    try {
+      await uploadPhotoMutation.mutateAsync({
+        dataUrl: photoPreview.dataUrl,
+        mimeType: photoPreview.mimeType,
+      })
+      setPhotoSheetOpen(false)
+    } catch (err: any) {
+      setPhotoError(err?.message ?? 'Unable to save your photo. Please try again.')
+    } finally {
+      setPhotoSaving(false)
+    }
+  }
+
+  const removePhoto = async () => {
+    setPhotoBusy(true)
+    try {
+      await removePhotoMutation.mutateAsync()
+    } catch (err: any) {
+      Alert.alert('Could not remove your photo', err?.message ?? 'Please try again.')
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  const confirmRemovePhoto = () => {
+    Alert.alert('Remove your photo?', 'Your initials will show instead until you add a new photo.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => { void removePhoto() } },
+    ])
+  }
+
+  const openPhotoMenu = () => {
+    const options: AlertButton[] = [{ text: 'Choose photo', onPress: () => { void choosePhoto() } }]
+    if (avatarUrl) {
+      options.push({ text: 'Remove photo', style: 'destructive', onPress: confirmRemovePhoto })
+    }
+    options.push({ text: 'Cancel', style: 'cancel' })
+    Alert.alert('Profile photo', undefined, options)
+  }
+
   /* loading */
   if (isLoading && !u) {
     return (
@@ -248,11 +344,22 @@ export function ProfileScreen() {
             <View style={s.heroContent}>
               {/* avatar with verification badge */}
               <View style={s.avatarWrap}>
-                <MAvatar
-                  name={u?.name ?? 'User'}
-                  size={60}
-                  bg="rgba(255,255,255,0.15)"
-                />
+                <Pressable
+                  onPress={openPhotoMenu}
+                  disabled={photoBusy || photoSaving}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change profile photo"
+                >
+                  <MAvatar
+                    name={u?.name ?? 'User'}
+                    size={60}
+                    bg="rgba(255,255,255,0.15)"
+                    uri={avatarUrl}
+                  />
+                </Pressable>
+                <View style={s.cameraBadge} pointerEvents="none">
+                  <CameraGlyph />
+                </View>
                 <View style={s.verifyBadge}>
                   <CheckIcon size={10} color="#FFFFFF" />
                 </View>
@@ -560,6 +667,46 @@ export function ProfileScreen() {
 
         <HelpSupportModal visible={helpOpen} onClose={() => setHelpOpen(false)} />
 
+        {/* Chosen photo preview: nothing is uploaded until "Save photo". */}
+        <BottomSheet
+          visible={photoSheetOpen}
+          onClose={() => {
+            if (!photoSaving) setPhotoSheetOpen(false)
+          }}
+          closeLabel="Close photo preview"
+        >
+          <Text style={s.sheetTitle}>Your new profile photo</Text>
+          <View style={s.photoPreviewWrap}>
+            {photoPreview ? (
+              <Image
+                source={{ uri: photoPreview.dataUrl }}
+                style={s.photoPreview}
+                resizeMode="cover"
+                accessibilityLabel="Photo preview"
+              />
+            ) : null}
+          </View>
+          {photoError ? <Text style={s.editError}>{photoError}</Text> : null}
+          <View style={s.editBtnRow}>
+            <MBtn
+              variant="secondary"
+              style={{ flex: 1 }}
+              disabled={photoSaving}
+              onPress={() => setPhotoSheetOpen(false)}
+            >
+              Cancel
+            </MBtn>
+            <MBtn
+              variant="primary"
+              style={{ flex: 2 }}
+              disabled={photoSaving}
+              onPress={() => { void savePhoto() }}
+            >
+              {photoSaving ? 'Saving...' : 'Save photo'}
+            </MBtn>
+          </View>
+        </BottomSheet>
+
         {/* Sign Out */}
         <Pressable
           style={s.signOutBtn}
@@ -832,6 +979,36 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   dropdownOptionText: { fontSize: 14.5, fontFamily: fontWeights.regular, color: colors.text },
+  cameraBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.navy,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontFamily: fontWeights.bold,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  photoPreviewWrap: {
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  photoPreview: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: colors.blue3,
+  },
   residenceHint: {
     fontSize: 12.5,
     fontFamily: fontWeights.regular,

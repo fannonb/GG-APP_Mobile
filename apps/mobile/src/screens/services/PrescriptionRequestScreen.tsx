@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  ActivityIndicator,
 } from 'react-native'
 import Pressable from '@/components/Pressable'
 import * as DocumentPicker from 'expo-document-picker'
@@ -16,23 +15,22 @@ import {
   PageTitle,
   MCard,
   MBtn,
-  MAvatar,
-  GGPill,
   ActionBar,
 } from '@/components'
+import { MapPinPicker, type MapPoint } from '@/components/MapPinPicker'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { buildUploadAttachment, isSupportedPatientAttachment } from '@/lib/attachments'
+import { useMobileLocation } from '@/lib/location'
 import {
   useCreatePrescriptionRequestMutation,
+  useNearbyPharmacies,
   usePatientProfile,
-  useProvider,
 } from '@gg/shared-hooks'
-import { useUserStore } from '@gg/shared-stores'
+import { useLocationStore, useUserStore } from '@gg/shared-stores'
 import type {
   Beneficiary,
   CreatePrescriptionRequestPayload,
   PrescriptionAttachmentPayload,
-  Provider,
 } from '@gg/shared-types'
 
 function UploadIcon({ size = 18, color = colors.blue }: { size?: number; color?: string }) {
@@ -74,27 +72,62 @@ function getPrescriptionFileLabel(attachment: PrescriptionAttachmentPayload | nu
   return `${attachment.name} · ${attachment.size}`
 }
 
+/**
+ * Upload once; the request goes to registered pharmacies near the search point
+ * (2 km, then 6 km if none are closer). Quotes come back on the request detail screen.
+ */
 export function PrescriptionRequestScreen({
   route,
   navigation,
 }: ServicesScreenProps<'PrescriptionRequest'>) {
-  // Deep links (app/prescriptions/request) may arrive without params.
-  const { providerId } = route.params ?? {}
-  const { data: provider, isLoading } = useProvider(providerId)
+  // Deep links (app/prescriptions/request) arrive without params.
+  const sourceAppointmentId = route.params?.sourceAppointmentId
   const { data: profile } = usePatientProfile()
   const user = useUserStore(s => s.user)
+  const position = useLocationStore(s => s.position)
   const createPrescription = useCreatePrescriptionRequestMutation()
+  // Nothing else starts location for the app, so ask here. It is a no-op once known or denied.
+  useMobileLocation()
 
   const beneficiaries: Beneficiary[] = (profile as any)?.beneficiaries ?? []
-  const p = provider as Provider | undefined
 
   const [forSelf, setForSelf] = useState(true)
   const [selectedBeneficiary, setSelectedBeneficiary] = useState<string | null>(null)
   const [fulfillmentMode, setFulfillmentMode] = useState<'pickup' | 'delivery'>('pickup')
   const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [pin, setPin] = useState<MapPoint | null>(null)
   const [patientNotes, setPatientNotes] = useState('')
   const [attachment, setAttachment] = useState<PrescriptionAttachmentPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const delivery = fulfillmentMode === 'delivery'
+
+  const currentPoint = useMemo<MapPoint | null>(
+    () => (position ? { lat: position.lat, lng: position.lng } : null),
+    [position],
+  )
+  // Pickup searches from the pin if one was dropped, else from the device location.
+  // Delivery only searches from a pin the patient placed at the door.
+  const searchPoint = pin ?? (delivery ? null : currentPoint)
+
+  const nearby = useNearbyPharmacies(searchPoint)
+  const nearbyData = nearby.data
+  const radiusKm = nearbyData?.radiusKm ?? null
+  const noPharmacies = !!nearbyData && (radiusKm === null || nearbyData.count === 0)
+
+  let nearbyMessage: string | null = null
+  if (searchPoint) {
+    if (nearby.isLoading) {
+      nearbyMessage = 'Checking for pharmacies nearby...'
+    } else if (nearby.isError) {
+      nearbyMessage = 'We could not check nearby pharmacies. You can still try to send it.'
+    } else if (noPharmacies || radiusKm === null) {
+      nearbyMessage = 'No pharmacies available near you'
+    } else if (nearbyData) {
+      const { count } = nearbyData
+      nearbyMessage = `${count} ${count === 1 ? 'pharmacy' : 'pharmacies'} within ${radiusKm} km will get your request`
+    }
+  }
 
   const patientLabel = useMemo(() => {
     if (forSelf) return user.name || 'Self'
@@ -156,23 +189,34 @@ export function PrescriptionRequestScreen({
       return
     }
 
-    if (fulfillmentMode === 'delivery' && !deliveryAddress.trim()) {
-      setError('Please enter a delivery address.')
+    if (!searchPoint) {
+      setError(
+        delivery
+          ? 'Drop a pin on the map at the delivery address.'
+          : 'Turn on location or drop a pin on the map to find pharmacies near you.',
+      )
       return
     }
 
-    if (!p) {
-      setError('Provider details are unavailable. Please try again.')
+    if (delivery && deliveryAddress.trim().length < 3) {
+      setError('Enter the delivery address, with the house or building number and a landmark.')
+      return
+    }
+
+    if (noPharmacies) {
+      setError('No pharmacies available near you')
       return
     }
 
     try {
       const payload: CreatePrescriptionRequestPayload = {
-        providerId: Number(providerId),
+        searchLat: searchPoint.lat,
+        searchLng: searchPoint.lng,
         forSelf,
         beneficiaryId: forSelf ? undefined : selectedBeneficiary ?? undefined,
+        sourceAppointmentId,
         fulfillmentMode,
-        deliveryAddress: fulfillmentMode === 'delivery' ? deliveryAddress.trim() : undefined,
+        deliveryAddress: delivery ? deliveryAddress.trim() : undefined,
         patientNotes: patientNotes.trim() || undefined,
         attachment,
       }
@@ -180,10 +224,11 @@ export function PrescriptionRequestScreen({
       const result = await createPrescription.mutateAsync(payload)
       navigation.replace('PrescriptionConfirm', {
         referenceId: result.id,
-        provider: p.name,
         fulfillmentMode,
         forLabel: patientLabel,
         attachmentName: attachment.name,
+        pharmaciesContacted: result.pharmaciesContacted,
+        radiusKm: result.searchRadiusKm,
       })
     } catch (submitError) {
       setError(
@@ -194,55 +239,14 @@ export function PrescriptionRequestScreen({
     }
   }
 
-  if (!providerId) {
-    return (
-      <Screen header="modal">
-        <View style={s.loadingWrap}>
-          <Text style={s.loadingText}>
-            This prescription link did not include a pharmacy. Browse services
-            to pick one and upload your prescription.
-          </Text>
-          <MBtn variant="primary" fullWidth onPress={() => navigation.navigate('FindService')}>
-            Browse Services
-          </MBtn>
-        </View>
-      </Screen>
-    )
-  }
-
-  if (isLoading || !p) {
-    return (
-      <Screen header="modal">
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.blue} />
-          <Text style={s.loadingText}>Loading provider...</Text>
-        </View>
-      </Screen>
-    )
-  }
-
   return (
     <Screen header="modal">
       <ScrollArea gap={16} px={16} py={16}>
-        <PageTitle title="Upload Prescription" subtitle={`Sending to ${p.name}`} />
+        <PageTitle title="Send Prescription" subtitle="Sent to pharmacies near you" />
         <MCard padding={16}>
-          <View style={s.providerHeader}>
-            <MAvatar name={p.name} size={54} bg={colors.navy} />
-            <View style={s.providerHeaderInfo}>
-              <Text style={s.providerName}>{p.name}</Text>
-              <Text style={s.providerMeta}>Pharmacy · {p.address}</Text>
-              <View style={s.providerPills}>
-                <GGPill type={p.status === 'open' ? 'open' : 'closed'}>
-                  {p.status === 'open' ? 'Open' : 'Closed'}
-                </GGPill>
-                <GGPill type="info">Verified</GGPill>
-              </View>
-            </View>
-          </View>
-
           <Text style={s.introText}>
-            Upload your prescription from a recent consultation. {p.name} will review it,
-            confirm stock and pricing, then prepare your order for pickup or delivery.
+            Upload your prescription once. It goes to registered pharmacies within 2 km of you,
+            or within 6 km if none are closer. Compare their prices, then choose one.
           </Text>
         </MCard>
 
@@ -331,29 +335,54 @@ export function PrescriptionRequestScreen({
             </Pressable>
 
             <Pressable
-              style={[s.choiceCard, fulfillmentMode === 'delivery' && s.choiceCardSelected]}
+              style={[s.choiceCard, delivery && s.choiceCardSelected]}
               onPress={() => setFulfillmentMode('delivery')}
             >
-              <View style={[s.choiceIconWrap, fulfillmentMode === 'delivery' && s.choiceIconWrapSelected]}>
-                <TruckIcon size={16} color={fulfillmentMode === 'delivery' ? '#FFFFFF' : colors.blue} />
+              <View style={[s.choiceIconWrap, delivery && s.choiceIconWrapSelected]}>
+                <TruckIcon size={16} color={delivery ? '#FFFFFF' : colors.blue} />
               </View>
-              <Text style={[s.choiceTitle, fulfillmentMode === 'delivery' && s.choiceTitleSelected]}>
+              <Text style={[s.choiceTitle, delivery && s.choiceTitleSelected]}>
                 Delivery
               </Text>
-              <Text style={[s.choiceBody, fulfillmentMode === 'delivery' && s.choiceBodySelected]}>
+              <Text style={[s.choiceBody, delivery && s.choiceBodySelected]}>
                 Send medication to your address
               </Text>
             </Pressable>
           </View>
 
-          {fulfillmentMode === 'delivery' && (
+          {delivery && (
+            <View style={s.infoBanner}>
+              <Text style={s.infoBannerText}>
+                Delivery is on credit only. You'll approve the invoice after delivery.
+              </Text>
+            </View>
+          )}
+        </MCard>
+
+        <MCard padding={16}>
+          <Text style={s.sectionTitle}>{delivery ? 'Delivery location' : 'Search near'}</Text>
+          <Text style={s.helperText}>
+            {delivery
+              ? 'Drop the pin on your door. Pharmacies price the delivery from it.'
+              : 'Pharmacies near this pin get your prescription.'}
+          </Text>
+
+          <MapPinPicker value={searchPoint} onChange={setPin} center={currentPoint} />
+
+          {nearbyMessage ? (
+            <View style={[noPharmacies ? s.warningBox : s.infoBanner, s.nearbyBox]}>
+              <Text style={noPharmacies ? s.warningText : s.infoBannerText}>{nearbyMessage}</Text>
+            </View>
+          ) : null}
+
+          {delivery && (
             <View style={s.textAreaWrap}>
-              <Text style={s.fieldLabel}>Delivery Address</Text>
+              <Text style={s.fieldLabel}>Delivery address</Text>
               <TextInput
                 style={s.textArea}
                 value={deliveryAddress}
                 onChangeText={setDeliveryAddress}
-                placeholder="Street, suburb, city"
+                placeholder="House or building number, street, and a landmark"
                 placeholderTextColor={colors.textLight}
                 multiline
                 numberOfLines={3}
@@ -417,10 +446,10 @@ export function PrescriptionRequestScreen({
         <MBtn
           variant="primary"
           style={s.primaryCta}
-          disabled={createPrescription.isPending}
+          disabled={createPrescription.isPending || noPharmacies}
           onPress={() => void handleSubmit()}
         >
-          {createPrescription.isPending ? 'Submitting...' : 'Submit Prescription'}
+          {createPrescription.isPending ? 'Sending...' : 'Send Prescription'}
         </MBtn>
       </ActionBar>
     </Screen>
@@ -430,41 +459,6 @@ export function PrescriptionRequestScreen({
 export default PrescriptionRequestScreen
 
 const s = StyleSheet.create({
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 15.5,
-    fontFamily: fontWeights.medium,
-    color: colors.textSub,
-  },
-  providerHeader: {
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  providerHeaderInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  providerName: {
-    fontSize: 17,
-    fontFamily: fontWeights.extraBold,
-    color: colors.text,
-  },
-  providerMeta: {
-    fontSize: 13.5,
-    fontFamily: fontWeights.regular,
-    color: colors.textSub,
-  },
-  providerPills: {
-    flexDirection: 'row',
-    gap: 6,
-  },
   introText: {
     fontSize: 14.5,
     fontFamily: fontWeights.regular,
@@ -476,6 +470,17 @@ const s = StyleSheet.create({
     fontFamily: fontWeights.bold,
     color: colors.text,
     marginBottom: 12,
+  },
+  helperText: {
+    fontSize: 13,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    lineHeight: 19,
+    marginTop: -6,
+    marginBottom: 12,
+  },
+  nearbyBox: {
+    marginTop: 14,
   },
   choiceRow: {
     flexDirection: 'row',
@@ -584,6 +589,7 @@ const s = StyleSheet.create({
     padding: 14,
   },
   warningText: {
+    flex: 1,
     fontSize: 13.5,
     fontFamily: fontWeights.medium,
     color: colors.warning,

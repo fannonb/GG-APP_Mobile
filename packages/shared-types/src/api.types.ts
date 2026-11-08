@@ -242,7 +242,9 @@ export interface PrescriptionAttachmentPayload {
 }
 
 export interface CreatePrescriptionRequestPayload {
-  providerId: number
+  /** The delivery pin, or the patient's location for pickup. The request goes to pharmacies near it. */
+  searchLat: number
+  searchLng: number
   forSelf: boolean
   beneficiaryId?: string
   sourceAppointmentId?: string
@@ -269,11 +271,49 @@ export type PrescriptionRequestStatus =
   | 'fulfilled'
   | 'cancelled'
   | 'rejected'
+  /** Sent to nearby pharmacies, but none within the widest search ring could fill it. */
+  | 'expired'
 
-export interface PrescriptionRequest {
+/** One nearby pharmacy's price for a prescription, as the patient sees it. */
+export interface PrescriptionOffer {
   id: string
   providerId: number
   provider: string
+  address?: string
+  /** Building and road, joined for display, e.g. "Mukuru Plaza, Kenyatta Road". */
+  addressLine?: string
+  /** How to get there, as the pharmacy wrote it. */
+  directions?: string
+  /** Google Maps link to the pharmacy's pin. */
+  mapUrl?: string
+  rating?: number
+  logoUrl?: string
+  distanceKm: number
+  status: 'quoted' | 'selected'
+  quotedItems?: PrescriptionQuotedItem[]
+  quotedAmount?: number
+  deliveryFee?: number
+  pharmacyNotes?: string
+  quotedAt?: string
+}
+
+export interface NearbyPharmaciesResult {
+  /** The ring the request would go out in (2 or 6 km), or null when no pharmacy is close enough. */
+  radiusKm: number | null
+  count: number
+  maxRadiusKm: number
+}
+
+export interface PrescriptionRequest {
+  id: string
+  /** Set once the patient has chosen a pharmacy; empty while quotes are being collected. */
+  providerId?: number
+  provider?: string
+  /** Google Maps link to the chosen pharmacy's exact pin (or its address). */
+  providerMapUrl?: string
+  /** Chosen pharmacy's building and road, and how to get there. */
+  providerAddressLine?: string
+  providerDirections?: string
   category?: 'pharmacy'
   status: PrescriptionRequestStatus
   fulfillmentMode: 'pickup' | 'delivery'
@@ -297,6 +337,17 @@ export interface PrescriptionRequest {
   invoiceId?: string
   invoiceStatus?: InvoiceStatus
   patient?: string
+  // ── Nearby search ──
+  searchLat?: number
+  searchLng?: number
+  searchRadiusKm?: number
+  widenedAt?: string
+  expiredAt?: string
+  pharmaciesContacted?: number
+  pharmaciesPending?: number
+  pharmaciesDeclined?: number
+  /** Quotes from nearby pharmacies, while the patient has not chosen one. */
+  offers?: PrescriptionOffer[]
 }
 
 export interface PatientProfileResponse {

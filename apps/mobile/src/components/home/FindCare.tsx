@@ -41,23 +41,20 @@ export default function FindCare({
 
       <View style={styles.grid}>
         {CATEGORIES.map(cat => {
-          const { tint, short } = CARE_CATEGORY_STYLE[cat.id]
+          const { tint } = CARE_CATEGORY_STYLE[cat.id]
           return (
             <Pressable
               key={cat.id}
               onPress={() => onCategory(cat.id)}
               style={styles.tile}
               accessibilityRole="button"
-              accessibilityLabel={`${cat.label}: ${cat.desc}`}
+              accessibilityLabel={cat.label}
             >
               <View style={[styles.iconTile, { backgroundColor: tint }]}>
                 <CareCategoryIcon id={cat.id} size={32} />
               </View>
               <Text style={styles.label} numberOfLines={1}>
                 {cat.label}
-              </Text>
-              <Text style={styles.short} numberOfLines={1}>
-                {short}
               </Text>
             </Pressable>
           )
@@ -115,11 +112,5 @@ const styles = StyleSheet.create({
     fontFamily: fontWeights.bold,
     fontSize: 15.5,
     color: colors.text,
-  },
-  short: {
-    fontFamily: fontWeights.regular,
-    fontSize: 13.5,
-    color: colors.textLight,
-    marginTop: 2,
   },
 })

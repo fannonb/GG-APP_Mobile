@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, StyleSheet } from 'react-native'
+import { Text, View, StyleSheet } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { CardAction, CardLink, CreditBalanceCard, CreditCardFace } from '@/components/credit/CreditBalanceCard'
 import { colors, fontWeights, radii } from '@/theme'
@@ -79,10 +79,10 @@ function ActiveCredit(props: CreditSummaryCardProps) {
       isLow={isLow}
       topRight={<CardLink label="View allocation" onPress={onOpenWallet} />}
       footer={
-        <>
+        <View style={styles.footerRow}>
           <CardAction label={isLow ? 'Request increase' : 'Increase limit'} onPress={onRequestIncrease} />
-          <CardAction label="History" onPress={onHistory} variant="secondary" />
-        </>
+          <CardLink label="Recent activity →" onPress={onHistory} />
+        </View>
       }
     />
   )
@@ -113,6 +113,13 @@ function CardButton({
 }
 
 const styles = StyleSheet.create({
+  // The action takes the row, and the Recent activity link sits at its right end.
+  footerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   title: {
     fontFamily: fontWeights.extraBold,
     fontSize: 19,

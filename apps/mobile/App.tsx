@@ -16,13 +16,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import Constants from 'expo-constants'
 import { configure, setTokenStorage } from '@gg/shared-api'
 import { queryClient } from '@/lib/query-client'
-import { mobileTokenStorage } from '@/lib/token-storage'
+import { mobileTokenStorage, onSessionCleared } from '@/lib/token-storage'
 import { SessionBootstrap } from '@/providers/SessionBootstrap'
 import { RootNavigator } from '@/navigation/RootNavigator'
 import { linking } from '@/navigation/linking'
 import type { RootStackParamList } from '@/navigation/types'
 import { openPatientNotification } from '@/lib/patient-notification-routing'
-import { registerPushSubscription, subscribeToNotificationResponses } from '@/services/notifications'
+import { subscribeToNotificationResponses } from '@/services/notifications'
 import type { Notification } from '@gg/shared-types'
 import { useAuthStore } from '@gg/shared-stores'
 import { useConnectionStore } from '@/lib/connection'
@@ -196,6 +196,7 @@ export default function App() {
   const pendingNotification = useRef<Notification | null>(null)
   const loggedIn = useAuthStore(s => s.loggedIn)
   const restoring = useConnectionStore(s => s.restoring)
+  useEffect(() => onSessionCleared(() => { pendingNotification.current = null }), [])
   const flushNotification = useCallback(() => {
     const auth = useAuthStore.getState()
     if (!pendingNotification.current || !navigationRef.isReady() || !auth.loggedIn || auth.userRole !== 'patient' || useConnectionStore.getState().restoring) return
@@ -224,9 +225,6 @@ export default function App() {
       if (active) sub = handle
       else handle.remove()
     }).catch(() => {})
-
-    // Register for push once on launch; SessionBootstrap re-attempts on login.
-    if (useAuthStore.getState().loggedIn) void registerPushSubscription().catch(() => {})
 
     return () => { active = false; sub?.remove() }
   }, [flushNotification])

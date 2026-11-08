@@ -40,6 +40,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+google-services.json
+*firebase-adminsdk*.json
 .codex-tmp/
 .codex-tmp */
 .codex-logs/

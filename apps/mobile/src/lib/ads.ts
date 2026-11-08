@@ -1,98 +1,82 @@
-export type AdBannerStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'expired'
-export type AdFrequency = 'always' | 'every_other' | 'every_third'
+import type { PatientAd } from '@gg/shared-api'
+import { openSafeUrl } from '@/lib/open-attachment'
 
-export interface AdBanner {
-  id: string
-  advertiserName: string
-  ctaUrl: string
-  desktopImageUrl: string
-  mobileImageUrl: string
-  status: AdBannerStatus
-  frequency: AdFrequency
-  startDate: string
-  expiresAt: string
-  countries: string[]
-  impressions: number
-  clicks: number
-  updatedAt: string
+/** An ad from GET /patient/ads. The server has already filtered it for this patient. */
+export type AdBanner = PatientAd
+
+/** Ad links open outside the app, so only https:// is allowed (release builds block cleartext http). */
+const HTTPS_URL = /^https:\/\/\S+$/i
+/** Images the app can load: an https:// URL, or an inline data:image URL from a local backend without object storage. */
+const IMAGE_URL = /^(https:\/\/\S+|data:image\/[a-z0-9.+-]+[;,]\S+)$/i
+
+/** The image to show on a phone: the mobile artwork first, then desktop. Null when neither is loadable. */
+export function getAdImageUrl(ad: AdBanner): string | null {
+  for (const candidate of [ad.mobileImageUrl, ad.desktopImageUrl]) {
+    const url = typeof candidate === 'string' ? candidate.trim() : ''
+    if (url && IMAGE_URL.test(url)) return url
+  }
+  return null
 }
 
-export const MOCK_AD_BANNERS: AdBanner[] = [
-  {
-    id: 'AD-001',
-    advertiserName: 'HealthShield Medical Aid',
-    ctaUrl: 'https://healthshield.co.zw',
-    desktopImageUrl: '/ads/ad-001-desktop.svg',
-    mobileImageUrl: '/ads/ad-001-mobile.svg',
-    status: 'active',
-    frequency: 'always',
-    startDate: '2026-05-01',
-    expiresAt: '2026-07-31',
-    countries: [],
-    impressions: 3842,
-    clicks: 291,
-    updatedAt: '2026-05-01T00:00:00.000Z',
-  },
-  {
-    id: 'AD-002',
-    advertiserName: 'TeleMed Africa',
-    ctaUrl: 'https://telemedafrica.com',
-    desktopImageUrl: '',
-    mobileImageUrl: '',
-    status: 'active',
-    frequency: 'every_other',
-    startDate: '2026-06-01',
-    expiresAt: '2026-06-30',
-    countries: ['Kenya', 'Zimbabwe'],
-    impressions: 1204,
-    clicks: 67,
-    updatedAt: '2026-06-01T08:00:00.000Z',
-  },
-  {
-    id: 'AD-003',
-    advertiserName: 'NutriPlus Pharmacy',
-    ctaUrl: 'https://nutriplus.co.zw',
-    desktopImageUrl: '',
-    mobileImageUrl: '',
-    status: 'paused',
-    frequency: 'every_third',
-    startDate: '2026-04-15',
-    expiresAt: '2026-09-15',
-    countries: ['Zimbabwe'],
-    impressions: 892,
-    clicks: 44,
-    updatedAt: '2026-04-15T08:00:00.000Z',
-  },
-  {
-    id: 'AD-004',
-    advertiserName: 'Harare Dental Care',
-    ctaUrl: 'https://hararedentalcare.co.zw',
-    desktopImageUrl: '',
-    mobileImageUrl: '',
-    status: 'draft',
-    frequency: 'always',
-    startDate: '2026-07-01',
-    expiresAt: '2026-09-30',
-    countries: ['Zimbabwe'],
-    impressions: 0,
-    clicks: 0,
-    updatedAt: '2026-06-01T08:00:00.000Z',
-  },
-]
+/** An in-app destination for an `/app/...` ad link. */
+export interface AdRoute {
+  tab: 'ServicesTab' | 'WalletTab'
+  params: { initial?: boolean; screen: string }
+}
 
-export function getActiveAdBanner(countryName?: string): AdBanner | null {
-  const today = new Date().toISOString().split('T')[0]
+/**
+ * Maps the web paths an ad can link to onto the app's tabs: `/app/services` and
+ * `/app/services/...` open Find care, `/app/pharmacy...` the prescription request,
+ * and `/app/credit...` or `/app/wallet...` the wallet. Null for any other path.
+ */
+export function getAdRoute(ctaUrl: string): AdRoute | null {
+  const path = ctaUrl.trim().split(/[?#]/)[0]
+  if (!path.startsWith('/app/')) return null
+  const section = path.slice('/app/'.length).split('/')[0].toLowerCase()
+  switch (section) {
+    case 'services':
+      return { tab: 'ServicesTab', params: { screen: 'FindService' } }
+    case 'pharmacy':
+      return { tab: 'ServicesTab', params: { initial: false, screen: 'PrescriptionRequest' } }
+    case 'credit':
+    case 'wallet':
+      return { tab: 'WalletTab', params: { screen: 'CreditWallet' } }
+    default:
+      return null
+  }
+}
 
-  return (
-    [...MOCK_AD_BANNERS]
-      .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
-      .find(banner => {
-        if (banner.status !== 'active') return false
-        if (banner.startDate > today || banner.expiresAt < today) return false
-        if (banner.countries.length > 0 && countryName && !banner.countries.includes(countryName)) {
-          return false
-        }
-        return true
-      }) ?? null
-  )
+/** Whether tapping an ad does anything: an https:// link, or an /app/ path the app maps. */
+export function isAdLinkActionable(ctaUrl: string): boolean {
+  return HTTPS_URL.test(ctaUrl.trim()) || getAdRoute(ctaUrl) !== null
+}
+
+/**
+ * Opens an ad's link. An https:// link opens in the browser through openSafeUrl; an
+ * /app/ path navigates inside the app. Any other link is ignored.
+ */
+export function openAdLink(
+  ctaUrl: string,
+  navigation: { navigate: (name: string, params?: object) => void },
+): void {
+  const url = ctaUrl.trim()
+  if (url.startsWith('/app/')) {
+    const route = getAdRoute(url)
+    if (route) navigation.navigate(route.tab, route.params)
+    return
+  }
+  openSafeUrl(url).catch(() => undefined)
+}
+
+/**
+ * GG'APP's house ad, drawn in the app by SampleAd. Shown when there are no ads, while
+ * they load, or when they fail to load. Its image and tap target are built in, so the
+ * URL fields stay empty.
+ */
+export const SAMPLE_AD: AdBanner = {
+  id: 'sample-ad',
+  ctaUrl: '',
+  desktopImageUrl: '',
+  mobileImageUrl: '',
+  updatedAt: '1970-01-01T00:00:00.000Z',
 }

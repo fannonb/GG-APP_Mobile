@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 import type { ITokenStorage } from '@gg/shared-api'
 import type { StoredSession, UserRole } from '@gg/shared-types'
+import { unregisterPushSubscription } from '@/services/notifications'
 
 const KEYS = {
   ACCESS: 'gg_access_token',
@@ -44,6 +45,7 @@ export async function loadSessionFromStore(): Promise<StoredSession | null> {
 }
 
 export const mobileTokenStorage: ITokenStorage = {
+  beforeLogout: () => unregisterPushSubscription(),
   getSession(): StoredSession | null {
     return cache
   },

@@ -8,7 +8,7 @@ import { queryClient } from '@/lib/query-client'
 import { loadSessionFromStore, mobileTokenStorage, onSessionCleared } from '@/lib/token-storage'
 import { clearPatientQueryCache, restorePatientQueryCache } from '@/lib/patient-query-cache'
 import { checkConnection, setReachable, useConnectionStore } from '@/lib/connection'
-import { registerPushSubscription } from '@/services/notifications'
+import { registerPushSubscription, subscribeToPushTokenChanges, subscribeToReceivedNotifications } from '@/services/notifications'
 
 function restoreProfileFromCache() {
   for (const mode of ['existing', 'new'] as const) {
@@ -26,6 +26,21 @@ export function SessionBootstrap() {
   const loggedIn = useAuthStore(s => s.loggedIn)
   const userRole = useAuthStore(s => s.userRole)
   const prepared = useRef(false)
+
+  useEffect(() => {
+    if (!loggedIn || userRole !== 'patient') return
+    let active = true
+    const handles: { remove: () => void }[] = []
+    for (const pending of [
+      subscribeToPushTokenChanges(),
+      subscribeToReceivedNotifications(() => {
+        if (active) void queryClient.invalidateQueries({ queryKey: ['patient'] })
+      }),
+    ]) {
+      void pending.then(handle => { if (active) handles.push(handle); else handle.remove() }).catch(() => {})
+    }
+    return () => { active = false; handles.forEach(handle => handle.remove()) }
+  }, [loggedIn, userRole])
 
   useEffect(() => {
     let active = true
@@ -118,6 +133,7 @@ export function SessionBootstrap() {
         const session = await authService.refreshSession()
         if (!active) return
         if (!session || session.role !== 'patient') { mobileTokenStorage.clear(); return }
+        void registerPushSubscription()
         await queryClient.invalidateQueries({ queryKey: ['patient'] })
       } catch (error) {
         if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) setReachable(false)

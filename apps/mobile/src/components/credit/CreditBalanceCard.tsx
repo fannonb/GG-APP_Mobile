@@ -6,9 +6,6 @@ import { PartnerLogo } from '@/components/PartnerLogo'
 import { colors, fontWeights, radii } from '@/theme'
 import { formatCurrency } from '@gg/shared-utils'
 
-/** Silver edge, so the card reads as a card on the grey backdrop. */
-export const CARD_EDGE = '#C7CFDB'
-
 /** Light grey-blue on navy: legible at small sizes (about 8:1). */
 const SOFT_TEXT = '#C9D6EA'
 
@@ -35,37 +32,41 @@ export function CreditCardFace({
   topRight?: React.ReactNode
   children: React.ReactNode
 }) {
+  // The shadow sits on an outer wrapper, not on the face: the face clips its corners
+  // (overflow hidden), which would clip the shadow away on iOS.
   return (
-    <LinearGradient
-      colors={['#091C44', '#132854']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.face}
-    >
-      <View style={styles.identityRow}>
-        <PartnerLogo partnerId={partnerId} partnerName={partnerName} size="sm" />
-        {tag ? (
-          <View style={[styles.tag, tag.tone === 'warning' ? styles.tagWarning : styles.tagInfo]}>
-            <Text style={[styles.tagText, tag.tone === 'warning' ? styles.tagTextWarning : styles.tagTextInfo]}>
-              {tag.text}
-            </Text>
-          </View>
-        ) : (
-          topRight ?? null
-        )}
-      </View>
-      <Text style={styles.financedBy} numberOfLines={1}>
-        Financed by {partnerName}
-      </Text>
+    <View style={styles.shadow}>
+      <LinearGradient
+        colors={[colors.navy600, colors.navy700]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.face}
+      >
+        <View style={styles.identityRow}>
+          <PartnerLogo partnerId={partnerId} partnerName={partnerName} size="sm" />
+          {tag ? (
+            <View style={[styles.tag, tag.tone === 'warning' ? styles.tagWarning : styles.tagInfo]}>
+              <Text style={[styles.tagText, tag.tone === 'warning' ? styles.tagTextWarning : styles.tagTextInfo]}>
+                {tag.text}
+              </Text>
+            </View>
+          ) : (
+            topRight ?? null
+          )}
+        </View>
+        <Text style={styles.financedBy} numberOfLines={1}>
+          Financed by {partnerName}
+        </Text>
 
-      {children}
-    </LinearGradient>
+        {children}
+      </LinearGradient>
+    </View>
   )
 }
 
 /**
- * The approved balance, trimmed: the available amount, a usage bar and the
- * limit. Labels are not repeated, so "available" appears once.
+ * The approved balance, trimmed: the available amount and a usage bar. The limit
+ * is not shown. Labels are not repeated, so "available" appears once.
  */
 export function CreditBalanceCard({
   partnerId,
@@ -104,7 +105,12 @@ export function CreditBalanceCard({
         <Text style={styles.figureUnit}>available</Text>
       </View>
 
-      <View style={styles.track}>
+      <View
+        style={styles.track}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Allocation used"
+        accessibilityValue={{ min: 0, max: 100, now: usedPct }}
+      >
         <LinearGradient
           colors={isLow ? ['#F5B54A', '#E8962A'] : ['#5EC4FF', '#38B6FF']}
           start={{ x: 0, y: 0 }}
@@ -114,7 +120,6 @@ export function CreditBalanceCard({
       </View>
 
       <View style={styles.captionRow}>
-        <Text style={styles.caption}>of {formatCurrency(limit, currency)} limit</Text>
         <Text style={styles.caption}>{usedPct}% used</Text>
       </View>
 
@@ -157,17 +162,21 @@ export function CardLink({ label, onPress }: { label: string; onPress: () => voi
 }
 
 const styles = StyleSheet.create({
-  face: {
+  // Soft shadow under the card. Android only casts an elevation shadow from a view with a
+  // background, so the wrapper has one; the face covers it, apart from the anti-aliased corners.
+  shadow: {
     borderRadius: radii.large,
-    borderWidth: 1.5,
-    borderColor: CARD_EDGE,
-    padding: 16,
-    overflow: 'hidden',
-    shadowColor: '#091C44',
-    shadowOpacity: 0.18,
+    backgroundColor: colors.navy700,
+    shadowColor: colors.navy,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    elevation: 8,
+  },
+  face: {
+    borderRadius: radii.large,
+    padding: 16,
+    overflow: 'hidden',
   },
   identityRow: {
     flexDirection: 'row',
@@ -235,7 +244,7 @@ const styles = StyleSheet.create({
   },
   captionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     marginTop: 8,
   },
   caption: {

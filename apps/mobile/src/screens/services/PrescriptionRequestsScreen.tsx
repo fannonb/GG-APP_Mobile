@@ -5,35 +5,18 @@ import { useCurrency } from '@/lib/useCurrency'
 import { usePullToRefresh } from '@/lib/usePullToRefresh'
 import { PageTitle, GGPill, MBtn, MCard, Screen, ScrollArea, LoadError, Pager } from '@/components'
 import { usePaged } from '@/lib/usePaged'
-import { prescriptionTotal } from '@/lib/patient-parity'
+import {
+  isChoosingPharmacy,
+  prescriptionOffers,
+  prescriptionPharmacyLabel,
+  prescriptionStatusPill,
+  prescriptionTotal,
+} from '@/lib/patient-parity'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { colors, fontWeights, radii } from '@/theme'
 import { usePatientPrescriptionRequests } from '@gg/shared-hooks'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
 import type { PrescriptionRequest } from '@gg/shared-types'
-
-function getStatusMeta(status: PrescriptionRequest['status']) {
-  switch (status) {
-    case 'submitted':
-      return { type: 'warning' as const, label: 'Submitted' }
-    case 'quoted':
-      return { type: 'info' as const, label: 'Quoted' }
-    case 'accepted':
-      return { type: 'info' as const, label: 'Accepted' }
-    case 'preparing':
-      return { type: 'pending' as const, label: 'Preparing' }
-    case 'ready':
-      return { type: 'success' as const, label: 'Ready' }
-    case 'fulfilled':
-      return { type: 'success' as const, label: 'Fulfilled' }
-    case 'cancelled':
-      return { type: 'error' as const, label: 'Cancelled' }
-    case 'rejected':
-      return { type: 'error' as const, label: 'Declined by pharmacy' }
-    default:
-      return { type: 'default' as const, label: status }
-  }
-}
 
 export function PrescriptionRequestsScreen({
   navigation,
@@ -77,7 +60,7 @@ export function PrescriptionRequestsScreen({
           </MCard>
         ) : (
           pagedRequests.map(request => {
-            const statusMeta = getStatusMeta(request.status)
+            const statusMeta = prescriptionStatusPill(request)
             return (
               <MCard key={request.id} padding={16}>
                 <Pressable
@@ -87,10 +70,10 @@ export function PrescriptionRequestsScreen({
                 >
                 <View style={s.cardTopRow}>
                   <View style={s.cardTopCopy}>
-                    <Text style={s.providerName}>{request.provider}</Text>
+                    <Text style={s.providerName}>{prescriptionPharmacyLabel(request)}</Text>
                     <Text style={s.requestRef}>{request.id}</Text>
                   </View>
-                  <GGPill type={statusMeta.type}>{statusMeta.label}</GGPill>
+                  <GGPill type={statusMeta.tone}>{statusMeta.label}</GGPill>
                 </View>
 
                 <View style={s.metaGrid}>
@@ -179,7 +162,11 @@ export function PrescriptionRequestsScreen({
                   </View>
                 ) : null}
 
-                {request.status === 'quoted' ? (
+                {isChoosingPharmacy(request) && prescriptionOffers(request).length > 0 ? (
+                  <View style={s.actionHint}>
+                    <Text style={s.actionHintText}>Prices are in — tap to compare and choose</Text>
+                  </View>
+                ) : request.status === 'quoted' ? (
                   <View style={s.actionHint}>
                     <Text style={s.actionHintText}>Quote ready — tap to accept or decline</Text>
                   </View>
@@ -208,7 +195,7 @@ export function PrescriptionRequestsScreen({
                         } as never)
                       }
                     >
-                      View Invoice
+                      {request.invoiceStatus === 'pending_auth' ? 'Review and pay' : 'View invoice'}
                     </MBtn>
                   </View>
                 ) : null}

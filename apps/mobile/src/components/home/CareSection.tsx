@@ -19,7 +19,8 @@ export interface VisitSummary {
 }
 
 export interface PrescriptionSummary {
-  provider: string
+  /** Empty until the patient chooses a pharmacy. */
+  provider?: string
   statusLabel: string
   ready: boolean
   onPress: () => void
@@ -97,7 +98,7 @@ export default function CareSection({
             onPress={prescription.onPress}
             style={({ pressed }) => [styles.rxCard, pressed && styles.pressed]}
             accessibilityRole="button"
-            accessibilityLabel={`Prescription at ${prescription.provider}: ${prescription.statusLabel}`}
+            accessibilityLabel={`Prescription at ${prescription.provider || 'nearby pharmacies'}: ${prescription.statusLabel}`}
           >
             <View style={[styles.rxIcon, prescription.ready && styles.rxIconReady]}>
               <PharmacyIcon size={18} color={prescription.ready ? colors.success : colors.blueInk} />
@@ -108,7 +109,7 @@ export default function CareSection({
                 {prescription.statusLabel}
               </Text>
               <Text style={styles.detail} numberOfLines={1}>
-                {prescription.provider}
+                {prescription.provider || 'Nearby pharmacies'}
               </Text>
             </View>
           </Pressable>

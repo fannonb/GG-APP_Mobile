@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/theme'
 import { OfflineBanner } from './OfflineBanner'
-import AppHeader, { type HeaderVariant } from './AppHeader'
+import AppHeader, { type HeaderGreeting, type HeaderVariant } from './AppHeader'
 
 interface ScreenProps {
   children: React.ReactNode
@@ -17,6 +17,8 @@ interface ScreenProps {
   header?: HeaderVariant | 'none'
   /** Screen-specific action on the right of the bar, after the market flag. */
   headerRight?: React.ReactNode
+  /** Greeting in the bar, just before the market flag. Only the dashboard passes one. */
+  headerGreeting?: HeaderGreeting
   /** Replaces the default back or close action (navigation.goBack). */
   onBack?: () => void
   /** Navy curve behind the content. Defaults to `dark-curve` on tab roots. */
@@ -44,6 +46,7 @@ export default function Screen({
   bg = colors.bg,
   header = 'none',
   headerRight,
+  headerGreeting,
   onBack,
   headerPattern,
   curveDepth = 200,
@@ -62,7 +65,7 @@ export default function Screen({
   return (
     <DarkCurveContext.Provider value={curve}>
       <View style={[styles.fill, { backgroundColor: bg }]}>
-        <AppHeader variant={header} right={headerRight} onBack={onBack} />
+        <AppHeader variant={header} right={headerRight} onBack={onBack} greeting={headerGreeting} />
         <OfflineBanner />
         {children}
       </View>

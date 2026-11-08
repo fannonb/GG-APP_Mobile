@@ -25,6 +25,8 @@ export interface Patient {
   beneficiariesEnabled?: boolean
   financePartnerId?: 'moneymart' | 'equity'
   creditAccountRef?: string
+  /** Short-lived link to the patient's profile photo. Missing when there is none. */
+  avatarUrl?: string
 }
 
 export interface Beneficiary {

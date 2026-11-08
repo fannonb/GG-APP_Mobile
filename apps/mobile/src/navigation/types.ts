@@ -37,13 +37,17 @@ export type ServicesStackParamList = {
     rebook?: AppointmentRebookPrefill
   }
   BookingConfirm: { result: Record<string, unknown> }
-  PrescriptionRequest: { providerId: string | number }
+  /** No pharmacy is picked up front: the request goes to pharmacies near the patient. */
+  PrescriptionRequest: { sourceAppointmentId?: string } | undefined
   PrescriptionConfirm: {
     referenceId: string
-    provider: string
     fulfillmentMode: 'pickup' | 'delivery'
     forLabel: string
     attachmentName: string
+    /** How many nearby pharmacies the request went to, from the create response. */
+    pharmaciesContacted?: number
+    /** The search ring the request went out in, in km (2 or 6). */
+    radiusKm?: number
   }
   PrescriptionRequests: undefined
   PrescriptionDetail: { prescriptionId: string }

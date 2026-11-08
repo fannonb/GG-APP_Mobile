@@ -27,21 +27,32 @@ export function PrescriptionConfirmScreen({
 }: ServicesScreenProps<'PrescriptionConfirm'>) {
   // Deep links (app/prescriptions/confirm) arrive without params — fall
   // back to a generic confirmation instead of crashing.
-  const { referenceId, provider, fulfillmentMode, forLabel, attachmentName } = route.params ?? {}
+  const {
+    referenceId,
+    fulfillmentMode,
+    forLabel,
+    attachmentName,
+    pharmaciesContacted,
+    radiusKm,
+  } = route.params ?? {}
   const hasDetails = !!referenceId
+  const sentTo =
+    pharmaciesContacted != null && radiusKm != null
+      ? `${pharmaciesContacted} ${pharmaciesContacted === 1 ? 'pharmacy' : 'pharmacies'} within ${radiusKm} km`
+      : 'nearby pharmacies'
 
   return (
     <Screen header="detail">
       <ScrollArea gap={16} px={16} py={20}>
-        <PageTitle title="Prescription Sent" subtitle="Awaiting pharmacy review" />
+        <PageTitle title="Prescription Sent" subtitle="Waiting for quotes" />
         <View style={s.successSection}>
           <SuccessCheck />
           <Text style={s.successTitle}>Prescription Submitted</Text>
           <Text style={s.successDesc}>
             {hasDetails ? (
               <>
-                Your prescription has been sent to <Text style={s.providerName}>{provider}</Text>.
-                The pharmacy will confirm availability, pricing, and next steps.
+                Your prescription was sent to <Text style={s.emphasis}>{sentTo}</Text>.
+                Their prices will appear in your request. Choose one to continue.
               </>
             ) : (
               'Check your prescription requests for the latest status.'
@@ -61,8 +72,8 @@ export function PrescriptionConfirmScreen({
           <View style={s.detailDivider} />
 
           <View style={s.detailRow}>
-            <Text style={s.detailLabel}>Provider</Text>
-            <Text style={s.detailValue}>{provider}</Text>
+            <Text style={s.detailLabel}>Sent to</Text>
+            <Text style={s.detailValue}>{sentTo}</Text>
           </View>
 
           <View style={s.detailDivider} />
@@ -100,8 +111,8 @@ export function PrescriptionConfirmScreen({
         <View style={s.infoBanner}>
           <Text style={s.infoBannerTitle}>What happens next</Text>
           <Text style={s.infoBannerBody}>
-            The pharmacy will review your upload, confirm stock and pricing, then notify
-            you once the order is ready for pickup or dispatch.
+            Each nearby pharmacy checks stock and sends a price. Their quotes appear in your
+            request. Choose one, then approve its invoice.
           </Text>
         </View>
 
@@ -162,7 +173,7 @@ const s = StyleSheet.create({
     lineHeight: 22,
     paddingHorizontal: 8,
   },
-  providerName: {
+  emphasis: {
     fontFamily: fontWeights.bold,
     color: colors.navy,
   },

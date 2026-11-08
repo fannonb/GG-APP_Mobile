@@ -7,45 +7,39 @@ import {
   Image,
   TextInput,
   Modal,
+  Linking,
 } from 'react-native'
 import Pressable from '@/components/Pressable'
 import { useCurrency } from '@/lib/useCurrency'
 import { PageTitle, GGPill, MBtn, MCard, Screen, ScrollArea, LoadError } from '@/components'
-import { prescriptionTotal, prescriptionInvoiceState, prescriptionProgress } from '@/lib/patient-parity'
+import {
+  isChoosingPharmacy,
+  isPrescriptionPaid,
+  prescriptionInvoiceState,
+  prescriptionOfferTotal,
+  prescriptionOffers,
+  prescriptionPharmacyLabel,
+  prescriptionProgress,
+  prescriptionSearch,
+  prescriptionStage,
+  prescriptionStatusPill,
+  prescriptionTotal,
+} from '@/lib/patient-parity'
 import type { ServicesScreenProps } from '@/navigation/types'
 import { colors, fontWeights, radii } from '@/theme'
 import { openRemoteOrDataAttachment } from '@/lib/open-attachment'
 import {
   useAcceptPrescriptionQuoteMutation,
+  useDeclinePrescriptionOfferMutation,
   useDeclinePrescriptionQuoteMutation,
   useMarkPrescriptionQuoteReviewedMutation,
   usePatientPrescriptionRequests,
+  useSelectPrescriptionOfferMutation,
 } from '@gg/shared-hooks'
 import { formatCurrency, formatDate } from '@gg/shared-utils'
-import type { PrescriptionRequest } from '@gg/shared-types'
+import type { PrescriptionOffer, PrescriptionRequest } from '@gg/shared-types'
 
-function getStatusMeta(status: PrescriptionRequest['status']) {
-  switch (status) {
-    case 'submitted':
-      return { type: 'warning' as const, label: 'Submitted' }
-    case 'quoted':
-      return { type: 'info' as const, label: 'Quoted' }
-    case 'accepted':
-      return { type: 'info' as const, label: 'Accepted' }
-    case 'preparing':
-      return { type: 'pending' as const, label: 'Preparing' }
-    case 'ready':
-      return { type: 'success' as const, label: 'Ready' }
-    case 'fulfilled':
-      return { type: 'success' as const, label: 'Fulfilled' }
-    case 'cancelled':
-      return { type: 'error' as const, label: 'Cancelled' }
-    case 'rejected':
-      return { type: 'error' as const, label: 'Declined by pharmacy' }
-    default:
-      return { type: 'default' as const, label: status }
-  }
-}
+type NextContent = { title: string; body?: string; extra?: React.ReactNode }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -56,38 +50,44 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function StatusNotice({ request }: { request: PrescriptionRequest }) {
-  if (request.invoiceId && request.status !== 'rejected' && request.status !== 'cancelled') return null
-
-  const copy: Partial<Record<PrescriptionRequest['status'], string>> = {
-    submitted:
-      'The pharmacy is reviewing your prescription. You will be notified as soon as a quote is ready.',
-    accepted: `You accepted this quote. The pharmacy will prepare your order and notify you once it's ${
-      request.fulfillmentMode === 'delivery' ? 'out for delivery' : 'ready for pickup'
-    }.`,
-    preparing: 'The pharmacy is preparing your order.',
-    ready: `Your order is ready for ${
-      request.fulfillmentMode === 'delivery' ? 'delivery' : 'pickup'
-    }. An invoice will be sent once it's ${
-      request.fulfillmentMode === 'delivery' ? 'delivered' : 'picked up'
-    }.`,
-    fulfilled: `Your order has been ${
-      request.fulfillmentMode === 'delivery' ? 'delivered' : 'collected'
-    }. The pharmacy is preparing your invoice — you'll be notified once it's ready to pay.`,
-    cancelled: request.declineReason
-      ? `You declined this quote: ${request.declineReason}`
-      : 'This prescription request was cancelled.',
-    rejected: request.declineReason
-      ? `The pharmacy could not fill this prescription. Reason: ${request.declineReason}. You can send it to another pharmacy.`
-      : 'The pharmacy could not fill this prescription. You can send it to another pharmacy.',
-  }
-
-  const message = copy[request.status]
-  if (!message) return null
-
+/** The one thing to do or know next, in the same notice box as before. */
+function NextStep({ title, body, children }: { title: string; body?: string; children?: React.ReactNode }) {
   return (
     <View style={s.notice}>
-      <Text style={s.noticeText}>{message}</Text>
+      <Text style={s.noticeTitle}>{title}</Text>
+      {body ? <Text style={s.noticeText}>{body}</Text> : null}
+      {children}
+    </View>
+  )
+}
+
+/** Where to go: address, how to get there, and a map link. Renders nothing when there is none. */
+function PlaceDetails({
+  addressLine,
+  directions,
+  mapUrl,
+  onOpenMap,
+}: {
+  addressLine?: string
+  directions?: string
+  mapUrl?: string
+  onOpenMap: (url: string) => void
+}) {
+  if (!addressLine && !directions && !mapUrl) return null
+  return (
+    <View style={s.placeBlock}>
+      {addressLine ? <Text style={s.placeAddress}>{addressLine}</Text> : null}
+      {directions ? (
+        <View>
+          <Text style={s.placeLabel}>How to get there</Text>
+          <Text style={s.placeBody}>{directions}</Text>
+        </View>
+      ) : null}
+      {mapUrl ? (
+        <Pressable onPress={() => onOpenMap(mapUrl)} accessibilityRole="link">
+          <Text style={s.linkText}>View on map</Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -196,6 +196,139 @@ function QuoteDecision({ request }: { request: PrescriptionRequest }) {
   )
 }
 
+/** Cancels the whole request, after one confirm step. */
+function CancelRequest({ requestId }: { requestId: string }) {
+  const cancelMutation = useDeclinePrescriptionQuoteMutation()
+  const [confirming, setConfirming] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const cancel = async () => {
+    setError(null)
+    try {
+      await cancelMutation.mutateAsync({ id: requestId })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to cancel this request. Please try again.')
+    }
+  }
+
+  if (!confirming) {
+    return (
+      <Pressable onPress={() => setConfirming(true)}>
+        <Text style={s.cancelLink}>Cancel this request</Text>
+      </Pressable>
+    )
+  }
+
+  return (
+    <View style={s.confirmRow}>
+      <Text style={s.confirmText}>Cancel this request?</Text>
+      {error ? <Text style={s.errorText}>{error}</Text> : null}
+      <View style={s.confirmBtns}>
+        <MBtn variant="secondary" sm style={s.flexBtn} disabled={cancelMutation.isPending} onPress={() => setConfirming(false)}>
+          Keep request
+        </MBtn>
+        <MBtn variant="danger" sm style={s.flexBtn} disabled={cancelMutation.isPending} onPress={() => void cancel()}>
+          {cancelMutation.isPending ? 'Cancelling...' : 'Cancel request'}
+        </MBtn>
+      </View>
+    </View>
+  )
+}
+
+/** One nearby pharmacy's quote: choose it, or decline just this price. */
+function OfferCard({
+  offer,
+  delivery,
+  money,
+  choosing,
+  declining,
+  disabled,
+  onChoose,
+  onDecline,
+  onOpenMap,
+}: {
+  offer: PrescriptionOffer
+  delivery: boolean
+  money: (value: number) => string
+  choosing: boolean
+  declining: boolean
+  disabled: boolean
+  onChoose: () => void
+  onDecline: () => void
+  onOpenMap: (url: string) => void
+}) {
+  const [confirmDecline, setConfirmDecline] = useState(false)
+  const items = offer.quotedItems ?? []
+  const total = prescriptionOfferTotal(offer, delivery)
+
+  return (
+    <View style={s.offerCard}>
+      <View style={s.offerTop}>
+        <View style={s.offerCopy}>
+          <Text style={s.offerName}>{offer.provider}</Text>
+          <Text style={s.offerMeta}>
+            {offer.distanceKm.toFixed(1)} km away{offer.rating ? ` · ★ ${offer.rating.toFixed(1)}` : ''}
+          </Text>
+        </View>
+        <View style={s.offerPriceCol}>
+          <Text style={s.offerTotal}>{money(total)}</Text>
+          {delivery ? <Text style={s.offerMeta}>incl. {money(offer.deliveryFee ?? 0)} delivery</Text> : null}
+        </View>
+      </View>
+
+      <PlaceDetails
+        addressLine={offer.addressLine}
+        directions={delivery ? undefined : offer.directions}
+        mapUrl={offer.mapUrl}
+        onOpenMap={onOpenMap}
+      />
+
+      {delivery ? <Text style={s.offerMeta}>Delivery is on credit only.</Text> : null}
+
+      {items.length > 0 ? (
+        <View style={s.offerItems}>
+          {items.map((item, index) => (
+            <View key={`${offer.id}-${index}`} style={s.offerItemRow}>
+              <Text style={s.offerItemName}>
+                {item.name}
+                {item.quantity ? ` × ${item.quantity}` : ''}
+                {item.substitute ? ` (substitute: ${item.substitute})` : ''}
+              </Text>
+              <Text style={s.offerItemPrice}>
+                {item.unitPrice != null ? money(item.unitPrice * (Number.parseFloat(item.quantity || '1') || 1)) : '—'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {offer.pharmacyNotes ? <Text style={s.offerNote}>“{offer.pharmacyNotes}”</Text> : null}
+
+      <MBtn variant="primary" fullWidth disabled={disabled} onPress={onChoose}>
+        {choosing ? 'Choosing...' : 'Choose this pharmacy'}
+      </MBtn>
+
+      {confirmDecline ? (
+        <View style={s.confirmRow}>
+          <Text style={s.confirmText}>Decline this price?</Text>
+          <View style={s.confirmBtns}>
+            <MBtn variant="secondary" sm style={s.flexBtn} disabled={declining} onPress={() => setConfirmDecline(false)}>
+              Keep
+            </MBtn>
+            <MBtn variant="danger" sm style={s.flexBtn} disabled={declining} onPress={onDecline}>
+              {declining ? 'Declining...' : 'Decline'}
+            </MBtn>
+          </View>
+        </View>
+      ) : (
+        <Pressable onPress={() => setConfirmDecline(true)} disabled={disabled}>
+          <Text style={s.declineLink}>Decline this price</Text>
+        </Pressable>
+      )}
+    </View>
+  )
+}
+
 export function PrescriptionDetailScreen({
   navigation,
   route,
@@ -211,10 +344,15 @@ export function PrescriptionDetailScreen({
 
   const [previewOpen, setPreviewOpen] = useState(false)
   const [attachError, setAttachError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [choosingOfferId, setChoosingOfferId] = useState<string | null>(null)
+  const [decliningOfferId, setDecliningOfferId] = useState<string | null>(null)
 
   /* Mark a quoted prescription as reviewed as soon as the patient views it —
      mirrors the web app so quoteReviewedAt is recorded before accept/decline. */
   const reviewMutation = useMarkPrescriptionQuoteReviewedMutation()
+  const selectOffer = useSelectPrescriptionOfferMutation()
+  const declineOffer = useDeclinePrescriptionOfferMutation()
   const reviewedIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -262,7 +400,16 @@ export function PrescriptionDetailScreen({
     )
   }
 
-  const statusMeta = getStatusMeta(request.status)
+  const stage = prescriptionStage(request)
+  const choosing = isChoosingPharmacy(request)
+  const delivery = request.fulfillmentMode === 'delivery'
+  const pharmacy = request.provider ?? 'The pharmacy'
+  const statusPill = prescriptionStatusPill(request)
+  const offers = prescriptionOffers(request)
+  const search = prescriptionSearch(request)
+  const sortedOffers = [...offers].sort(
+    (a, b) => prescriptionOfferTotal(a, delivery) - prescriptionOfferTotal(b, delivery),
+  )
   const invoiceState = prescriptionInvoiceState(request)
   const attachment = request.attachment
   const attachmentUrl = attachment.url ?? attachment.dataUrl ?? ''
@@ -270,6 +417,21 @@ export function PrescriptionDetailScreen({
     attachment.type === 'image' ||
     attachment.mimeType?.startsWith('image/') ||
     attachmentUrl.startsWith('data:image/')
+  const items = request.quotedItems ?? []
+  const hasQuote = request.quotedAmount != null || items.length > 0
+  const total = prescriptionTotal(request)
+  const money = (value: number) => formatCurrency(value, currency)
+  const progress = prescriptionProgress(request)
+  const sentTo = request.pharmaciesContacted != null
+    ? `${search.asked} ${search.asked === 1 ? 'pharmacy' : 'pharmacies'} within ${search.radiusKm} km`
+    : `Nearby pharmacies within ${search.radiusKm} km`
+
+  const findPharmacy = () => navigation.navigate('PrescriptionRequest')
+
+  const openMap = (url: string) => {
+    setActionError(null)
+    Linking.openURL(url).catch(() => setActionError('Unable to open the map on your device.'))
+  }
 
   const openAttachment = async () => {
     setAttachError(null)
@@ -293,21 +455,223 @@ export function PrescriptionDetailScreen({
     }
   }
 
+  const handleChooseOffer = async (offerId: string) => {
+    setActionError(null)
+    setChoosingOfferId(offerId)
+    try {
+      await selectOffer.mutateAsync({ id: request.id, offerId })
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Unable to choose this pharmacy. Please try again.')
+    } finally {
+      setChoosingOfferId(null)
+    }
+  }
+
+  const handleDeclineOffer = async (offerId: string) => {
+    setActionError(null)
+    setDecliningOfferId(offerId)
+    try {
+      await declineOffer.mutateAsync({ id: request.id, offerId })
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Unable to decline this price. Please try again.')
+    } finally {
+      setDecliningOfferId(null)
+    }
+  }
+
+  const sendNewButton = (
+    <MBtn variant="primary" fullWidth onPress={findPharmacy}>
+      Send a new request
+    </MBtn>
+  )
+
+  const findAnotherButton = (
+    <MBtn variant="secondary" fullWidth onPress={findPharmacy}>
+      Find another pharmacy
+    </MBtn>
+  )
+
+  const pickupPlace = (
+    <PlaceDetails
+      addressLine={request.providerAddressLine}
+      directions={request.providerDirections}
+      mapUrl={request.providerMapUrl}
+      onOpenMap={openMap}
+    />
+  )
+
+  // ── Next step: one message for the current stage ──
+  const nextContent = (): NextContent => {
+    if (stage === 'closed') {
+      if (request.status === 'expired') {
+        return {
+          title: 'No pharmacies available near you',
+          body: 'No registered pharmacy near you could fill this prescription. You can send a new request.',
+          extra: sendNewButton,
+        }
+      }
+      if (request.status === 'rejected') {
+        return {
+          title: `${pharmacy} couldn’t fill this`,
+          body: request.declineReason
+            ? `Reason: ${request.declineReason}. You can send it to another pharmacy.`
+            : 'You can send it to another pharmacy.',
+          extra: findAnotherButton,
+        }
+      }
+      return {
+        title: 'This order was cancelled',
+        body: request.declineReason
+          ? `You declined this quote: ${request.declineReason}`
+          : 'You can send the same prescription again.',
+        extra: findAnotherButton,
+      }
+    }
+
+    if (choosing && offers.length > 0) {
+      return {
+        title: `${offers.length} ${offers.length === 1 ? 'pharmacy has' : 'pharmacies have'} sent a price`,
+        body: `Compare them below and choose one. Choosing one tells them to prepare it. ${
+          delivery
+            ? 'You pay the invoice once it has been delivered.'
+            : 'You go to collect and pay there; the invoice is sent when you arrive.'
+        } Nothing is charged until you approve it with your PIN.${
+          request.pharmaciesPending ? ` ${request.pharmaciesPending} more may still reply.` : ''
+        }`,
+        extra: <CancelRequest requestId={request.id} />,
+      }
+    }
+
+    if (choosing && request.pharmaciesContacted === 0) {
+      return {
+        title: 'No pharmacies available near you',
+        body: 'No registered pharmacy near you could take this prescription. You can send a new request.',
+        extra: sendNewButton,
+      }
+    }
+
+    if (choosing) {
+      const counts = request.pharmaciesContacted != null
+        ? `Asked ${search.asked} ${search.asked === 1 ? 'pharmacy' : 'pharmacies'} within ${search.radiusKm} km. ${search.replied} replied, ${search.declined} declined.`
+        : `Searching within ${search.radiusKm} km.`
+      const widened = search.widened
+        ? `Nobody within 2 km could fill it, so we widened the search to ${search.radiusKm} km.`
+        : ''
+      return {
+        title: 'Waiting for quotes',
+        body: [counts, widened, 'We’ll notify you as prices arrive.'].filter(Boolean).join(' '),
+        extra: <CancelRequest requestId={request.id} />,
+      }
+    }
+
+    switch (stage) {
+      case 'reviewQuote':
+        return {
+          title: `${pharmacy} sent a price`,
+          body: `Check the items and total below. ${
+            delivery
+              ? 'Accepting tells them to prepare it. You pay the invoice once it has been delivered.'
+              : 'Accepting tells them to prepare it. You go to collect and pay there; the invoice is sent when you arrive.'
+          } Nothing is charged until you approve it with your PIN.`,
+        }
+      case 'approvePayment':
+        return delivery
+          ? {
+            title: 'Delivered. Pay the invoice',
+            body: `Approve invoice ${request.invoiceId} with your PIN to pay for your delivery.`,
+          }
+          : {
+            title: 'Pay at the counter',
+            body: `Review invoice ${request.invoiceId}${total > 0 ? ` (${money(total)})` : ''} and approve it with your PIN.`,
+            extra: pickupPlace,
+          }
+      case 'awaitQuote':
+        return {
+          title: `Waiting for ${pharmacy}`,
+          body: 'They are checking stock and will send you a price. We’ll notify you when it arrives.',
+        }
+      case 'awaitInvoice':
+        return delivery
+          ? {
+            title: 'The pharmacy is preparing your order',
+            body: 'You’ll get the invoice after delivery.',
+          }
+          : {
+            title: `Go to ${pharmacy} to collect and pay`,
+            body: 'The pharmacy sends the invoice when you get there; approve it with your PIN at the counter.',
+            extra: pickupPlace,
+          }
+      case 'preparing':
+        return delivery
+          ? {
+            title: 'The pharmacy is preparing your order',
+            body: 'You’ll get the invoice after delivery.',
+          }
+          : {
+            title: 'Being prepared',
+            body: `${pharmacy} is getting your order ready. We’ll tell you when it’s ready for pickup.`,
+          }
+      case 'ready':
+        return delivery
+          ? {
+            title: 'Ready and on its way',
+            body: `${pharmacy} will deliver to ${request.deliveryAddress ?? 'your address'}.`,
+          }
+          : {
+            title: `Ready for pickup at ${pharmacy}`,
+            body: 'Bring your ID when you collect it.',
+            extra: pickupPlace,
+          }
+      case 'done':
+        return {
+          title: `${delivery ? 'Delivered' : 'Collected'}${request.fulfilledAt ? ` on ${formatDate(request.fulfilledAt)}` : ''}`,
+          body: isPrescriptionPaid(request) ? 'Your payment has been approved.' : 'This order is complete.',
+        }
+    }
+  }
+  const next = nextContent()
+
+  const offersCard = choosing && sortedOffers.length > 0 ? (
+    <MCard padding={16}>
+      <View style={s.cardTopRow}>
+        <Text style={s.sectionTitle}>Prices from nearby pharmacies</Text>
+        <Text style={s.metaSmall}>Within {search.radiusKm} km</Text>
+      </View>
+      <View style={s.offerList}>
+        {sortedOffers.map(offer => (
+          <OfferCard
+            key={offer.id}
+            offer={offer}
+            delivery={delivery}
+            money={money}
+            choosing={choosingOfferId === offer.id}
+            declining={decliningOfferId === offer.id}
+            disabled={selectOffer.isPending || declineOffer.isPending}
+            onChoose={() => void handleChooseOffer(offer.id)}
+            onDecline={() => void handleDeclineOffer(offer.id)}
+            onOpenMap={openMap}
+          />
+        ))}
+      </View>
+    </MCard>
+  ) : null
+
   return (
     <Screen header="detail">
       <ScrollArea gap={14} px={16} py={16}>
-        <PageTitle title={request.id} subtitle={`${request.provider ?? 'Pharmacy'} · ${request.for}`} />
+        <PageTitle title={request.id} subtitle={`${prescriptionPharmacyLabel(request)} · ${request.for}`} />
         <MCard padding={16}>
           <View style={s.cardTopRow}>
             <Text style={s.sectionTitle}>Request Details</Text>
-            <GGPill type={statusMeta.type}>{statusMeta.label}</GGPill>
+            <GGPill type={statusPill.tone}>{statusPill.label}</GGPill>
           </View>
           <InfoRow label="Submitted" value={formatDate(request.submittedAt)} />
-          <InfoRow label="Pharmacy" value={request.provider ?? '—'} />
+          <InfoRow label="Pharmacy" value={request.provider ?? (choosing ? 'Not chosen yet' : '—')} />
+          {choosing ? <InfoRow label="Sent to" value={sentTo} /> : null}
           <InfoRow label="For" value={request.for} />
           <InfoRow
             label="Fulfillment"
-            value={request.fulfillmentMode === 'delivery' ? 'Delivery' : 'Pickup'}
+            value={delivery ? 'Delivery' : 'Pickup'}
           />
           {request.deliveryAddress ? (
             <InfoRow label="Delivery address" value={request.deliveryAddress} />
@@ -318,16 +682,17 @@ export function PrescriptionDetailScreen({
           ) : null}
         </MCard>
 
-        <StatusNotice request={request} />
-        {invoiceState.closed && (
-          <MBtn variant="secondary" fullWidth onPress={() => navigation.navigate('ProviderList', { category: 'pharmacy' })}>
-            Find another pharmacy
-          </MBtn>
-        )}
+        <NextStep title={next.title} body={next.body}>
+          {next.extra}
+        </NextStep>
+        {actionError ? <Text style={s.errorText}>{actionError}</Text> : null}
+
+        {offersCard}
+
         <MCard padding={16}>
           <Text style={s.sectionTitle}>Order progress</Text>
-          {prescriptionProgress(request).map(step => (
-            <InfoRow key={step.label} label={step.label} value={step.done ? (step.date ? formatDate(step.date) : 'Complete') : 'Pending'} />
+          {progress.map(step => (
+            <InfoRow key={step.label} label={step.label} value={step.done ? (step.at ? formatDate(step.at) : 'Complete') : 'Pending'} />
           ))}
         </MCard>
 
@@ -360,29 +725,29 @@ export function PrescriptionDetailScreen({
           {attachError ? <Text style={s.errorText}>{attachError}</Text> : null}
         </MCard>
 
-        {(request.quotedAmount != null || (request.quotedItems?.length ?? 0) > 0) && (
+        {!choosing && hasQuote ? (
           <MCard padding={16}>
             <Text style={s.sectionTitle}>Quote from Pharmacy</Text>
-            {(request.quotedItems ?? []).map((item, index) => (
+            {items.map((item, index) => (
               <View key={`${request.id}-item-${index}`} style={s.quoteRow}>
                 <Text style={s.quoteName}>
                   {item.name}
                   {item.quantity ? ` × ${item.quantity}` : ''}
                 </Text>
                 <Text style={s.quotePrice}>
-                  {item.unitPrice != null ? formatCurrency(item.unitPrice, currency) : '—'}
+                  {item.unitPrice != null ? money(item.unitPrice) : '—'}
                 </Text>
               </View>
             ))}
             {request.quotedAmount != null ? (
               <>
-              <InfoRow label="Medicines subtotal" value={formatCurrency(request.quotedAmount, currency)} />
-              {request.fulfillmentMode === 'delivery' && (
-                <InfoRow label="Delivery fee" value={formatCurrency(request.deliveryFee ?? 0, currency)} />
+              <InfoRow label="Medicines subtotal" value={money(request.quotedAmount)} />
+              {delivery && (
+                <InfoRow label="Delivery fee" value={money(request.deliveryFee ?? 0)} />
               )}
               <View style={s.quoteTotalRow}>
                 <Text style={s.quoteTotalLabel}>Total</Text>
-                <Text style={s.quoteTotalValue}>{formatCurrency(prescriptionTotal(request), currency)}</Text>
+                <Text style={s.quoteTotalValue}>{money(total)}</Text>
               </View>
               </>
             ) : null}
@@ -391,7 +756,7 @@ export function PrescriptionDetailScreen({
             ) : null}
             <QuoteDecision request={request} />
           </MCard>
-        )}
+        ) : null}
 
         {request.invoiceId ? (
           <MCard padding={16}>
@@ -399,7 +764,7 @@ export function PrescriptionDetailScreen({
             <Text style={s.invoiceCopy}>
               {invoiceState.paid ? 'Your payment has been approved. You can view the receipt below.'
                 : invoiceState.closed ? 'This order is closed. You can view the linked invoice below.'
-                : invoiceState.canPay ? 'Review the invoice and approve payment with your payment PIN.'
+                : invoiceState.canPay ? 'Review the invoice and approve it with your PIN.'
                 : 'View the invoice for its current status.'}
             </Text>
             <View style={s.invoicePanel}>
@@ -492,6 +857,11 @@ const s = StyleSheet.create({
     fontSize: 17,
     fontFamily: fontWeights.extraBold,
     color: colors.text,
+  },
+  metaSmall: {
+    fontSize: 12.5,
+    fontFamily: fontWeights.medium,
+    color: colors.textSub,
   },
   infoRow: {
     flexDirection: 'row',
@@ -637,16 +1007,150 @@ const s = StyleSheet.create({
     backgroundColor: colors.card,
   },
   notice: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    padding: 16,
+    gap: 10,
     borderRadius: radii.default,
     backgroundColor: colors.blue3,
+  },
+  noticeTitle: {
+    fontSize: 16,
+    fontFamily: fontWeights.extraBold,
+    color: colors.navy,
+    lineHeight: 22,
   },
   noticeText: {
     fontSize: 13.5,
     fontFamily: fontWeights.regular,
     color: colors.blueInk,
     lineHeight: 20,
+  },
+  placeBlock: {
+    gap: 8,
+    padding: 12,
+    borderRadius: radii.default,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  placeAddress: {
+    fontSize: 14,
+    fontFamily: fontWeights.bold,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  placeLabel: {
+    fontSize: 12,
+    fontFamily: fontWeights.bold,
+    color: colors.textSub,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  placeBody: {
+    fontSize: 13.5,
+    fontFamily: fontWeights.regular,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  offerList: {
+    gap: 12,
+  },
+  offerCard: {
+    gap: 10,
+    padding: 14,
+    borderRadius: radii.default,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  offerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  offerCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  offerPriceCol: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    gap: 2,
+  },
+  offerName: {
+    fontSize: 16,
+    fontFamily: fontWeights.extraBold,
+    color: colors.text,
+  },
+  offerMeta: {
+    fontSize: 13,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    lineHeight: 19,
+  },
+  offerTotal: {
+    fontSize: 17,
+    fontFamily: fontWeights.extraBold,
+    color: colors.navy,
+  },
+  offerItems: {
+    gap: 6,
+  },
+  offerItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  offerItemName: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: fontWeights.medium,
+    color: colors.text,
+  },
+  offerItemPrice: {
+    fontSize: 14,
+    fontFamily: fontWeights.bold,
+    color: colors.text,
+  },
+  offerNote: {
+    fontSize: 13,
+    fontFamily: fontWeights.regular,
+    color: colors.textSub,
+    fontStyle: 'italic',
+    lineHeight: 19,
+  },
+  declineLink: {
+    alignSelf: 'center',
+    paddingVertical: 6,
+    fontSize: 14,
+    fontFamily: fontWeights.bold,
+    color: colors.textSub,
+  },
+  cancelLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    fontSize: 14,
+    fontFamily: fontWeights.bold,
+    color: colors.textSub,
+  },
+  confirmRow: {
+    gap: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  confirmText: {
+    fontSize: 14,
+    fontFamily: fontWeights.semiBold,
+    color: colors.text,
+  },
+  confirmBtns: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  flexBtn: {
+    flex: 1,
   },
   invoiceCopy: {
     fontSize: 14.5,

@@ -179,6 +179,15 @@ export const authService = {
 
   async logout(): Promise<void> {
     const storage = getTokenStorage()
+    if (storage.beforeLogout) {
+      let timeout: ReturnType<typeof setTimeout> | undefined
+      try {
+        await Promise.race([
+          storage.beforeLogout().catch(() => {}),
+          new Promise<void>(resolve => { timeout = setTimeout(resolve, 3000) }),
+        ])
+      } finally { clearTimeout(timeout) }
+    }
     const accessToken = storage.getAccessToken()
     const refreshToken = storage.getRefreshToken()
     storage.clear()

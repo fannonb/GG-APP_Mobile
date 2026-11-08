@@ -51,8 +51,8 @@ test('paid/authorized and closed prescriptions never ask for another payment', (
 
 test('rejected prescription progress stops at the pharmacy decision', () => {
   const steps = prescriptionProgress({ status: 'rejected', fulfillmentMode: 'delivery', submittedAt: '2026-10-01', declinedAt: '2026-10-02' })
-  assert.deepEqual(steps.map(step => step.label), ['Submitted', 'Declined by pharmacy'])
-  assert.equal(steps.at(-1).date, '2026-10-02')
+  assert.deepEqual(steps.map(step => step.label), ['Sent', 'Declined by pharmacy'])
+  assert.equal(steps.at(-1).at, '2026-10-02')
 })
 
 test('an existing approved account cannot overwrite a pending/rejected increase decision', () => {
